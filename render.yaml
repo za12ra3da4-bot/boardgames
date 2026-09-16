@@ -1,0 +1,9 @@
+# Render.com 무료 서버 설정 (Render 대시보드 → New → Blueprint → 이 저장소 선택)
+services:
+  - type: web
+    name: boardgames
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /healthz

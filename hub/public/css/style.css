@@ -1,0 +1,150 @@
+:root {
+  --bg: #100b10;
+  --panel: #1c151c;
+  --panel2: #241b23;
+  --line: #3a2d35;
+  --gold: #d9b45a;
+  --gold2: #f2d68a;
+  --paper: #efe3c8;
+  --text: #eadfca;
+  --muted: #a8998a;
+  --green: #5fbf7a;
+  --amber: #d9a93c;
+  --font: 'Noto Sans KR', system-ui, -apple-system, 'Malgun Gothic', sans-serif;
+  --display: 'Black Han Sans', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+  --serif: 'Gowun Batang', 'Batang', serif;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  font-family: var(--font);
+  color: var(--text);
+  background:
+    radial-gradient(1100px 650px at 50% -14%, #2e1c2c 0, transparent 62%),
+    radial-gradient(900px 520px at 100% 112%, #201524 0, transparent 60%),
+    var(--bg);
+  overflow-x: hidden;
+}
+img { max-width: 100%; }
+button { font-family: inherit; }
+a { color: inherit; text-decoration: none; }
+
+/* 종이 질감 */
+.grain {
+  position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: .5;
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 230, 190, .02) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, .07) 0 2px, transparent 2px 140px);
+}
+
+/* ───── 아이콘 (SVG 마스크 - 이모지 안 씀) */
+.ic {
+  display: inline-block; width: 1.05em; height: 1.05em; flex: none;
+  background: currentColor; vertical-align: -.16em;
+  -webkit-mask: var(--i) center / contain no-repeat; mask: var(--i) center / contain no-repeat;
+}
+.ic-users { --i: url(../assets/users.svg); }
+.ic-clock { --i: url(../assets/clock.svg); }
+
+/* ───── 상단 바 */
+.top {
+  position: relative; z-index: 1;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  padding: 18px clamp(16px, 4vw, 40px);
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(30, 22, 30, .8), transparent);
+}
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-mark { width: 40px; height: 40px; }
+.brand-name { font-family: var(--display); font-size: 20px; letter-spacing: .02em; color: var(--gold2); }
+.brand-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+.addr {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px 8px 14px;
+  border: 1px solid var(--line); border-radius: 999px;
+  background: rgba(20, 14, 20, .6);
+}
+.addr-label { font-size: 11px; color: var(--muted); letter-spacing: .06em; }
+.addr code { font-size: 13px; color: var(--gold2); font-family: ui-monospace, Menlo, Consolas, monospace; }
+.copy {
+  border: 1px solid var(--line); background: var(--panel2); color: var(--text);
+  border-radius: 999px; padding: 5px 12px; font-size: 12px; cursor: pointer;
+  transition: border-color .15s, color .15s;
+}
+.copy:hover { border-color: var(--gold); color: var(--gold2); }
+.copy.done { color: var(--green); border-color: var(--green); }
+
+/* ───── 본문 */
+.wrap {
+  position: relative; z-index: 1;
+  max-width: 1040px; margin: 0 auto;
+  padding: clamp(28px, 6vw, 56px) clamp(16px, 4vw, 24px) 64px;
+}
+.headline {
+  font-family: var(--display); font-weight: 400;
+  font-size: clamp(34px, 7vw, 56px); line-height: 1.1; margin: 0;
+  letter-spacing: .01em;
+}
+.headline em { font-style: normal; color: var(--gold2); }
+.lede { color: var(--muted); margin: 10px 0 30px; font-size: clamp(14px, 2.2vw, 16px); }
+
+.grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.loading { color: var(--muted); padding: 40px 0; }
+
+/* ───── 게임 카드 */
+.card {
+  display: flex; flex-direction: column;
+  border: 1px solid var(--line); border-radius: 16px; overflow: hidden;
+  background: linear-gradient(180deg, var(--panel2), var(--panel));
+  box-shadow: 0 18px 40px rgba(0, 0, 0, .45);
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.card:hover { transform: translateY(-4px); border-color: var(--gold); box-shadow: 0 24px 54px rgba(0, 0, 0, .55); }
+.card:focus-visible { outline: 2px solid var(--gold2); outline-offset: 3px; }
+.card.off { opacity: .72; }
+.card.off:hover { transform: none; border-color: var(--line); }
+
+.card-art {
+  display: grid; place-items: center; height: 170px; padding: 18px;
+  background:
+    radial-gradient(360px 180px at 50% 120%, rgba(217, 180, 90, .18), transparent 70%),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, .018) 0 6px, transparent 6px 12px),
+    #150f15;
+  border-bottom: 1px solid var(--line);
+}
+.card-logo { max-height: 128px; width: auto; filter: drop-shadow(0 6px 14px rgba(0, 0, 0, .5)); }
+
+.card-body { padding: 18px 20px 6px; flex: 1; }
+.card-kicker { font-size: 11px; letter-spacing: .14em; color: var(--gold); text-transform: none; }
+.card-title { font-family: var(--display); font-weight: 400; font-size: 26px; margin: 6px 0 8px; }
+.card-desc { font-family: var(--serif); color: var(--muted); font-size: 14px; line-height: 1.65; margin: 0 0 14px; }
+.card-meta { display: flex; gap: 16px; font-size: 12.5px; color: var(--muted); }
+.meta { display: inline-flex; align-items: center; gap: 6px; }
+
+.card-foot {
+  display: flex; align-items: center; gap: 9px;
+  padding: 14px 20px; margin-top: 8px;
+  border-top: 1px solid var(--line);
+  background: rgba(12, 8, 12, .45);
+  font-size: 13px;
+}
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
+.card.on .dot { background: var(--green); box-shadow: 0 0 0 4px rgba(95, 191, 122, .16); }
+.card.wait .dot { background: var(--amber); animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .35; } }
+.state { color: var(--muted); }
+.card.on .state { color: var(--green); }
+.card.wait .state { color: var(--amber); }
+.go { margin-left: auto; color: var(--gold2); font-weight: 700; }
+.card.off .go { color: var(--muted); }
+
+.foot { margin-top: 34px; color: var(--muted); font-size: 12.5px; line-height: 1.7; }
+.foot b { color: var(--text); font-weight: 700; }
+
+@media (max-width: 520px) {
+  .addr { width: 100%; justify-content: space-between; }
+  .card-art { height: 140px; }
+}

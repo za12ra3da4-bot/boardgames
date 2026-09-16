@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"><defs><radialGradient id="sky" cx="0.5" cy="0.3" r="0.7"><stop offset="0" stop-color="#3a2a4a"/><stop offset="1" stop-color="#140d18"/></radialGradient><radialGradient id="moon" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#fff6d8"/><stop offset="0.6" stop-color="#f2e2b0"/><stop offset="1" stop-color="#f2e2b0" stop-opacity="0"/></radialGradient></defs>
+  <circle cx="60" cy="60" r="57" fill="url(#sky)" stroke="#d9b45a" stroke-width="3"/>
+  <circle cx="82" cy="34" r="17" fill="url(#moon)"/>
+  <circle cx="82" cy="34" r="10" fill="#fbefc8"/>
+  <path fill="#0c080e" d="M16 96V62l12-10 5 4V44h6v17l21-19 21 19V44h6v12l5-4 12 10v34z"/>
+  <g fill="#f2c95a"><rect x="24" y="68" width="5" height="7" rx="1"/><rect x="36" y="68" width="5" height="7" rx="1"/><rect x="57" y="58" width="6" height="8" rx="1"/><rect x="79" y="68" width="5" height="7" rx="1"/><rect x="91" y="68" width="5" height="7" rx="1" opacity=".35"/><rect x="36" y="82" width="5" height="7" rx="1" opacity=".35"/></g>
+  <path fill="#2a1d14" d="M55 96V82a5 5 0 0 1 10 0v14z"/>
+  <circle cx="71" cy="72" r="17" fill="#f2e6c2" fill-opacity=".12" stroke="#d9b45a" stroke-width="5.5"/>
+  <path stroke="#d9b45a" stroke-width="8" stroke-linecap="round" d="M84 85l14 14"/>
+  <path fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="2" stroke-linecap="round" d="M62 66a11 11 0 0 1 8-5"/></svg>

@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>황야의 뱅 · 온라인 서부 카드게임</title>
+<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700;900&family=Rye&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="dust" aria-hidden="true"></div>
+<div class="conn" id="conn" hidden></div>
+
+<!-- 시작 화면 -->
+<section id="home" class="screen">
+  <div class="home">
+    <div class="home-hero">
+      <img class="home-logo" src="assets/logo.svg" alt="">
+      <p class="kicker">친구들과 함께하는 온라인 서부 총잡이 카드게임</p>
+      <h1 class="title">황야의 <span>뱅!</span></h1>
+      <p class="tagline">보안관을 지킬 것인가, 쓰러뜨릴 것인가.<br>정체를 숨긴 채 황야의 마지막 총잡이가 되어라.</p>
+    </div>
+    <div class="poster">
+      <div class="poster-head">WANTED</div>
+      <div class="poster-sub">총잡이 모집</div>
+      <label class="lbl" for="nameInput">이름</label>
+      <input id="nameInput" class="input" maxlength="10" placeholder="닉네임 (최대 10자)" autocomplete="off">
+      <button id="createBtn" class="btn btn-red btn-lg wide"><i class="ic ic-plus"></i>새 방 만들기</button>
+      <div class="or"><span>또는 초대 코드로 입장</span></div>
+      <div class="join-row">
+        <input id="codeInput" class="input code" maxlength="4" placeholder="ABCD" autocomplete="off">
+        <button id="joinBtn" class="btn btn-dark btn-lg">입장</button>
+      </div>
+    </div>
+    <div class="how">
+      <div class="how-step"><img src="assets/role/sheriff.svg" alt=""><b>비밀 역할</b><span>보안관만 공개, 나머지는 정체를 숨긴다</span></div>
+      <div class="how-step"><img src="assets/card/bang.svg" alt=""><b>뱅!</b><span>사거리 안의 적을 쏘고 빗나감!으로 피한다</span></div>
+      <div class="how-step"><img src="assets/card/barrel.svg" alt=""><b>장비</b><span>총, 술통, 야생마로 판을 유리하게</span></div>
+      <div class="how-step"><img src="assets/card/duel.svg" alt=""><b>승리</b><span>내 진영의 목표를 가장 먼저 이룬다</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- 대기실 -->
+<section id="lobby" class="screen" hidden>
+  <header class="bar">
+    <div class="bar-brand"><img src="assets/logo.svg" alt=""><span>황야의 뱅</span></div>
+    <div class="bar-mid">
+      <div class="room-code"><span>초대 코드</span><b id="lobbyCode">----</b></div>
+      <button class="btn btn-dark btn-sm" id="copyLinkBtn"><i class="ic ic-link"></i>초대 링크 복사</button>
+    </div>
+    <div class="bar-right">
+      <button class="icon-btn" data-mute title="소리 켜기/끄기"><i class="ic ic-volume"></i></button>
+      <button class="btn btn-dark btn-sm" data-leave><i class="ic ic-door"></i>나가기</button>
+    </div>
+  </header>
+  <div class="lobby">
+    <div class="lobby-main">
+      <h2 class="h2">총잡이 명단 <small>4~7명 · 자리와 역할은 시작할 때 무작위</small></h2>
+      <div id="seatGrid" class="seat-grid"></div>
+      <div id="spectators" class="spectators"></div>
+      <div class="lobby-actions">
+        <button id="addBotBtn" class="btn btn-dark"><i class="ic ic-bot"></i>AI 총잡이 추가</button>
+        <button id="seatBtn" class="btn btn-dark"><i class="ic ic-eye"></i>관전으로 전환</button>
+        <div class="grow"></div>
+        <span id="startHint" class="hint"></span>
+        <button id="startBtn" class="btn btn-red btn-lg"><i class="ic ic-play"></i>결투 시작</button>
+      </div>
+      <div class="role-table" id="roleTable"></div>
+    </div>
+    <aside class="lobby-side panel" id="lobbyChatMount"></aside>
+  </div>
+</section>
+
+<!-- 게임 -->
+<section id="game" class="screen" hidden>
+  <header class="bar">
+    <div class="bar-brand"><img src="assets/logo.svg" alt=""><span>황야의 뱅</span><em id="gameCode"></em></div>
+    <div id="turnBanner" class="turn-banner"></div>
+    <div class="bar-right">
+      <button class="btn btn-dark btn-sm" id="rulesBtn" title="게임 방법 열기/닫기"><i class="ic ic-help"></i>룰</button>
+      <button class="icon-btn" data-mute title="소리 켜기/끄기"><i class="ic ic-volume"></i></button>
+      <button class="btn btn-dark btn-sm" id="hostLobbyBtn" hidden>대기실로</button>
+      <button class="btn btn-dark btn-sm" data-leave><i class="ic ic-door"></i>나가기</button>
+    </div>
+  </header>
+  <div class="game" id="gameGrid">
+    <aside class="panel rules-panel" id="rulesPanel"></aside>
+    <main class="table-wrap">
+      <div class="felt" id="felt">
+        <div id="seats"></div>
+        <div class="center">
+          <div class="pile" id="deckPile" title="덱"><div class="bcard back"></div><b id="deckCount">0</b></div>
+          <div class="pile" id="discardPile" title="버린 카드"></div>
+          <div class="check-area" id="checkArea"></div>
+        </div>
+        <div class="store-area" id="storeArea" hidden></div>
+        <svg class="fx" id="fx"></svg>
+      </div>
+      <div class="me-area" id="meArea">
+        <div class="me-info" id="meInfo"></div>
+        <div class="me-play">
+          <div class="action-bar" id="actionBar"></div>
+          <div class="hand" id="hand"></div>
+        </div>
+      </div>
+    </main>
+    <aside class="side panel">
+      <nav class="tabs" id="tabs">
+        <button data-tab="log" class="on"><i class="ic ic-scroll"></i>기록</button>
+        <button data-tab="chat"><i class="ic ic-chat"></i>채팅<span class="badge" id="chatBadge" hidden></span></button>
+      </nav>
+      <div class="tab" id="tab-log"></div>
+      <div class="tab tab-chat" id="tab-chat" hidden></div>
+    </aside>
+  </div>
+</section>
+
+<a class="back-hub" id="backHub" href="/" hidden><i class="ic ic-next"></i>다른 보드게임 고르기</a>
+
+<div id="zoom" class="zoom" hidden></div>
+<div id="modal" class="modal" hidden><div class="modal-box" id="modalBox"></div></div>
+<div id="toasts" class="toasts"></div>
+<div id="flyLayer" class="fly-layer"></div>
+
+<template id="chatTpl">
+  <div class="chat">
+    <div class="chat-log"></div>
+    <form class="chat-form">
+      <input class="input" maxlength="200" placeholder="메시지 입력" autocomplete="off">
+      <button class="btn btn-red btn-sm" type="submit" title="보내기"><i class="ic ic-send"></i></button>
+    </form>
+  </div>
+</template>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="shared/bang.js"></script>
+<script src="js/sfx.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

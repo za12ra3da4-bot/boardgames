@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>보드게임 밤 · 오늘 뭐 할래?</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700;900&family=Gowun+Batang:wght@400;700&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="grain" aria-hidden="true"></div>
+
+<header class="top">
+  <div class="brand">
+    <img class="brand-mark" src="assets/favicon.svg" alt="">
+    <div class="brand-txt">
+      <div class="brand-name">보드게임 밤</div>
+      <div class="brand-sub">친구들이랑 같이 하는 온라인 보드게임</div>
+    </div>
+  </div>
+  <div class="addr" id="addr" title="친구에게 이 주소를 알려 주세요">
+    <span class="addr-label">친구용 주소</span>
+    <code id="addr-url">—</code>
+    <button type="button" id="copy" class="copy">복사</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <h1 class="headline">오늘은 <em>뭐</em> 할래?</h1>
+  <p class="lede">하고 싶은 게임을 고르면 바로 방을 만들 수 있어요.</p>
+
+  <section class="grid" id="grid" aria-busy="true">
+    <div class="loading">게임 목록을 불러오는 중…</div>
+  </section>
+
+  <p class="foot">
+    게임이 <b>준비 중</b>이면 서버가 켜지는 중이에요. 잠시 뒤 저절로 <b>바로 시작</b>으로 바뀝니다.
+  </p>
+</main>
+
+<template id="card-tpl">
+  <a class="card" href="#">
+    <div class="card-art">
+      <img class="card-logo" alt="">
+    </div>
+    <div class="card-body">
+      <div class="card-kicker"></div>
+      <h2 class="card-title"></h2>
+      <p class="card-desc"></p>
+      <div class="card-meta">
+        <span class="meta"><i class="ic ic-users"></i><span class="meta-players"></span></span>
+        <span class="meta"><i class="ic ic-clock"></i><span class="meta-time"></span></span>
+      </div>
+    </div>
+    <div class="card-foot">
+      <span class="dot"></span>
+      <span class="state"></span>
+      <span class="go">들어가기</span>
+    </div>
+  </a>
+</template>
+
+<script src="js/hub.js"></script>
+</body>
+</html>
