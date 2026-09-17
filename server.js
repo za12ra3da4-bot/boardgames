@@ -3,9 +3,12 @@
 //   /        보드게임 목록
 //   /bang/   황야의 뱅
 //   /clue/   밤의 저택
+//   /isle/   바람섬 개척기
 const path = require('path');
 const http = require('http');
 const os = require('os');
+const fs = require('fs');
+const crypto = require('crypto');
 const express = require('express');
 const { Server } = require('socket.io');
 
@@ -31,6 +34,16 @@ const GAMES = [
     desc: '보안관, 부관, 무법자, 배신자. 정체를 숨긴 채 벌이는 서부 총격전.',
     players: '4~7명',
     time: '20~40분',
+  },
+  {
+    id: 'isle',
+    base: '/isle',
+    dir: 'isle',
+    title: '바람섬 개척기',
+    sub: '개척 · 교역 보드게임',
+    desc: '자원을 모아 길과 마을을 짓고, 서로 거래하며 먼저 10점을 만드는 개척 게임.',
+    players: '3~4명',
+    time: '45~75분',
   },
 ];
 
@@ -58,12 +71,113 @@ for (const g of GAMES) {
   });
 }
 
-app.get('/api/games', (_req, res) => {
+// ── 게임 방법 영상 링크 (hub/links.json). 관리자만 고칠 수 있다.
+const LINKS_FILE = path.join(__dirname, 'hub', 'links.json');
+function readLinks() {
+  try {
+    return JSON.parse(fs.readFileSync(LINKS_FILE, 'utf8'));
+  } catch (e) {
+    return {};
+  }
+}
+function writeLinks(links) {
+  fs.writeFileSync(LINKS_FILE, `${JSON.stringify(links, null, 2)}\n`);
+}
+// ── 관리자 로그인. 비밀번호는 hub/admin.local.json 에 암호화(scrypt)해서만 보관한다 (GitHub 에 안 올라감).
+//    다른 곳에 배포할 때는 환경 변수 ADMIN_PASSWORD 로 정할 수 있다.
+const ADMIN_FILE = path.join(__dirname, 'hub', 'admin.local.json');
+function checkPassword(pw) {
+  pw = String(pw || '');
+  if (process.env.ADMIN_PASSWORD) {
+    const a = Buffer.from(pw);
+    const b = Buffer.from(process.env.ADMIN_PASSWORD);
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+  }
+  try {
+    const { salt, hash } = JSON.parse(fs.readFileSync(ADMIN_FILE, 'utf8'));
+    const got = crypto.scryptSync(pw, salt, 32);
+    return crypto.timingSafeEqual(got, Buffer.from(hash, 'hex'));
+  } catch (e) {
+    return false;
+  }
+}
+const adminTokens = new Map();           // 토큰 → 만료 시각
+const loginTries = new Map();            // IP → { n, until }
+const ADMIN_TTL = 7 * 24 * 3600_000;
+
+function canEdit(req) {
+  const t = String(req.get('x-admin-token') || '');
+  const exp = adminTokens.get(t);
+  if (!exp) return false;
+  if (exp < Date.now()) { adminTokens.delete(t); return false; }
+  return true;
+}
+
+app.post('/api/admin/login', express.json({ limit: '1kb' }), (req, res) => {
+  const ip = req.socket.remoteAddress || '?';
+  const now = Date.now();
+  const tr = loginTries.get(ip) || { n: 0, until: 0 };
+  if (tr.until > now) return res.status(429).json({ ok: false, error: `너무 많이 틀렸어요. ${Math.ceil((tr.until - now) / 60000)}분 뒤에 다시 시도하세요` });
+  if (!checkPassword(req.body && req.body.password)) {
+    tr.n++;
+    if (tr.n >= 5) { tr.n = 0; tr.until = now + 10 * 60_000; }
+    loginTries.set(ip, tr);
+    return res.status(401).json({ ok: false, error: '비밀번호가 틀렸어요' });
+  }
+  loginTries.delete(ip);
+  const token = crypto.randomBytes(24).toString('hex');
+  adminTokens.set(token, now + ADMIN_TTL);
+  res.json({ ok: true, token });
+});
+
+app.post('/api/admin/logout', (req, res) => {
+  adminTokens.delete(String(req.get('x-admin-token') || ''));
+  res.json({ ok: true });
+});
+
+app.get('/api/games', (req, res) => {
   res.set('Cache-Control', 'no-store');
-  res.json(GAMES.map((g) => ({
-    id: g.id, title: g.title, sub: g.sub, desc: g.desc,
-    players: g.players, time: g.time, url: `${g.base}/`,
-  })));
+  const links = readLinks();
+  res.json({
+    canEdit: canEdit(req),
+    games: GAMES.map((g) => ({
+      id: g.id, title: g.title, sub: g.sub, desc: g.desc,
+      players: g.players, time: g.time, url: `${g.base}/`,
+      links: Array.isArray(links[g.id]) ? links[g.id] : [],
+    })),
+  });
+});
+
+app.post('/api/links', express.json({ limit: '8kb' }), (req, res) => {
+  if (!canEdit(req)) return res.status(403).json({ ok: false, error: '관리자로 로그인해야 고칠 수 있어요' });
+  const { game, action } = req.body || {};
+  if (!GAMES.some((g) => g.id === game)) return res.status(400).json({ ok: false, error: '없는 게임입니다' });
+  const links = readLinks();
+  const list = Array.isArray(links[game]) ? links[game] : [];
+  if (action === 'add') {
+    const url = String(req.body.url || '').trim();
+    let parsed;
+    try { parsed = new URL(url); } catch (e) { parsed = null; }
+    if (!parsed || !/^https?:$/.test(parsed.protocol)) return res.status(400).json({ ok: false, error: '올바른 주소(http로 시작)를 넣어 주세요' });
+    const title = String(req.body.title || '').trim().slice(0, 80) || parsed.hostname;
+    const note = String(req.body.note || '').trim().slice(0, 20);
+    if (list.length >= 12) return res.status(400).json({ ok: false, error: '링크는 게임마다 12개까지예요' });
+    list.push({ title, url: parsed.href, note });
+  } else if (action === 'remove') {
+    const i = Number(req.body.index);
+    if (!Number.isInteger(i) || !list[i]) return res.status(400).json({ ok: false, error: '없는 링크입니다' });
+    list.splice(i, 1);
+  } else if (action === 'move') {
+    const i = Number(req.body.index);
+    const j = i + (req.body.dir === 'up' ? -1 : 1);
+    if (!list[i] || !list[j]) return res.status(400).json({ ok: false, error: '옮길 수 없어요' });
+    [list[i], list[j]] = [list[j], list[i]];
+  } else {
+    return res.status(400).json({ ok: false, error: '알 수 없는 요청입니다' });
+  }
+  links[game] = list;
+  writeLinks(links);
+  res.json({ ok: true, links: list });
 });
 
 app.get('/healthz', (_req, res) => res.send('ok'));

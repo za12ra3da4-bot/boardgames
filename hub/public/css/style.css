@@ -69,6 +69,7 @@ a { color: inherit; text-decoration: none; }
 .loading { color: #fff4dc; font-weight: 700; padding: 60px 0; text-shadow: 1px 1px 0 var(--ink); }
 
 .game { display: flex; flex-direction: column; align-items: center; gap: 18px; width: min(100%, 420px); }
+.game > .stage { display: grid; }
 .game.bang { --w: 250px; --h: 340px; --d: 60px; }
 .game.clue { --w: 380px; --h: 272px; --d: 56px; }
 
@@ -79,7 +80,7 @@ a { color: inherit; text-decoration: none; }
   transform-style: preserve-3d; transform: rotateX(8deg) rotateY(26deg);
   transition: transform .4s cubic-bezier(.2, .8, .2, 1);
 }
-.game:hover .box, .game:focus-visible .box { transform: rotateX(4deg) rotateY(10deg) translateY(-14px); }
+.game .stage:hover .box, .game .stage:focus-visible .box { transform: rotateX(4deg) rotateY(10deg) translateY(-14px); }
 .face { position: absolute; }
 .face.front { inset: 0; transform: translateZ(calc(var(--d) / 2)); overflow: hidden; box-shadow: inset 0 0 0 2px rgba(0, 0, 0, .35); }
 .face.side {
@@ -168,7 +169,7 @@ a { color: inherit; text-decoration: none; }
 .meta { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-bottom: 10px; }
 .meta span { font-size: 11.5px; font-weight: 900; padding: 1px 8px; border-radius: 3px; background: var(--ink); color: #fff4dc; }
 .label .go { font-size: 16px; padding: 8px 26px; }
-.game:hover .label .go { background: #e0301f; }
+.label .go:hover { background: #e0301f; }
 
 @media (max-width: 520px) {
   .game.bang { --w: 210px; --h: 286px; --d: 50px; }
@@ -178,3 +179,49 @@ a { color: inherit; text-decoration: none; }
   .bf-poster { top: 108px; }
   .bf-star { top: 160px; width: 70px; height: 70px; }
 }
+
+/* ───── 게임 방법 영상 */
+.links { margin-top: 12px; padding-top: 10px; border-top: 2px dashed #b89a6a; text-align: left; }
+.links-head { font-weight: 900; font-size: 13px; color: #9a1d14; margin-bottom: 6px; }
+.links ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.links li { display: flex; align-items: center; gap: 4px; }
+.links li > a {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 7px; padding: 5px 8px;
+  background: #fff8e4; border: 2px solid var(--ink); border-radius: 5px; box-shadow: 2px 2px 0 var(--ink);
+  font-size: 13px; font-weight: 700; transition: transform .06s, box-shadow .06s;
+}
+.links li > a:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--ink); color: #9a1d14; }
+.links li > a img { width: 22px; height: 16px; flex: none; }
+.links li > a span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.links li > a em { font-style: normal; font-size: 11px; font-weight: 900; padding: 0 6px; border-radius: 3px; background: var(--ink); color: #fff4dc; flex: none; }
+.links-empty { margin: 0; font-size: 12.5px; color: #6b5236; }
+.lk-tools { display: flex; gap: 2px; flex: none; }
+.lk-tools button {
+  width: 24px; height: 24px; padding: 0; font-size: 11px; cursor: pointer; border-radius: 4px;
+  background: #fbf1d8; border: 2px solid var(--ink); color: var(--ink);
+}
+.lk-tools button:hover:not(:disabled) { background: var(--yellow); }
+.lk-tools button:disabled { opacity: .35; cursor: default; }
+.link-add { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.link-add input {
+  flex: 1 1 140px; min-width: 0; padding: 6px 8px; font: inherit; font-size: 12.5px;
+  border: 2px solid var(--ink); border-radius: 4px; background: #fffaf0;
+}
+.link-add input.short { flex: 0 1 90px; }
+.btn.small { padding: 4px 12px; font-size: 13px; }
+
+/* ───── 관리자 */
+.admin-btn { background: #fbf1d8; color: var(--ink); font-size: 13px; padding: 5px 12px; }
+.admin-btn.on { background: var(--yellow); }
+.dialog { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; background: rgba(24, 10, 2, .6); }
+.dialog-box {
+  width: min(100%, 340px); padding: 18px; display: flex; flex-direction: column; gap: 10px;
+  background: var(--paper) url(/bang/assets/paper.svg) 0 0 / 300px; border: 3px solid var(--ink); border-radius: 8px;
+  box-shadow: 6px 8px 0 rgba(20, 8, 0, .55);
+}
+.dialog-box b { font-family: var(--display); font-weight: 400; font-size: 24px; color: #9a1d14; }
+.dialog-box p { margin: 0; font-size: 13.5px; color: #3a2a18; }
+.dialog-box input { padding: 10px 12px; font: inherit; font-size: 16px; border: 2.5px solid var(--ink); border-radius: 5px; background: #fffaf0; letter-spacing: .2em; }
+.dialog-err { color: #9a1d14; font-weight: 900; font-size: 13px; }
+.dialog-btns { display: flex; justify-content: flex-end; gap: 8px; }
+.btn.ghost { background: #fbf1d8; color: var(--ink); }

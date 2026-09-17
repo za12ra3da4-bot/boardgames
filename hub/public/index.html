@@ -25,7 +25,21 @@
     <code id="addr-url">—</code>
     <button type="button" id="copy" class="btn">복사</button>
   </div>
+  <button type="button" id="adminBtn" class="btn admin-btn">관리자</button>
 </header>
+
+<div class="dialog" id="adminDialog" hidden>
+  <form class="dialog-box" id="adminForm">
+    <b>관리자 로그인</b>
+    <p>게임 방법 영상 링크를 추가하거나 지울 수 있어요.</p>
+    <input type="password" name="password" placeholder="비밀번호" autocomplete="current-password" required>
+    <div class="dialog-err" id="adminErr" hidden></div>
+    <div class="dialog-btns">
+      <button type="button" class="btn ghost" id="adminCancel">취소</button>
+      <button type="submit" class="btn">로그인</button>
+    </div>
+  </form>
+</div>
 
 <main class="wrap">
   <div class="shelf-head">
