@@ -385,6 +385,7 @@ function seatPos(i, n, myIdx) {
 function renderTable() {
   if (S.t3d) { render3d(); return; }
   ensure3d();
+  showNewPeeks();
   const g = S.g;
   const n = g.players.length;
   const myIdx = Math.max(0, g.players.findIndex((p) => p.pid === S.me));
@@ -437,7 +438,7 @@ function renderTable() {
         <div class="flip-inner"><div class="face">${backCard(ccw)}</div><div class="face front">${roleCard(over.center[i], { w: ccw })}</div></div></div>`;
     } else {
       const k = know.center[i];
-      card = backCard(ccw, k ? `known ${ROLES[k].team !== 'wolf' ? 'v' : ''}` : '', k ? `data-known="${esc(k === 'drunk' ? '내 술꾼' : `${ROLES[k].name}(봤음)`)}"` : '');
+      card = backCard(ccw, k ? `known ${ROLES[k].team !== 'wolf' ? 'v' : ''}` : '', k ? `data-known="${esc(`${ROLES[k].name}(봤음)`)}"` : '');
     }
     return `<div class="ccard ${canPick ? 'pick' : ''} ${picked ? 'picked' : ''}" data-center="${i}">${card}<small>가운데 ${i + 1}</small></div>`;
   }).join('');
@@ -588,7 +589,7 @@ function render3d() {
   const center = [0, 1, 2].map((i) => {
     const k = know.center[i];
     return {
-      label: over ? '' : k ? (k === 'drunk' ? '내 술꾼 카드' : `${ROLES[k].name} (봤음)`) : '',
+      label: over ? '' : k ? `${ROLES[k].name} (봤음)` : '',
       labelTeam: teamOf(k),
       pick: mode && mode.center > 0,
       picked: S.sel.includes(`c${i}`),
@@ -607,15 +608,29 @@ function render3d() {
     over: !!over,
     arrows: over ? Object.entries(over.votes) : [],
   });
-  // 새로 본 카드는 들어서 보여 준다
-  if (g.me) {
-    const notes = g.me.notes;
-    if (S.seenNotes == null || S.seenNotes > notes.length) S.seenNotes = notes.length;
-    for (const n of notes.slice(S.seenNotes)) {
-      n.cards.forEach((c, j) => setTimeout(() => S.t3d && S.t3d.peek(c.who || `c${c.center}`, c.role), j * 500));
-    }
-    S.seenNotes = notes.length;
-  }
+  showNewPeeks();
+}
+
+/** 밤에 새로 본 카드는 화면 가운데로 크게 가져와 뒤집어 보여 준다 */
+function showNewPeeks() {
+  const g = S.g;
+  if (!g.me) return;
+  const notes = g.me.notes;
+  if (S.seenNotes == null || S.seenNotes > notes.length) S.seenNotes = notes.length;
+  const fresh = notes.slice(S.seenNotes).flatMap((n) => n.cards);
+  S.seenNotes = notes.length;
+  if (!fresh.length) return;
+  const label = (c) => (c.center != null ? `가운데 ${c.center + 1}번 카드` : c.who === S.me ? '내 카드' : `${esc(pname(c.who))}의 카드`);
+  const box = document.createElement('div');
+  box.className = 'peek-overlay';
+  box.innerHTML = `<div class="peek-row">${fresh.map((c) => `<div class="peek-card"><div class="flip-inner">
+      <div class="face">${backCard(230)}</div>
+      <div class="face front">${roleCard(c.role, { w: 230 })}</div>
+    </div><div class="peek-who">${label(c)}</div></div>`).join('')}</div>`;
+  $('#tableWrap').appendChild(box);
+  SFX.flip();
+  setTimeout(() => SFX.card(), 700);
+  setTimeout(() => box.remove(), 3300);
 }
 
 /* ═════════════════════════ 내 정보 · 행동 줄 ═════════════════════════ */
@@ -770,6 +785,9 @@ function runCutscene() {
       const S2 = {
         'start:wolf': () => { SFX.drone(); setTimeout(() => SFX.drone(), 2200); setTimeout(() => SFX.drone(), 4400); },
         howl: () => SFX.howl(),
+        roar: () => { SFX.drone(); SFX.hit(); },
+        whoosh: () => SFX.flip(),
+        impact: () => { SFX.boom(); },
         slash: () => { SFX.boom(); SFX.hit(); },
         'start:village': () => { SFX.drone(); setTimeout(() => SFX.rooster(), 4000); setTimeout(() => SFX.birds(), 5200); },
         hit: () => { SFX.hit(); SFX.death(); },

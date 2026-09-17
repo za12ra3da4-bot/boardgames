@@ -1,0 +1,17 @@
+<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="css/style.css">
+<script type="importmap">{ "imports": { "three": "/wolf/vendor/three/build/three.module.js", "three/addons/": "/wolf/vendor/three/examples/jsm/" } }</script>
+<body style="margin:0"><div class="table-wrap has3d" id="wrap" style="position:fixed;inset:0;border-radius:0"></div>
+<script src="shared/wolf.js"></script>
+<script type="module">
+import { createTable } from './js/table3d.js';
+const q = new URLSearchParams(location.search);
+const phase = q.get('p') || 'night';
+const names = ['테스터', '방앗간집', '대장장이', '양치기', '약초꾼', '빵집 딸'];
+const roles = ['seer', 'werewolf', 'robber', 'villager', 'werewolf', 'troublemaker'];
+const t = createTable(document.getElementById('wrap'), { onPick: (k) => console.log('pick', k) });
+const over = phase === 'over';
+const players = names.map((n, i) => ({ pid: 'p' + i, seat: i, isMe: i === 0, online: true, nameHtml: n, label: i === 0 ? '나: 예언자' : i === 2 ? '강도 (봤음)' : '', labelTeam: '', state: over && i === 3 ? '처음: 강도' : '', pick: phase === 'pick' && i > 0, picked: false, dead: over && (i === 1 || i === 3), win: over && [0, 2, 3, 5].includes(i), votes: over ? [0, 3, 0, 2, 1, 0][i] : 0 }));
+const center = [0, 1, 2].map(() => ({ label: '', pick: false, picked: false }));
+const faces = over ? Object.fromEntries([...roles.map((r, i) => ['p' + i, r]), ['c0', 'tanner'], ['c1', 'drunk'], ['c2', 'hunter']]) : null;
+t.update({ players, center, faces, night: phase !== 'over' && phase !== 'day', over, arrows: over ? [['p0', 'p1'], ['p1', 'p3'], ['p2', 'p1'], ['p3', 'p4'], ['p4', 'p3'], ['p5', 'p1']] : [] });
+</script>

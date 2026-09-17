@@ -1,5 +1,7 @@
 // 게임이 끝날 때 나오는 2D 애니메이션 결말 영상 (컷 전환 · 클로즈업 · 집중선 · 임팩트)
-const LENGTH = { wolf: 15, village: 15, tanner: 14, none: 10 };
+import { makeWolf, makeHuman, motion, clock, WOLF_POSE, HUMAN_POSE, runPose } from './rig2d.js';
+
+const LENGTH = { wolf: 16, village: 16, tanner: 14, none: 10 };
 
 /* ═════════════ 그림 조각 ═════════════ */
 
@@ -59,20 +61,41 @@ const MOON_DEFS = `<radialGradient id="mG"><stop offset="0" stop-color="#fffdf0"
 const moonSvg = (cx, cy, r) => `<circle cx="${cx}" cy="${cy}" r="${r * 1.9}" fill="url(#mH)"/><circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#mG)"/>
   <g fill="#b8a070" opacity=".3"><ellipse cx="${cx - r * 0.3}" cy="${cy - r * 0.2}" rx="${r * 0.22}" ry="${r * 0.15}"/><ellipse cx="${cx + r * 0.28}" cy="${cy + r * 0.25}" rx="${r * 0.17}" ry="${r * 0.12}"/><ellipse cx="${cx + r * 0.1}" cy="${cy - r * 0.5}" rx="${r * 0.1}" ry="${r * 0.07}"/></g>`;
 
-/** 우는 늑대인간 / 선 늑대인간 전신 (200×300, 발이 아래) */
-const WOLF_HOWL = 'M62 300L70 262C58 246 54 226 60 206C48 196 40 178 44 160C30 168 16 182 6 196L2 214L10 204L8 222L16 208L18 226L22 206C30 190 40 176 50 164C48 140 52 118 64 104C60 92 62 80 70 72L60 40L80 62C84 58 88 54 94 52L104 18L108 50C116 44 128 34 142 20L148 26C138 40 128 50 122 58L130 58C124 66 114 72 106 76C114 88 128 96 140 100C152 112 166 128 178 146L196 150L184 156L200 162L184 165L196 175L176 169C164 156 150 144 138 136C140 156 138 178 128 198C138 216 140 242 132 264L142 300H118L112 270C104 258 98 248 96 238C92 250 88 260 84 270L84 300Z';
-const WOLF_FUR = 'M64 104L56 96L66 94L58 84L70 86L66 74M50 164L40 160L48 154L40 146L52 146M138 100L148 94L146 104L158 102L150 112M128 198L140 196L132 206L142 210L130 214';
-const WOLF_STAND = 'M70 300L76 262C62 246 58 226 62 206C52 196 44 180 44 162C34 176 30 196 30 216L22 236L30 228L28 244L36 232L38 248L42 230C44 208 48 188 56 172C54 146 56 124 66 110C62 98 64 86 72 78L60 44L82 66C88 62 96 60 104 60C112 60 120 62 126 66L148 44L136 78C144 86 146 98 142 110C152 124 154 146 152 172C160 188 164 208 166 230L170 248L172 232L180 244L178 228L186 236L178 216C178 196 174 176 164 162C164 180 156 196 146 206C150 226 146 246 132 262L138 300H116L112 270C108 258 104 250 104 240C104 250 100 258 96 270L92 300Z';
+/** 늑대인간 전신 (조각을 겹쳐 하나의 실루엣으로, 달빛 테두리는 필터로) */
+const WOLF = {
+  backLeg: 'M150 410C120 430 110 460 118 480L96 540L100 562L86 598L150 600L148 590L118 584L116 560L140 486C160 470 176 450 182 430Z',
+  frontLeg: 'M190 400C180 440 200 460 232 468L208 530L214 560L230 600L310 600L306 588L262 580L246 556L262 470C272 440 250 405 230 395Z',
+  tail: 'M170 410C130 400 90 420 58 474L72 462L64 482L84 468L80 488L100 472C120 452 150 442 182 440Z',
+  torso: 'M150 420C130 380 120 330 130 290L114 282L130 274L120 260L138 260L132 244L150 248C158 230 174 214 196 206C230 196 262 210 276 236C292 270 290 320 270 360C258 390 236 420 200 432Z',
+  backArm: 'M170 250C150 270 132 300 124 340C118 370 116 392 118 410L102 442L116 428L110 454L124 432L124 458L134 430L140 452L140 424C142 400 146 370 156 340C164 314 176 290 190 272Z',
+  howlHead: 'M196 214C200 190 206 170 214 156L202 100L228 138L234 92L250 136C262 128 276 122 290 114L352 62L362 72L320 110L344 102L340 116L312 130C300 148 286 162 272 174C276 198 270 222 256 238Z',
+  howlArm: 'M250 240C280 250 300 280 312 312C330 300 346 284 356 266L348 236L362 258L362 222L372 256L386 230L380 268L396 258L374 292C358 316 336 340 314 354C296 340 272 300 244 280Z',
+  standHead: 'M196 214C198 196 204 184 212 176L198 124L226 162L238 114L252 160C268 158 284 160 298 166L346 176L348 190L320 194L342 200L338 212L302 208C292 222 278 234 262 242Z',
+  standArm: 'M250 240C276 262 290 300 294 340C296 370 292 396 290 414L302 446L288 432L292 458L280 436L278 462L270 434L264 456L264 426C262 400 262 370 256 340C250 314 240 290 230 272Z',
+  fur: 'M140 300l-14 -4M136 330l-16 2M142 360l-14 8M232 212l6 -12M258 222l10 -8M204 440l-6 14M240 430l8 12M120 480l-12 4M262 480l12 4',
+};
+const WOLF_EYES = { howl: [[268, 146], [280, 140]], stand: [[262, 180], [276, 180]] };
 
 function wolfSvg(pose = 'howl', { rim = '#dfe8ff', eyes = true } = {}) {
-  const d = pose === 'howl' ? WOLF_HOWL : WOLF_STAND;
-  const eyeXY = pose === 'howl' ? [[112, 50], [120, 44]] : [[92, 84], [116, 84]];
-  return `<svg viewBox="-10 -10 220 320" class="an-wolf">
-    <defs><filter id="wGlow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter></defs>
-    <path d="${d}" fill="none" stroke="${rim}" stroke-width="5" opacity=".7" filter="url(#wGlow)"/>
-    <path d="${d}" fill="#04050a" stroke="${rim}" stroke-width="1.6" stroke-opacity=".9"/>
-    ${pose === 'howl' ? `<path d="${WOLF_FUR}" fill="none" stroke="#04050a" stroke-width="5" stroke-linejoin="bevel"/>` : ''}
-    ${eyes ? `<g class="an-eyes">${eyeXY.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="7" fill="#ffcf30" opacity=".5" filter="url(#wGlow)"/><ellipse cx="${x}" cy="${y}" rx="3.4" ry="2.4" fill="#ffe070"/>`).join('')}</g>` : ''}
+  const parts = pose === 'howl'
+    ? [WOLF.tail, WOLF.backLeg, WOLF.backArm, WOLF.frontLeg, WOLF.torso, WOLF.howlHead, WOLF.howlArm]
+    : [WOLF.tail, WOLF.backLeg, WOLF.backArm, WOLF.frontLeg, WOLF.torso, WOLF.standHead, WOLF.standArm];
+  const id = `wr${Math.random().toString(36).slice(2, 7)}`;
+  return `<svg viewBox="40 50 380 560" class="an-wolf">
+    <defs>
+      <filter id="${id}" x="-20%" y="-20%" width="140%" height="140%">
+        <feMorphology in="SourceAlpha" operator="dilate" radius="2.2" result="d"/>
+        <feFlood flood-color="${rim}"/><feComposite in2="d" operator="in" result="edge"/>
+        <feGaussianBlur in="edge" stdDeviation="5" result="glow"/>
+        <feMerge><feMergeNode in="glow"/><feMergeNode in="edge"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <linearGradient id="${id}f" x1="1" y1="0" x2="0" y2="0"><stop offset="0" stop-color="#2a3450"/><stop offset=".35" stop-color="#080a12"/><stop offset="1" stop-color="#030408"/></linearGradient>
+      <filter id="${id}g" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>
+    </defs>
+    <g filter="url(#${id})" fill="url(#${id}f)">${parts.map((d) => `<path d="${d}"/>`).join('')}</g>
+    <path d="${WOLF.fur}" stroke="#4a5470" stroke-width="2.4" stroke-linecap="round" fill="none" opacity=".6"/>
+    ${pose === 'howl' ? '<path d="M318 112L338 106" stroke="#f4ecd8" stroke-width="2"/><path d="M322 116l3 5l3 -4l3 5" stroke="#f4ecd8" stroke-width="1.6" fill="none"/>' : '<path d="M312 196l3 5l3 -5l3 5l3 -5" stroke="#f4ecd8" stroke-width="1.8" fill="none"/>'}
+    ${eyes ? `<g class="an-eyes">${WOLF_EYES[pose].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="10" fill="#ffcf30" opacity=".55" filter="url(#${id}g)"/><path d="M${x - 6} ${y + 1}L${x + 6} ${y - 2}L${x + 2} ${y + 3}Z" fill="#ffe680"/>`).join('')}</g>` : ''}
   </svg>`;
 }
 
@@ -140,7 +163,8 @@ function speedLines(color = '#fff', count = 40) {
   for (let i = 0; i < count; i++) s += `<rect x="${f(r() * 1600)}" y="${f(r() * 900)}" width="${f(200 + r() * 600)}" height="${f(1 + r() * 4)}" opacity="${f(0.3 + r() * 0.6)}"/>`;
   return `<svg viewBox="0 0 1600 900" preserveAspectRatio="none" class="an-speed"><g fill="${color}">${s}</g></svg>`;
 }
-const sfxText = (text, cls = '', style = '') => `<div class="an-sfx ${cls}" style="${style}">${text}</div>`;
+// 의성어는 쓰지 않는다. 대사(shout)만 영화 자막처럼 아래에 띄운다.
+const sfxText = (text, cls = '') => (cls.includes('shout') ? `<div class="an-sub">${text}</div>` : '');
 const portrait = (role, cls = '') => `<div class="an-portrait ${cls}"><img src="assets/role/${role}.svg" alt=""></div>`;
 
 /* ═════════════ 연출 도구 ═════════════ */
@@ -177,7 +201,31 @@ function director(stage, sound) {
     stage.classList.add('an-impact');
     timers.push(setTimeout(() => stage.classList.remove('an-impact'), dur));
   };
-  return { at, cut, add, anim, shake, flash, impact, sound, stop: () => timers.forEach(clearTimeout) };
+  // 1600×900 좌표계 무대 (인형을 올린다)
+  const world = () => {
+    const w = document.createElement('div');
+    w.className = 'an-world';
+    const fit = () => {
+      const s = Math.max(stage.clientWidth / 1600, stage.clientHeight / 900);
+      w.style.transform = `scale(${s}) translate(-800px, -450px)`;
+    };
+    fit();
+    current.appendChild(w);
+    return w;
+  };
+  // 매 프레임 움직임 (컷이 바뀌면 지운다)
+  let ticks = [];
+  const tickStop = clock((sec) => { for (const fn of ticks) fn(sec); });
+  const tick = (fn) => { const t0 = performance.now() / 1000; ticks.push((s) => fn(performance.now() / 1000 - t0, s)); };
+  const cut0 = cut;
+  const cut2 = (html, cls) => { ticks = []; return cut0(html, cls); };
+  return { at, cut: cut2, add, anim, shake, flash, impact, sound, world, tick, stop: () => { timers.forEach(clearTimeout); tickStop(); } };
+}
+
+/* 인형 자리 잡기 도우미 */
+function wolfAt(parent, x, y, scale, opts = {}) {
+  const r = makeWolf(parent, { x, y, scale, ...opts });
+  return r;
 }
 
 /* ═════════════ 장면들 ═════════════ */
@@ -209,39 +257,61 @@ const SCENES = {
       D.anim('.an-sfx', [{ transform: 'scale(0) rotate(-20deg)' }, { transform: 'scale(1.2) rotate(8deg)' }, { transform: 'scale(1) rotate(6deg)' }], { duration: 350, delay: 300 });
       D.shake(6, 1600);
     });
-    // 3. 절벽 위로 늑대인간이 솟아오른다
+    // 3~4. 절벽 위 늑대인간: 웅크렸다가 일어서 포효하고, 고개를 젖혀 운다 (관절 하나하나)
     D.at(5.2, () => {
       D.sound('whoosh');
       D.cut(`
-        ${layer(svg(`<defs><linearGradient id="s3" x2="0" y2="1"><stop offset="0" stop-color="#050a1e"/><stop offset="1" stop-color="#1c3c7c"/></linearGradient>${MOON_DEFS}</defs><rect width="1600" height="900" fill="url(#s3)"/>${stars(120, 7)}${moonSvg(800, 380, 330)}`), 'moon-bg')}
-        ${focusLines('#dfe8ff', 70, 360)}
-        ${layer(svg('<path d="M420 900L520 700C560 660 640 640 700 650C760 640 860 636 920 660C1000 680 1080 720 1160 900Z" fill="#04050a"/><path d="M700 650C760 640 860 636 920 660" stroke="#dfe8ff" stroke-width="4" fill="none" opacity=".7"/>'))}
-        <div class="an-wolf-wrap">${wolfSvg('stand')}</div>`);
-      D.anim('.moon-bg', [{ transform: 'scale(1.25)' }, { transform: 'scale(1.05)' }], { duration: 3200, easing: 'ease-out' });
-      D.anim('.an-wolf-wrap', [{ transform: 'translate(-50%, 70%) scale(.9)' }, { transform: 'translate(-50%, 0) scale(1)', offset: 0.7 }, { transform: 'translate(-50%, -2%) scale(1.02)' }], { duration: 1500, easing: 'cubic-bezier(.2,.8,.3,1.2)' });
-      D.anim('.an-focus', [{ opacity: 0 }, { opacity: 0 }, { opacity: 0.3 }], { duration: 1600 });
-      D.anim('.an-eyes', [{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: 1300 });
+        ${layer(svg(`<defs><linearGradient id="s3" x2="0" y2="1"><stop offset="0" stop-color="#050a1e"/><stop offset="1" stop-color="#1c3c7c"/></linearGradient>${MOON_DEFS}</defs><rect width="1600" height="900" fill="url(#s3)"/>${stars(120, 7)}${moonSvg(800, 360, 330)}`), 'moon-bg')}
+        <div class="an-rays"></div>
+        ${focusLines('#dfe8ff', 70, 380)}`);
+      const w = D.world();
+      w.insertAdjacentHTML('beforeend', '<svg class="an-cliff" viewBox="0 0 1600 900" width="1600" height="900" style="position:absolute;left:0;top:0"><path d="M380 900L500 740C560 690 660 676 720 684C790 676 890 672 950 696C1040 716 1120 760 1220 900Z" fill="#04050a"/><path d="M720 684C790 676 890 672 950 696" stroke="#dfe8ff" stroke-width="4" fill="none" opacity=".7"/><path d="M540 760l40 -10M1000 740l50 20" stroke="#1a2440" stroke-width="3"/></svg>');
+      const wolf = wolfAt(w, 800, 1100, 1.25);
+      wolf.set(WOLF_POSE.crouch);
+      const mv = motion(wolf, [
+        [0, { ...WOLF_POSE.crouch, y: 1150, scale: 1.25 }],
+        [1.0, { ...WOLF_POSE.crouch, y: 700 }, 'out'],
+        [1.5, { ...WOLF_POSE.stand, y: 690 }, 'back'],
+        [2.1, { ...WOLF_POSE.roar, y: 690 }, 'snap'],
+        [2.8, { ...WOLF_POSE.roar, y: 690, jaw: 20 }],
+        [3.3, { ...WOLF_POSE.howl, y: 684, scale: 1.3 }, 'out'],
+        [6.0, { ...WOLF_POSE.howl, y: 684, scale: 1.34 }],
+      ]);
+      let eyes = false;
+      D.tick((s) => {
+        mv(s);
+        // 숨 · 꼬리 · 귀 떨림 (늘 조금씩 움직인다)
+        wolf.extra = {
+          chest: Math.sin(s * 3) * 1.5,
+          tail1: Math.sin(s * 2.2) * 8, tail2: Math.sin(s * 2.2 - 0.6) * 12, tail3: Math.sin(s * 2.2 - 1.2) * 16,
+          head: s > 3.3 ? Math.sin(s * 30) * 1.2 : 0,
+          jaw: s > 3.3 ? Math.sin(s * 9) * 3 : 0,
+          fHand: Math.sin(s * 4) * 4, bHand: Math.cos(s * 4) * 4,
+        };
+        wolf.apply();
+        if (!eyes && s > 1.4) { eyes = true; wolf.eyesOn(1); D.flash('#ffd23a', 120); }
+      });
+      D.anim('.moon-bg', [{ transform: 'scale(1.25)' }, { transform: 'scale(1.05)' }], { duration: 3800, easing: 'ease-out' });
+      D.anim('.an-focus', [{ opacity: 0 }, { opacity: 0 }, { opacity: 0.3 }], { duration: 2200 });
     });
-    // 4. 고개를 치켜들고 운다
-    D.at(6.9, () => {
-      const w = document.querySelector('.an-wolf-wrap');
-      if (w) w.innerHTML = wolfSvg('howl');
+    D.at(7.3, () => { D.sound('roar'); D.shake(14, 600); D.add(sfxText('크르르르…', 'small', 'left:10%;top:62%')); D.anim('.an-sfx', [{ opacity: 0, transform: 'scale(.6)' }, { opacity: 1, transform: 'scale(1) rotate(-4deg)' }], { duration: 300 }); });
+    D.at(8.5, () => {
       D.sound('howl');
-      D.flash('#dfe8ff', 200);
-      D.shake(18, 1400);
-      D.add(sfxText('아우우우우—!!', 'howl', 'left:6%;top:12%'));
-      D.anim('.an-sfx', [{ transform: 'scale(.3) rotate(-12deg)', opacity: 0 }, { transform: 'scale(1.15) rotate(-6deg)', opacity: 1 }, { transform: 'scale(1) rotate(-6deg)', opacity: 1 }], { duration: 400 });
-      D.anim('.an-focus', [{ opacity: 0.3, transform: 'scale(1)' }, { opacity: 0.85, transform: 'scale(1.06)' }, { opacity: 0.45, transform: 'scale(1)' }], { duration: 400, iterations: 5 });
+      D.flash('#dfe8ff', 220);
+      D.shake(18, 1600);
+      D.add(sfxText('아우우우우—!!', 'howl', 'left:4%;top:10%'));
+      D.anim('.an-sfx.howl', [{ transform: 'scale(.3) rotate(-12deg)', opacity: 0 }, { transform: 'scale(1.15) rotate(-6deg)', opacity: 1 }, { transform: 'scale(1) rotate(-6deg)', opacity: 1 }], { duration: 400 });
+      D.anim('.an-focus', [{ opacity: 0.3, transform: 'scale(1)' }, { opacity: 0.9, transform: 'scale(1.06)' }, { opacity: 0.45, transform: 'scale(1)' }], { duration: 380, iterations: 5 });
     });
     // 5. 눈 초근접 → 임팩트
-    D.at(9.1, () => {
+    D.at(10.4, () => {
       D.cut(`<div class="an-zoomer">${wolfEyes()}</div>`);
       D.anim('.an-zoomer', [{ transform: 'scale(1.7)' }, { transform: 'scale(1.1)' }], { duration: 900, easing: 'cubic-bezier(.1,.9,.2,1)' });
       D.anim('.an-pupil', [{ transform: 'scaleX(1)' }, { transform: 'scaleX(.3)' }], { duration: 300, delay: 500, easing: 'ease-in' });
     });
-    D.at(9.85, () => { D.impact(260); D.sound('impact'); D.shake(26, 400); });
+    D.at(11.15, () => { D.impact(260); D.sound('impact'); D.shake(26, 400); });
     // 6. 할퀴기
-    D.at(10.3, () => {
+    D.at(11.6, () => {
       D.sound('slash');
       D.cut(`<div class="an-bg" style="background:radial-gradient(circle at 50% 50%, #5a0808, #0a0000)"></div>${CLAW}${sfxText('스악!!', 'slash', 'right:8%;bottom:16%')}`);
       D.flash('#fff', 180);
@@ -250,14 +320,19 @@ const SCENES = {
       D.shake(30, 600);
     });
     // 7. 핏빛 달 아래 제목
-    D.at(11.8, () => {
+    D.at(12.9, () => {
       D.cut(`
         ${layer(svg(`<defs><linearGradient id="s7" x2="0" y2="1"><stop offset="0" stop-color="#1a0000"/><stop offset=".6" stop-color="#5a0a0a"/><stop offset="1" stop-color="#8a1a10"/></linearGradient>
           <radialGradient id="rm"><stop offset="0" stop-color="#ffd0a0"/><stop offset=".7" stop-color="#e85a30"/><stop offset="1" stop-color="#a02010"/></radialGradient>
           <radialGradient id="rh"><stop offset=".4" stop-color="#ff6040" stop-opacity=".5"/><stop offset="1" stop-color="#ff2000" stop-opacity="0"/></radialGradient></defs>
           <rect width="1600" height="900" fill="url(#s7)"/><circle cx="800" cy="330" r="500" fill="url(#rh)"/><circle cx="800" cy="330" r="240" fill="url(#rm)"/>
           ${trees(36, 760, 140, 110, '#1a0404', 11)}${houses(820, false).replace(/#070a14/g, '#0a0000')}<path d="M0 900V810C500 790 1100 790 1600 810V900Z" fill="#0a0000"/>`), 'title-bg')}
-        <div class="an-wolf-wrap small">${wolfSvg('howl', { rim: '#ffb090' })}</div>`, 'with-title');
+        `, 'with-title');
+      const w7 = D.world();
+      const wolf7 = wolfAt(w7, 800, 780, 0.62, { rim: '#ffb090', eyeColor: '#ff5020' });
+      wolf7.set(WOLF_POSE.howl);
+      wolf7.eyesOn(1);
+      D.tick((s) => { wolf7.extra = { jaw: Math.sin(s * 8) * 4, tail2: Math.sin(s * 2) * 10, chest: Math.sin(s * 3) * 1.5 }; wolf7.apply(); });
       D.anim('.title-bg', [{ transform: 'scale(1.15)' }, { transform: 'scale(1)' }], { duration: 3200, easing: 'ease-out' });
       D.flash('#ff2000', 500);
     });
@@ -265,20 +340,28 @@ const SCENES = {
 
   /* 마을 승리 */
   village(D) {
-    // 1. 횃불 행렬이 숲을 가른다
+    // 1. 횃불 행렬이 숲을 가른다 (뛰는 사람들: 팔다리 따로)
     D.at(0, () => {
       D.sound('start:village');
-      let run = '';
-      for (let i = 0; i < 8; i++) run += runner(40 + i * 150 + (i % 2) * 40, 590 + (i % 3) * 30, 2.2 + (i % 3) * 0.2, i % 2 ? 'torch' : 'fork', i);
       D.cut(`
         ${layer(svg(`<defs><linearGradient id="v1" x2="0" y2="1"><stop offset="0" stop-color="#050a1e"/><stop offset="1" stop-color="#2a3a6a"/></linearGradient></defs><rect width="1600" height="900" fill="url(#v1)"/>${stars(100, 2)}`))}
         ${layer(svg(trees(34, 720, 160, 120, '#0c1428', 21)), 'pan-mid')}
-        ${layer(svg(`<path d="M0 900V760H1600V900Z" fill="#05060a"/><g class="an-march">${run}</g>`))}
-        ${layer(svg(trees(7, 960, 380, 160, '#020308', 22)), 'pan-fast')}
-        ${speedLines('#ffd8a0', 30)}`);
+        ${layer(svg('<path d="M0 900V760H1600V900Z" fill="#05060a"/>'))}`);
+      const w = D.world();
+      const people = [];
+      for (let i = 0; i < 8; i++) {
+        const h = makeHuman(w, { tool: i % 2 ? 'torch' : 'fork', scale: 1.9 + (i % 3) * 0.2, x: 0, y: 790 + (i % 3) * 22 });
+        people.push({ h, x0: -260 - i * 170 - (i % 2) * 40, ph: i * 0.23, sp: 1.9 + (i % 3) * 0.1 });
+      }
+      w.insertAdjacentHTML('beforeend', `<div class="an-layer an-blur pan-fast">${svg(trees(7, 960, 380, 160, '#020308', 22))}</div>${speedLines('#ffd8a0', 30)}`);
+      D.tick((s) => {
+        for (const p of people) {
+          p.h.set({ ...runPose((s * p.sp + p.ph) % 1), x: p.x0 + s * 420, y: p.h.world.y });
+          p.h.world.y = p.h.world.y;
+        }
+      });
       D.anim('.pan-mid', [{ transform: 'translateX(0) scale(1.1)' }, { transform: 'translateX(-8%) scale(1.1)' }], { duration: 3200, easing: 'linear' });
       D.anim('.pan-fast', [{ transform: 'translateX(10%) scale(1.2)' }, { transform: 'translateX(-40%) scale(1.2)' }], { duration: 3200, easing: 'linear' });
-      D.anim('.an-march', [{ transform: 'translateX(-500px)' }, { transform: 'translateX(300px)' }], { duration: 3200, easing: 'linear' });
       D.anim('.an-speed', [{ transform: 'translateX(40%)' }, { transform: 'translateX(-60%)' }], { duration: 600, iterations: 6, easing: 'linear' });
     });
     // 2. 예언자: "저 녀석이다!"
@@ -295,34 +378,55 @@ const SCENES = {
       D.shake(12, 900);
       D.anim('.an-portrait', [{ transform: 'translate(-50%,-50%) scale(1.15)' }, { transform: 'translate(-53%,-50%) scale(1.15)' }], { duration: 60, iterations: 14, direction: 'alternate' });
     });
-    // 4. 쇠스랑 일격 → 늑대인간이 날아간다
+    // 4. 쇠스랑 일격 → 늑대인간이 날아간다 (몸이 꺾이며 회전)
     D.at(6.4, () => {
       D.sound('impact');
       D.impact(200);
       D.cut(`
         <div class="an-bg" style="background:radial-gradient(circle at 55% 45%, #fff8e0, #ffb050 40%, #6a2010)"></div>
         ${focusLines('#fff', 110, 200)}
-        <div class="an-wolf-wrap fly">${wolfSvg('stand', { rim: '#fff4d0', eyes: false })}</div>
-        ${sfxText('쾅!!', 'boom', 'left:30%;top:22%')}`);
+        ${sfxText('쾅!!', 'boom', 'left:22%;top:18%')}`);
+      const w = D.world();
+      const wolf = wolfAt(w, 760, 760, 1.2, { rim: '#fff4d0' });
+      const mv = motion(wolf, [
+        [0, { ...WOLF_POSE.roar, x: 760, y: 760, rot: 0, scale: 1.2 }],
+        [0.15, { ...WOLF_POSE.hurt, x: 820, y: 700, rot: -20 }, 'snap'],
+        [1.3, { ...WOLF_POSE.hurt, x: 1700, y: 60, rot: 340, scale: 0.12 }, 'in'],
+      ]);
+      D.tick((s) => { mv(s); wolf.extra = { fHand: Math.sin(s * 30) * 20, bHand: Math.cos(s * 30) * 20, tail2: Math.sin(s * 20) * 30 }; wolf.apply(); });
       D.shake(34, 700);
-      D.anim('.an-wolf-wrap', [{ transform: 'translate(-50%, 0) rotate(0) scale(1.1)' }, { transform: 'translate(160%, -90%) rotate(300deg) scale(.08)' }], { duration: 1300, easing: 'cubic-bezier(.3,.1,.6,1)' });
       D.anim('.an-sfx', [{ transform: 'scale(3)', opacity: 0 }, { transform: 'scale(1) rotate(-8deg)', opacity: 1 }], { duration: 220 });
     });
     D.at(7.7, () => D.add('<div class="an-twinkle"></div>'));
     // 5. 새벽이 밝아 오고 환호
     D.at(8.6, () => {
       D.sound('cheer');
-      let crowd = '';
-      for (let i = 0; i < 11; i++) crowd += person(90 + i * 142, 900, 3.3 + (i % 3) * 0.3, i % 2 ? CHEER : STAND, '#12080a', 'an-cheer');
       D.cut(`
         ${layer(svg(`<defs><linearGradient id="d1" x2="0" y2="1"><stop offset="0" stop-color="#3a5aa0"/><stop offset=".5" stop-color="#f09860"/><stop offset=".8" stop-color="#ffd890"/></linearGradient>
           <radialGradient id="sun"><stop offset="0" stop-color="#fffbe0"/><stop offset=".5" stop-color="#ffe080"/><stop offset="1" stop-color="#ffb040" stop-opacity="0"/></radialGradient></defs>
           <rect width="1600" height="900" fill="url(#d1)"/><g class="an-sun"><circle cx="800" cy="640" r="420" fill="url(#sun)"/>
           ${Array.from({ length: 16 }, (_, i) => `<path d="M800 640L${f(800 + Math.cos((i / 16) * Math.PI * 2) * 1400)} ${f(640 + Math.sin((i / 16) * Math.PI * 2) * 1400)}L${f(800 + Math.cos((i / 16 + 0.02) * Math.PI * 2) * 1400)} ${f(640 + Math.sin((i / 16 + 0.02) * Math.PI * 2) * 1400)}Z" fill="#fff4c0" opacity=".18"/>`).join('')}</g>`), 'dawn')}
         ${layer(svg(`${trees(30, 700, 130, 90, '#3a2230', 31)}<path d="M0 900V690C300 660 600 680 800 700C1000 680 1300 660 1600 690V900Z" fill="#2a1420"/>${houses(760, false, 7).replace(/#070a14/g, '#1a0c14')}`))}
-        ${layer(svg(crowd))}`, 'with-title');
+        <div class="an-rays" style="opacity:.35"></div>`, 'with-title');
+      const w = D.world();
+      const crowd = [];
+      for (let i = 0; i < 11; i++) {
+        const h = makeHuman(w, { color: '#12080a', rim: '#ffd890', tool: i % 3 === 0 ? 'fork' : i % 3 === 1 ? 'torch' : null, scale: 1.45 + (i % 3) * 0.2, x: 70 + i * 146, y: 930 });
+        h.set(HUMAN_POSE.stand);
+        crowd.push({ h, ph: i * 0.37 });
+      }
+      D.tick((s) => {
+        for (const { h, ph } of crowd) {
+          const k = Math.max(0, Math.sin((s + ph) * 7));
+          const up = Math.min(1, s * 2);
+          h.set({
+            fUpper: -20 - 140 * up + k * 12, fFore: -30 + k * 20, bUpper: 20 + 135 * up - k * 12, bFore: 30 - k * 20,
+            fThigh: -k * 14, fShin: k * 24, bThigh: k * 10, bShin: k * 20, body: -k * 4, head: -10 * up + k * 4,
+            tool: 150 * up, y: 930 - k * 24,
+          });
+        }
+      });
       D.anim('.an-sun', [{ transform: 'translateY(300px)' }, { transform: 'translateY(0)' }], { duration: 3000, easing: 'ease-out' });
-      D.anim('.an-cheer', [{ transform: 'translateY(0)' }, { transform: 'translateY(-8px)' }], { duration: 300, iterations: 20, direction: 'alternate', stagger: 60 });
       D.anim('.dawn', [{ transform: 'scale(1.1)' }, { transform: 'scale(1)' }], { duration: 5000 });
     });
   },
@@ -339,10 +443,19 @@ const SCENES = {
     // 2. 손가락질하는 마을 사람들
     D.at(2.8, () => {
       D.sound('whoosh');
-      let crowd = '';
-      for (let i = 0; i < 7; i++) crowd += person(160 + i * 210, 900, 4.2, POINT, '#10141a', 'an-point');
-      D.cut(`<div class="an-bg" style="background:linear-gradient(#4a5260,#2a303a)"></div>${focusLines('#8a94a8', 60, 360)}${layer(svg(crowd))}${sfxText('저놈을 처형하라!', 'shout', 'left:24%;top:10%')}${rain}`);
-      D.anim('.an-point', [{ transform: 'translateY(0)' }, { transform: 'translateY(-3px)' }], { duration: 200, iterations: 12, direction: 'alternate', stagger: 40 });
+      D.cut(`<div class="an-bg" style="background:linear-gradient(#4a5260,#2a303a)"></div>${focusLines('#8a94a8', 60, 360)}${sfxText('저놈을 처형하라!', 'shout', 'left:24%;top:10%')}${rain}`);
+      const w = D.world();
+      const mob = [];
+      for (let i = 0; i < 7; i++) {
+        const h = makeHuman(w, { color: '#10141a', rim: '#aab4c8', tool: i % 2 ? 'torch' : null, scale: 3 + (i % 2) * 0.4, x: 120 + i * 230, y: 1000, flip: i > 3 });
+        mob.push({ h, ph: i * 0.5 });
+      }
+      D.tick((s) => {
+        for (const { h, ph } of mob) {
+          const k = Math.sin((s + ph) * 10);
+          h.set({ ...HUMAN_POSE.point, fUpper: -85 + k * 10, fFore: -8 + k * 6, body: -4 + k * 2, head: -4 - k * 3, bUpper: 14 - k * 20 });
+        }
+      });
       D.anim('.an-sfx', [{ transform: 'scale(0)' }, { transform: 'scale(1) rotate(-4deg)' }], { duration: 300 });
       D.shake(8, 900);
     });
@@ -363,7 +476,7 @@ const SCENES = {
         ${layer(svg(`<defs><radialGradient id="gg"><stop offset="0" stop-color="#eef4ff" stop-opacity=".6"/><stop offset="1" stop-color="#8aa0c8" stop-opacity="0"/></radialGradient></defs>
           <rect width="1600" height="900" fill="#262c36"/>${trees(30, 760, 160, 100, '#141820', 43)}<path d="M0 900V770H1600V900Z" fill="#0c0e12"/>
           <path d="M700 900V780Q800 740 900 780V900Z" fill="#3a2a1a"/><circle cx="800" cy="480" r="380" fill="url(#gg)"/>`))}
-        <div class="an-ghost"><div class="an-ghost-body"><img src="assets/role/tanner.svg" alt=""></div></div>
+        <div class="an-ghost"><div class="an-ghost-body"><svg viewBox="0 0 100 125" class="an-ghost-face"><ellipse cx="34" cy="46" rx="8" ry="11" fill="#1a1e2a"/><ellipse cx="66" cy="46" rx="8" ry="11" fill="#1a1e2a"/><circle cx="36" cy="42" r="2.5" fill="#fff"/><circle cx="68" cy="42" r="2.5" fill="#fff"/><path d="M30 64Q50 86 70 64Q50 76 30 64Z" fill="#1a1e2a"/><ellipse cx="24" cy="60" rx="7" ry="4" fill="#ffb0c0" opacity=".6"/><ellipse cx="76" cy="60" rx="7" ry="4" fill="#ffb0c0" opacity=".6"/><path d="M40 30q10 -8 20 0" stroke="#8a94a8" stroke-width="3" fill="none"/></svg></div></div>
         ${sfxText('드디어 자유다~!', 'shout ghosty', 'right:5%;top:10%')}
         ${rain}`, 'with-title');
       D.anim('.an-ghost', [{ transform: 'translate(-50%, 60%) scale(.6)', opacity: 0 }, { transform: 'translate(-50%, 0) scale(1)', opacity: 0.92 }], { duration: 2200, easing: 'ease-out' });
@@ -390,7 +503,7 @@ const SCENES = {
 };
 
 const TITLES = {
-  wolf: ['늑대인간의 승리', 11.8],
+  wolf: ['늑대인간의 승리', 12.9],
   village: ['마을의 승리', 9.2],
   tanner: ['무두장이의 승리', 7.4],
   none: ['아무도 이기지 못했다', 3],
@@ -423,12 +536,17 @@ export function playCutscene(host, kind, { sub = '', sound = () => {} } = {}) {
   const [title, titleAt] = TITLES[k];
   return new Promise((resolve) => {
     host.innerHTML = `<div class="an-stage"></div>
+      <div class="an-vignette"></div><div class="an-grain"></div>
       <div class="cs-bars"></div>
-      <div class="an-title" style="animation-delay:${titleAt + 0.4}s"><span>${title}</span>${sub ? `<small>${sub}</small>` : ''}</div>
+      <div class="an-title"><span>${title}</span>${sub ? `<small>${sub}</small>` : ''}</div>
       <button class="btn btn-sm cs-skip">건너뛰기 ▸</button>`;
     host.hidden = false;
     const D = director(host.querySelector('.an-stage'), sound);
     SCENES[k](D);
+    D.at(titleAt + 0.4, () => host.querySelector('.an-title').animate(
+      [{ opacity: 0, transform: 'scale(1.6)', letterSpacing: '.3em' }, { opacity: 1, transform: 'scale(1)', letterSpacing: '0em' }],
+      { duration: 900, easing: 'cubic-bezier(.2,.8,.3,1.2)', fill: 'forwards' },
+    ));
     let done = false;
     const end = () => {
       if (done) return;

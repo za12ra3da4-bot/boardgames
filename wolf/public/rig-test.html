@@ -1,0 +1,14 @@
+<!doctype html><meta charset="utf-8">
+<style>body{margin:0;background:#1c3470;display:flex;flex-wrap:wrap}.cell{width:320px;height:360px;position:relative;border:1px solid #345;overflow:hidden}.cell svg.rig{position:absolute;left:0;top:0;width:600px;height:560px;transform-origin:300px 520px}.cell b{position:absolute;left:4px;top:2px;color:#fff;font:12px sans-serif}</style>
+<body>
+<script type="module">
+import { makeWolf, makeHuman, WOLF_POSE, HUMAN_POSE, runPose } from './js/rig2d.js';
+const cell = (label) => { const d = document.createElement('div'); d.className = 'cell'; d.innerHTML = `<b>${label}</b>`; document.body.appendChild(d); return d; };
+for (const k of Object.keys(WOLF_POSE)) {
+  const r = makeWolf(cell(k), { scale: 0.6, x: 160, y: 330 });
+  r.set(WOLF_POSE[k]); r.eyesOn(1);
+}
+const h1 = makeHuman(cell('run .1'), { tool: 'torch', scale: 1.5, x: 160, y: 340 }); h1.set(runPose(0.1));
+const h2 = makeHuman(cell('run .6'), { tool: 'fork', scale: 1.5, x: 160, y: 340 }); h2.set(runPose(0.6));
+const h3 = makeHuman(cell('cheer'), { scale: 1.5, x: 160, y: 340 }); h3.set(HUMAN_POSE.cheer);
+</script>

@@ -356,7 +356,7 @@ function buildTable(scene) {
   candle.traverse((o) => { if (o.isMesh) o.castShadow = true; });
   candle.position.set(0, 0, -1.9);
   scene.add(candle);
-  const fire = flame(candle, new THREE.Vector3(0, 1.56, 0), { size: 0.34, light: 26, range: 16, color: 0xffa050 });
+  const fire = flame(candle, new THREE.Vector3(0, 1.56, 0), { size: 0.3, light: 45, range: 30, color: 0xffa050, glow: 0.18 });
   fire.children[2].castShadow = true;
   fire.children[2].shadow.mapSize.set(1024, 1024);
   fire.children[2].shadow.bias = -0.002;
@@ -366,13 +366,13 @@ function buildTable(scene) {
 /* ── 둘러앉은 사람 (실루엣 + 이름 색 목도리) */
 function seatFigure(scene, color) {
   const g = new THREE.Group();
-  const body = silhouette(PATHS.coat, 4.6, { color: 0x0a0e1a, rim: 0x9ab4ff, depth: 26 });
+  const body = silhouette(PATHS.coat, 4.6, { color: 0x2a3048, rim: 0xffc890, depth: 26 });
   body.position.y = -3.4;
   g.add(body);
   const scarf = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.13, 8, 20), new THREE.MeshStandardMaterial({ color, roughness: 0.8 }));
   scarf.rotation.x = Math.PI / 2;
   scarf.position.y = -3.4 + 4.6 * 0.78;
-  g.add(scarf);
+  scarf.visible = false;
   const stool = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.8, 0.3, 16), new THREE.MeshStandardMaterial({ color: 0x3a2412, roughness: 0.8 }));
   stool.position.y = -1.6;
   g.add(stool);
@@ -386,7 +386,7 @@ function seatFigure(scene, color) {
  * @param {{onPick:(key:string)=>void}} opts
  */
 export function createTable(host, { onPick }) {
-  const world = makeRenderer(host, { bloom: 0.75, threshold: 0.9, radius: 0.5 });
+  const world = makeRenderer(host, { bloom: 0.45, threshold: 0.95, radius: 0.4 });
   const { scene, camera, renderer, bloomPass } = world;
   scene.fog = new THREE.FogExp2(0x0a1432, 0.012);
   const s = sky(scene);
@@ -407,9 +407,10 @@ export function createTable(host, { onPick }) {
   const table = buildTable(scene);
   particles(scene, { count: 70, area: [50, 8, 50], center: new THREE.Vector3(0, -3, 0), color: 0xc8ff90, size: 0.25 });
 
-  camera.fov = 42;
-  const camHome = new THREE.Vector3(0, 10.5, 12.2);
-  const camLook = new THREE.Vector3(0, -0.4, 0.6);
+  camera.fov = 48;
+  camera.updateProjectionMatrix();
+  const camHome = new THREE.Vector3(0, 11.5, 14.8);
+  const camLook = new THREE.Vector3(0, -0.2, -0.4);
   camera.position.copy(camHome);
   camera.lookAt(camLook);
 
@@ -465,7 +466,8 @@ export function createTable(host, { onPick }) {
         if (!figures.has(p.pid)) figures.set(p.pid, seatFigure(scene, AV_COLORS[p.seat % AV_COLORS.length]));
         const f = figures.get(p.pid);
         f.group.position.set(Math.cos(a) * (TABLE_R + 1.6), 0, Math.sin(a) * (TABLE_R + 1.6));
-        f.group.rotation.y = -a - Math.PI / 2;
+        // 판지 인형처럼 늘 카메라 쪽을 본다
+        f.group.rotation.y = Math.atan2(camHome.x - f.group.position.x, camHome.z - f.group.position.z);
         f.dead = !!p.dead;
       }
       const pl = plate(p.pid);
@@ -630,7 +632,6 @@ export function createTable(host, { onPick }) {
       const target = f.dead ? -1.35 : 0;
       f.body.rotation.x += (target - f.body.rotation.x) * Math.min(1, dt * 3);
       f.body.position.y = -3.4 + (f.dead ? 0 : Math.sin(t * 1.6 + i) * 0.03);
-      f.scarf.visible = !f.dead;
       i++;
     }
     // 카메라: 살짝 숨쉬듯, 결과 때는 천천히 돈다
@@ -652,7 +653,7 @@ export function createTable(host, { onPick }) {
       const k = Math.min(1, (performance.now() - arrowGroup.userData.born) / 1200);
       arrowGroup.children.forEach((m) => { if (m.material) m.material.opacity = 0.9 * k; });
     }
-    bloomPass.strength = 0.75 - dayK * 0.35;
+    bloomPass.strength = 0.45 - dayK * 0.2;
     // 이름표 위치
     const w = host.clientWidth;
     const h = host.clientHeight;

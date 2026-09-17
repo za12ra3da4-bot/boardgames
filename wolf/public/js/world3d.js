@@ -244,12 +244,12 @@ export function ground(scene, { color = 0x0a1020, size = 1400 } = {}) {
 
 /* ── 불꽃 (횃불·촛불): 흔들리는 빛 + 빛나는 스프라이트 */
 const flameTex = () => glowTex('rgba(255,210,120,1)', 'rgba(255,90,20,0)');
-export function flame(parent, pos, { size = 1, light = 2.5, range = 18, color = 0xffa040 } = {}) {
+export function flame(parent, pos, { size = 1, light = 2.5, range = 18, color = 0xffa040, glow: glowAmt = 0.5 } = {}) {
   const g = new THREE.Group();
   g.position.copy(pos);
   const core = new THREE.Sprite(new THREE.SpriteMaterial({ map: flameTex(), blending: THREE.AdditiveBlending, depthWrite: false, color: new THREE.Color(2.4, 1.6, 0.8), toneMapped: false }));
   core.scale.set(size * 0.8, size * 1.3, 1);
-  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: flameTex(), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.5 }));
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: flameTex(), blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: glowAmt }));
   glow.scale.setScalar(size * 5);
   const pl = new THREE.PointLight(color, light, range, 1.6);
   g.add(core, glow, pl);
