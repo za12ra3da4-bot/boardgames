@@ -58,9 +58,18 @@ const FRONT = {
     </div>`,
 };
 
+FRONT.isle = () => `
+    <div class="if">
+      <img class="if-art" src="/isle/assets/box.svg" alt="">
+      <div class="if-title">바람섬<b>개척기</b></div>
+      <div class="if-en">ISLE OF WINDS</div>
+      <div class="if-band"><span>3~4명</span><span>45~75분</span><span>10세 이상</span></div>
+    </div>`;
+
 const SPINE = {
   bang: '황야의 뱅!',
   clue: '밤의 저택',
+  isle: '바람섬 개척기',
 };
 
 let CAN_EDIT = false;
