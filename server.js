@@ -4,6 +4,7 @@
 //   /bang/   황야의 뱅
 //   /clue/   밤의 저택
 //   /isle/   바람섬 개척기
+//   /wolf/   보름밤 늑대인간
 const path = require('path');
 const http = require('http');
 const os = require('os');
@@ -44,6 +45,16 @@ const GAMES = [
     desc: '자원을 모아 길과 마을을 짓고, 서로 거래하며 먼저 10점을 만드는 개척 게임.',
     players: '3~4명',
     time: '45~75분',
+  },
+  {
+    id: 'wolf',
+    base: '/wolf',
+    dir: 'wolf',
+    title: '보름밤의 늑대인간',
+    sub: '정체 숨기기 파티게임',
+    desc: '단 하룻밤, 카드가 뒤바뀌는 마을. 10분 동안 떠들고 추리해서 늑대인간을 찾아 투표하라.',
+    players: '3~10명',
+    time: '10~15분',
   },
 ];
 

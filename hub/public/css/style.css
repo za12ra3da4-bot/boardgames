@@ -73,6 +73,7 @@ a { color: inherit; text-decoration: none; }
 .game.bang { --w: 250px; --h: 340px; --d: 60px; }
 .game.clue { --w: 380px; --h: 272px; --d: 56px; }
 .game.isle { --w: 300px; --h: 300px; --d: 64px; }
+.game.wolf { --w: 364px; --h: 273px; --d: 72px; }
 
 /* ───── 3D 상자 */
 .stage { position: relative; perspective: 1100px; width: 100%; height: calc(var(--h) + 50px); display: grid; place-items: center; }
@@ -132,10 +133,10 @@ a { color: inherit; text-decoration: none; }
 
 /* ── 밤의 저택: 클루 같은 짙은 남색 상자 */
 .clue .face.side, .clue .face.lid { background: linear-gradient(90deg, #0c1a2e, #16294a); }
-.clue .face.side span { color: #fff; font-family: 'Jua', var(--display); font-size: 28px; letter-spacing: .02em; }
+.clue .face.side span { color: #f6ecd4; font-family: 'Hahmlet', serif; font-weight: 900; font-size: 26px; letter-spacing: .04em; text-shadow: 2px 2px 0 #8a1414; }
 .clue .face.lid { filter: brightness(.85); }
 .cf { position: absolute; inset: 0; overflow: hidden; background: #0c1626; }
-.cf-room { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 60%; filter: saturate(1.15) brightness(.8); }
+.cf-room { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; }
 .cf-fire { position: absolute; left: 34%; top: 34%; width: 36%; height: 50%; background: radial-gradient(ellipse, rgba(255, 160, 60, .55), rgba(255, 110, 30, 0) 70%); mix-blend-mode: screen; }
 .cf-ch {
   position: absolute; bottom: 0; object-fit: cover; object-position: 50% 10%;
@@ -148,15 +149,15 @@ a { color: inherit; text-decoration: none; }
 .cf-ch.c3 { left: 40%; width: 24%; height: 50%; bottom: 14%; filter: brightness(.88); }
 .cf-ch.c4 { right: -6%; width: 42%; height: 90%; bottom: -8%; }
 .cf-ch.c5 { right: 24%; width: 26%; height: 60%; bottom: 6%; filter: brightness(.92); }
-.cf-shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(8, 14, 26, .55), rgba(8, 14, 26, 0) 35%, rgba(8, 14, 26, 0) 62%, rgba(8, 14, 26, .9)); }
+.cf-shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(8, 14, 26, .35), rgba(8, 14, 26, 0) 30%, rgba(8, 14, 26, 0) 80%, rgba(8, 14, 26, .85)); }
 .cf-title {
-  position: absolute; left: 16px; top: 12px; font-family: 'Jua', var(--display); font-size: 58px; line-height: .95;
-  color: #fff; letter-spacing: -.01em; text-shadow: 0 4px 0 rgba(0, 0, 0, .45), 0 0 18px rgba(0, 0, 0, .5);
+  position: absolute; left: 0; right: 0; top: 10px; text-align: center; font-family: 'Hahmlet', serif; font-weight: 900; font-size: 60px; line-height: 1;
+  color: #f6ecd4; letter-spacing: .02em; text-shadow: 3px 3px 0 #8a1414, 5px 5px 0 rgba(0, 0, 0, .55), 0 0 22px rgba(0, 0, 0, .6);
 }
-.cf-title small { display: block; margin-top: 4px; font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: .28em; color: #f0d890; text-shadow: 0 2px 0 rgba(0, 0, 0, .5); }
-.cf-tag { position: absolute; left: 0; right: 0; bottom: 12px; text-align: center; font-weight: 900; font-size: 16px; color: #fff; text-shadow: 0 2px 4px #000; }
-.cf-tag small { display: block; font-size: 10.5px; font-weight: 700; color: #e8dcc0; margin-bottom: 1px; }
-.cf-age { position: absolute; left: 10px; bottom: 10px; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: #fff; color: #0c1626; font-family: 'Fredoka', sans-serif; font-weight: 700; font-size: 12px; }
+.cf-title small { display: block; margin-top: 6px; font-family: 'Playfair Display SC', serif; font-weight: 900; font-size: 14px; letter-spacing: .34em; color: #e8c86a; text-shadow: 0 2px 0 rgba(0, 0, 0, .6); }
+.cf-tag { position: absolute; left: 0; right: 0; bottom: 12px; text-align: center; font-family: 'Hahmlet', serif; font-weight: 700; font-size: 16px; color: #f6ecd4; text-shadow: 0 2px 4px #000; }
+.cf-tag small { display: block; font-family: 'Hahmlet', serif; font-weight: 700; font-size: 10.5px; color: #d8c8a4; margin-bottom: 2px; letter-spacing: .04em; }
+.cf-age { position: absolute; left: 10px; bottom: 10px; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: #fff; color: #0c1626; font-family: 'Playfair Display SC', serif; font-weight: 900; font-size: 12px; }
 
 .gf { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 8px; background: var(--paper); }
 .gf img { width: 50%; }
@@ -179,7 +180,7 @@ a { color: inherit; text-decoration: none; }
   .game.bang { --w: 210px; --h: 286px; --d: 50px; }
   .game.clue { --w: 300px; --h: 216px; --d: 46px; }
   .bf-title b { font-size: 56px; }
-  .cf-title { font-size: 46px; }
+  .cf-title { font-size: 48px; }
   .bf-poster { top: 108px; }
   .bf-star { top: 160px; width: 70px; height: 70px; }
 }
@@ -249,3 +250,19 @@ a { color: inherit; text-decoration: none; }
   position: absolute; left: 0; right: 0; bottom: 0; height: 24px; display: flex; justify-content: center; align-items: center; gap: 10px;
   background: #1f5a86; border-top: 2px solid #0e2c48; color: #fff4dc; font-size: 10.5px; font-weight: 900;
 }
+
+/* ── 보름밤 늑대인간: 짙푸른 밤 상자 */
+.wolf .face.side { background: linear-gradient(90deg, #0a1a40, #16306a); }
+.wolf .face.side span { color: #f4f0e6; font-family: 'Song Myung', serif; font-size: 25px; letter-spacing: .02em; text-shadow: 2px 2px 0 #050a18; }
+.wolf .face.lid { background: #0e2458; filter: brightness(.8); }
+.wf { position: absolute; inset: 0; overflow: hidden; background: #0a1a40; }
+.wf-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.wf-pub { position: absolute; right: 12px; top: 10px; padding: 2px 6px; background: #f4f0e6; color: #0a1a40; font-family: 'Cinzel', serif; font-weight: 900; font-size: 8px; letter-spacing: .12em; }
+.wf-title {
+  position: absolute; left: 0; right: 0; bottom: 30px; text-align: center; line-height: 1; white-space: nowrap;
+  font-family: 'Song Myung', serif; font-size: 50px; color: #f6f2ea; letter-spacing: -.01em;
+  text-shadow: 0 3px 0 #050a18, 0 0 14px rgba(0, 0, 0, .8);
+}
+.wf-title span { font-size: 40px; }
+.wf-en { position: absolute; left: 0; right: 0; bottom: 12px; text-align: center; font-family: 'Cinzel', serif; font-weight: 700; font-size: 9px; letter-spacing: .16em; color: #d8e0f0; text-shadow: 0 1px 2px #000; }
+.wf-badge { position: absolute; left: 10px; top: 10px; padding: 4px 7px; border: 1.5px solid #c8a44a; border-radius: 6px; background: rgba(5, 10, 24, .6); color: #f0d890; font-size: 10px; font-weight: 900; line-height: 1.3; text-align: center; }

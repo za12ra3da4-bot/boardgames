@@ -45,13 +45,7 @@ const FRONT = {
   // 짙은 남색 상자 · 벽난로 응접실에 모인 용의자들 · 둥근 흰 제목
   clue: () => `
     <div class="cf">
-      <img class="cf-room" src="/clue/assets/room/lounge.svg" alt="">
-      <div class="cf-fire"></div>
-      <img class="cf-ch c2" src="/clue/assets/char/han.svg" alt="">
-      <img class="cf-ch c3" src="/clue/assets/char/kang.svg" alt="">
-      <img class="cf-ch c5" src="/clue/assets/char/oh.svg" alt="">
-      <img class="cf-ch c1" src="/clue/assets/char/seo.svg" alt="">
-      <img class="cf-ch c4" src="/clue/assets/char/baek.svg" alt="">
+      <img class="cf-room" src="/clue/assets/box.svg" alt="">
       <div class="cf-shade"></div>
       <div class="cf-title">밤의 저택<small>MANSION MYSTERY</small></div>
       <div class="cf-tag"><small>모두가 용의자, 진실은 단 하나</small>폭풍우 치는 밤, 저택의 살인 사건</div>
@@ -69,7 +63,18 @@ FRONT.isle = () => `
       <div class="if-band"><span>3~4명</span><span>45~75분</span><span>10세 이상</span></div>
     </div>`;
 
+// 짙푸른 밤, 보름달, 절벽 위 늑대인간 · 붓글씨 같은 흰 제목
+FRONT.wolf = () => `
+    <div class="wf">
+      <img class="wf-art" src="/wolf/assets/box.svg" alt="">
+      <div class="wf-pub">FULL MOON GAMES</div>
+      <div class="wf-title"><span>보름밤의</span> 늑대인간</div>
+      <div class="wf-en">A ONE-NIGHT GAME OF HIDDEN ROLES</div>
+      <div class="wf-badge">3~10명<br>10분</div>
+    </div>`;
+
 const SPINE = {
+  wolf: '보름밤의 늑대인간',
   bang: '황야의 뱅!',
   clue: '밤의 저택',
   isle: '바람섬 개척기',

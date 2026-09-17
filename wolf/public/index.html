@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>보름밤의 늑대인간 · 하룻밤 정체 숨기기 게임</title>
+<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Song+Myung&family=Noto+Sans+KR:wght@400;500;700;900&family=Cinzel:wght@700;900&family=Gowun+Batang:wght@400;700&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="conn" id="conn" hidden></div>
+
+<!-- 시작 화면 -->
+<section id="home" class="screen">
+  <div class="home">
+    <img class="home-art" src="assets/box.svg" alt="">
+    <div class="home-shade"></div>
+    <div class="hero">
+      <p class="kicker">친구들과 떠들며 하는 10분 추리 파티게임</p>
+      <h1 class="title"><small>보름밤의</small>늑대인간</h1>
+      <p class="tagline">단 하룻밤, 누군가의 카드가 몰래 뒤바뀐다.<br>아침이 밝으면 이야기하고, 의심하고, 한 명을 지목하라.</p>
+      <div class="hero-cards" id="heroCards"></div>
+    </div>
+    <div class="join-card">
+      <div class="jc-head">마을 회관</div>
+      <label class="lbl" for="nameInput">이름</label>
+      <input id="nameInput" class="input" maxlength="10" placeholder="닉네임 (최대 10자)" autocomplete="off">
+      <button id="createBtn" class="btn btn-gold btn-lg wide"><i class="ic ic-plus"></i>새 방 만들기</button>
+      <div class="or"><span>또는 초대 코드로 입장</span></div>
+      <div class="join-row">
+        <input id="codeInput" class="input code" maxlength="4" placeholder="ABCD" autocomplete="off">
+        <button id="joinBtn" class="btn btn-lg">입장</button>
+      </div>
+      <button class="btn wide" data-rules><i class="ic ic-help"></i>게임 방법 보기</button>
+    </div>
+  </div>
+</section>
+
+<!-- 대기실 -->
+<section id="lobby" class="screen" hidden>
+  <header class="bar">
+    <div class="bar-brand"><img src="assets/logo.svg" alt=""><span>보름밤의 늑대인간</span></div>
+    <div class="bar-mid">
+      <div class="room-code"><span>초대 코드</span><b id="lobbyCode">----</b></div>
+      <button class="btn btn-sm" id="copyLinkBtn"><i class="ic ic-link"></i>초대 링크 복사</button>
+    </div>
+    <div class="bar-right">
+      <button class="btn btn-sm" data-rules><i class="ic ic-help"></i>룰</button>
+      <button class="icon-btn" data-mute title="소리 켜기/끄기"><i class="ic ic-volume"></i></button>
+      <button class="btn btn-sm" data-leave><i class="ic ic-door"></i>나가기</button>
+    </div>
+  </header>
+  <div class="lobby">
+    <div class="lobby-main">
+      <h2 class="h2">마을 사람들 <small>3~10명 · 자리는 시작할 때 무작위</small></h2>
+      <div id="seatGrid" class="seat-grid"></div>
+      <div id="spectators" class="spectators"></div>
+      <div class="lobby-actions">
+        <button id="addBotBtn" class="btn"><i class="ic ic-bot"></i>AI 마을 사람 추가</button>
+        <button id="seatBtn" class="btn"><i class="ic ic-eye"></i>관전으로 전환</button>
+        <div class="grow"></div>
+        <span id="startHint" class="hint"></span>
+        <button id="startBtn" class="btn btn-gold btn-lg"><i class="ic ic-play"></i>밤 시작</button>
+      </div>
+      <div class="panel deck-panel" id="deckPanel"></div>
+    </div>
+    <aside class="lobby-side panel" id="lobbyChatMount"></aside>
+  </div>
+</section>
+
+<!-- 게임 -->
+<section id="game" class="screen" hidden>
+  <header class="bar">
+    <div class="bar-brand"><img src="assets/logo.svg" alt=""><span>보름밤의 늑대인간</span><em id="gameCode"></em></div>
+    <div id="phaseBanner" class="phase-banner"></div>
+    <div class="bar-right">
+      <button class="btn btn-sm" data-rules><i class="ic ic-help"></i>룰</button>
+      <button class="icon-btn" data-mute title="소리 켜기/끄기"><i class="ic ic-volume"></i></button>
+      <button class="btn btn-sm" id="hostLobbyBtn" hidden>대기실로</button>
+      <button class="btn btn-sm" data-leave><i class="ic ic-door"></i>나가기</button>
+    </div>
+  </header>
+  <div class="game">
+    <main class="center">
+      <div class="table-wrap" id="tableWrap">
+        <div class="sky" id="sky"><div class="moon"></div><div class="sun"></div></div>
+        <div class="table" id="table">
+          <svg class="arrows" id="arrows"></svg>
+          <div class="center-cards" id="centerCards"></div>
+          <div class="seats" id="seats"></div>
+        </div>
+        <div class="narration" id="narration"></div>
+      </div>
+      <div class="action-bar" id="actionBar"></div>
+    </main>
+    <aside class="side">
+      <div class="panel me-panel" id="mePanel"></div>
+      <div class="panel talk">
+        <nav class="tabs" id="tabs">
+          <button data-tab="chat" class="on"><i class="ic ic-chat"></i>대화<span class="badge" id="chatBadge" hidden></span></button>
+          <button data-tab="log"><i class="ic ic-scroll"></i>기록</button>
+          <button data-tab="deck"><i class="ic ic-cards"></i>역할</button>
+        </nav>
+        <div class="tab tab-chat" id="tab-chat"></div>
+        <div class="tab" id="tab-log" hidden></div>
+        <div class="tab" id="tab-deck" hidden></div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<a class="back-hub" id="backHub" href="/"><i class="ic ic-next"></i>다른 보드게임 고르기</a>
+
+<div id="modal" class="modal" hidden><div class="modal-box" id="modalBox"></div></div>
+<div id="cutscene" class="cutscene" hidden></div>
+<div id="toasts" class="toasts"></div>
+
+<template id="chatTpl">
+  <div class="chat">
+    <div class="chat-log"></div>
+    <form class="chat-form">
+      <input class="input" maxlength="200" placeholder="메시지 입력" autocomplete="off">
+      <button class="btn btn-gold btn-sm" type="submit" title="보내기"><i class="ic ic-send"></i></button>
+    </form>
+  </div>
+</template>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="shared/wolf.js"></script>
+<script src="js/sfx.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

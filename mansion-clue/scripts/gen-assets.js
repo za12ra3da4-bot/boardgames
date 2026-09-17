@@ -25,6 +25,7 @@ for (const [id, fn] of Object.entries(weapons)) write(`weapon/${id}.svg`, fn());
 for (const [id, fn] of Object.entries(rooms)) write(`room/${id}.svg`, fn());
 for (const [id, content] of Object.entries(ui.icons)) write(`ui/${id}.svg`, content);
 for (const [id, content] of Object.entries(ui.rules)) write(`rules/${id}.svg`, content);
+write('box.svg', require('./art/box').box());
 write('logo.svg', ui.logo);
 write('envelope.svg', ui.envelope);
 write('card-frame.svg', ui.cardFrame);

@@ -1,11 +1,35 @@
 {
   "clue": [
-    { "title": "클루 보드게임 하는 법 · 3분게임요리", "url": "https://www.youtube.com/watch?v=7Ium0jpht0g", "note": "3분 44초" }
+    {
+      "title": "클루 보드게임 하는 법 · 3분게임요리",
+      "url": "https://www.youtube.com/watch?v=7Ium0jpht0g",
+      "note": "3분 44초"
+    }
   ],
   "bang": [
-    { "title": "가장 빠른 '뱅' 보드게임 설명 영상", "url": "https://www.youtube.com/watch?v=BfiEWxg5vB8", "note": "6분 21초" }
+    {
+      "title": "가장 빠른 '뱅' 보드게임 설명 영상",
+      "url": "https://www.youtube.com/watch?v=BfiEWxg5vB8",
+      "note": "6분 21초"
+    }
   ],
   "isle": [
-    { "title": "카탄 보드게임 하는 법 · 3분게임요리", "url": "https://www.youtube.com/watch?v=37V2ajpMEic", "note": "4분 53초" }
+    {
+      "title": "카탄 보드게임 하는 법 · 3분게임요리",
+      "url": "https://www.youtube.com/watch?v=37V2ajpMEic",
+      "note": "4분 53초"
+    }
+  ],
+  "wolf": [
+    {
+      "title": "한밤의 늑대인간 하는 방법 (How to Play)",
+      "url": "https://www.youtube.com/watch?v=G-pv0ouTIFI",
+      "note": "규칙 설명"
+    },
+    {
+      "title": "한밤의 늑대인간 규칙설명 · 윙 보드게임",
+      "url": "https://www.youtube.com/watch?v=KpTbyI6KOVc",
+      "note": "규칙 설명"
+    }
   ]
 }
