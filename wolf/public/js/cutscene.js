@@ -1,358 +1,399 @@
-// 게임이 끝날 때 나오는 3D 결말 영상 (three.js · 약 16초)
-import { THREE, PATHS, makeRenderer, sky, moon, forest, village, ground, silhouette, flame, particles, mistLayers, glowTex, span, ease } from './world3d.js';
+// 게임이 끝날 때 나오는 2D 애니메이션 결말 영상 (컷 전환 · 클로즈업 · 집중선 · 임팩트)
+const LENGTH = { wolf: 15, village: 15, tanner: 14, none: 10 };
 
-const LENGTH = 16;
-const lerp = (a, b, t) => a + (b - a) * t;
-const v3 = (x, y, z) => new THREE.Vector3(x, y, z);
+/* ═════════════ 그림 조각 ═════════════ */
 
-/** 카메라를 경로(키프레임)대로 움직인다: [[시간, 위치, 바라볼 곳], ...] */
-function cameraPath(cam, keys) {
-  const p = new THREE.Vector3();
-  const l = new THREE.Vector3();
-  return (t) => {
-    let i = 0;
-    while (i < keys.length - 2 && t > keys[i + 1][0]) i++;
-    const [t0, p0, l0] = keys[i];
-    const [t1, p1, l1] = keys[i + 1];
-    const k = span(t, t0, t1);
-    p.lerpVectors(p0, p1, k);
-    l.lerpVectors(l0, l1, k);
-    cam.position.copy(p);
-    cam.lookAt(l);
-  };
-}
+const rnd = (seed) => {
+  let s = seed;
+  return () => (s = (s * 16807) % 2147483647) / 2147483647;
+};
+const f = (n) => Math.round(n * 10) / 10;
 
-/** 바위 절벽 */
-function cliff(scene, x, z, h) {
-  const g = new THREE.Group();
-  const mat = new THREE.MeshStandardMaterial({ color: 0x0c1020, roughness: 1, flatShading: true });
-  const rocks = [[0, h * 0.45, 0, h * 0.55], [-h * 0.35, h * 0.25, h * 0.1, h * 0.4], [h * 0.4, h * 0.3, -h * 0.1, h * 0.42], [h * 0.1, h * 0.8, 0, h * 0.3]];
-  for (const [rx, ry, rz, s] of rocks) {
-    const m = new THREE.Mesh(new THREE.DodecahedronGeometry(s, 0), mat);
-    m.position.set(rx, ry, rz);
-    m.rotation.set(Math.random(), Math.random(), Math.random());
-    m.scale.y = 1.3;
-    m.castShadow = true;
-    g.add(m);
+function pine(x, y, h, fill) {
+  const w = h * 0.34;
+  let d = `M${f(x)} ${f(y - h)}`;
+  for (let i = 1; i <= 5; i++) {
+    const ty = y - h + (h * 0.86 * i) / 5;
+    d += `L${f(x + (w * i) / 5)} ${f(ty)}L${f(x + ((w * i) / 5) * 0.4)} ${f(ty - h * 0.04)}`;
   }
-  const top = new THREE.Mesh(new THREE.CylinderGeometry(h * 0.28, h * 0.36, h * 0.12, 7), mat);
-  top.position.y = h * 1.02;
-  g.add(top);
-  g.position.set(x, 0, z);
-  scene.add(g);
-  return { group: g, topY: h * 1.08 };
+  d += `L${f(x + w * 0.08)} ${f(y - h * 0.14)}V${f(y)}H${f(x - w * 0.08)}V${f(y - h * 0.14)}`;
+  for (let i = 5; i >= 1; i--) {
+    const ty = y - h + (h * 0.86 * i) / 5;
+    d += `L${f(x - ((w * i) / 5) * 0.4)} ${f(ty - h * 0.04)}L${f(x - (w * i) / 5)} ${f(ty)}`;
+  }
+  return `<path d="${d}Z" fill="${fill}"/>`;
+}
+const trees = (n, y, hmin, hvar, fill, seed, x0 = -100, x1 = 1700) => {
+  const r = rnd(seed);
+  let s = '';
+  for (let i = 0; i < n; i++) s += pine(x0 + ((x1 - x0) * (i + r() * 0.8)) / n, y + r() * 20, hmin + r() * hvar, fill);
+  return s;
+};
+const svg = (body, vb = '0 0 1600 900') => `<svg viewBox="${vb}" preserveAspectRatio="xMidYMid slice">${body}</svg>`;
+const layer = (html, cls = '') => `<div class="an-layer ${cls}">${html}</div>`;
+
+function houses(y, lit, seed = 3) {
+  const r = rnd(seed);
+  let s = '';
+  const xs = [120, 280, 420, 560, 900, 1040, 1180, 1330, 1470];
+  xs.forEach((x, i) => {
+    const w = 90 + r() * 60;
+    const h = 60 + r() * 50;
+    s += `<path d="M${x} ${y}V${f(y - h)}L${f(x + w / 2)} ${f(y - h - w * 0.45)}L${f(x + w)} ${f(y - h)}V${y}Z" fill="#070a14"/>`;
+    s += `<rect x="${f(x + w * 0.62)}" y="${f(y - h - w * 0.4)}" width="12" height="30" fill="#070a14"/>`;
+    for (const k of [0.22, 0.58]) s += `<rect class="win" x="${f(x + w * k)}" y="${f(y - h * 0.72)}" width="${f(w * 0.18)}" height="${f(h * 0.26)}" fill="${lit ? '#ffc868' : '#161c2c'}"/>`;
+  });
+  s += `<path d="M740 ${y}V${y - 190}L770 ${y - 260}L800 ${y - 190}V${y}Z" fill="#070a14"/><circle cx="770" cy="${y - 150}" r="12" fill="${lit ? '#ffc868' : '#161c2c'}" class="win"/>`;
+  return s;
 }
 
-function eyes(parent, color = 0xffc830, spread = 0.9, size = 1.4) {
-  const mat = new THREE.SpriteMaterial({ map: glowTex('rgba(255,230,120,1)', 'rgba(255,120,0,0)'), color: new THREE.Color(color).multiplyScalar(3), blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, transparent: true, opacity: 0 });
-  const a = new THREE.Sprite(mat);
-  const b = new THREE.Sprite(mat);
-  a.scale.setScalar(size);
-  b.scale.setScalar(size);
-  a.position.x = -spread / 2;
-  b.position.x = spread / 2;
-  const g = new THREE.Group();
-  g.add(a, b);
-  parent.add(g);
-  return { group: g, mat };
+function stars(n, seed, h = 600) {
+  const r = rnd(seed);
+  let s = '';
+  for (let i = 0; i < n; i++) s += `<circle cx="${f(r() * 1600)}" cy="${f(r() * h)}" r="${f(0.6 + r() * 1.6)}" fill="#fff" opacity="${f(0.3 + r() * 0.7)}"/>`;
+  return s;
 }
 
-const VILLAGE_SPOTS = [[-26, -40, 0.3], [-12, -52, -0.2, 1.1], [4, -44, 0.1], [18, -56, 0.5, 1.2], [30, -42, -0.4], [-38, -60, 0.8], [40, -66, 0.2, 1.3], [-4, -70, 0, 1.4]];
+const MOON_DEFS = `<radialGradient id="mG"><stop offset="0" stop-color="#fffdf0"/><stop offset=".75" stop-color="#f6e8b4"/><stop offset="1" stop-color="#d8bc70"/></radialGradient>
+  <radialGradient id="mH"><stop offset=".45" stop-color="#fff4c8" stop-opacity=".55"/><stop offset="1" stop-color="#8aa8e8" stop-opacity="0"/></radialGradient>`;
+const moonSvg = (cx, cy, r) => `<circle cx="${cx}" cy="${cy}" r="${r * 1.9}" fill="url(#mH)"/><circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#mG)"/>
+  <g fill="#b8a070" opacity=".3"><ellipse cx="${cx - r * 0.3}" cy="${cy - r * 0.2}" rx="${r * 0.22}" ry="${r * 0.15}"/><ellipse cx="${cx + r * 0.28}" cy="${cy + r * 0.25}" rx="${r * 0.17}" ry="${r * 0.12}"/><ellipse cx="${cx + r * 0.1}" cy="${cy - r * 0.5}" rx="${r * 0.1}" ry="${r * 0.07}"/></g>`;
+
+/** 우는 늑대인간 / 선 늑대인간 전신 (200×300, 발이 아래) */
+const WOLF_HOWL = 'M62 300L70 262C58 246 54 226 60 206C48 196 40 178 44 160C30 168 16 182 6 196L2 214L10 204L8 222L16 208L18 226L22 206C30 190 40 176 50 164C48 140 52 118 64 104C60 92 62 80 70 72L60 40L80 62C84 58 88 54 94 52L104 18L108 50C116 44 128 34 142 20L148 26C138 40 128 50 122 58L130 58C124 66 114 72 106 76C114 88 128 96 140 100C152 112 166 128 178 146L196 150L184 156L200 162L184 165L196 175L176 169C164 156 150 144 138 136C140 156 138 178 128 198C138 216 140 242 132 264L142 300H118L112 270C104 258 98 248 96 238C92 250 88 260 84 270L84 300Z';
+const WOLF_FUR = 'M64 104L56 96L66 94L58 84L70 86L66 74M50 164L40 160L48 154L40 146L52 146M138 100L148 94L146 104L158 102L150 112M128 198L140 196L132 206L142 210L130 214';
+const WOLF_STAND = 'M70 300L76 262C62 246 58 226 62 206C52 196 44 180 44 162C34 176 30 196 30 216L22 236L30 228L28 244L36 232L38 248L42 230C44 208 48 188 56 172C54 146 56 124 66 110C62 98 64 86 72 78L60 44L82 66C88 62 96 60 104 60C112 60 120 62 126 66L148 44L136 78C144 86 146 98 142 110C152 124 154 146 152 172C160 188 164 208 166 230L170 248L172 232L180 244L178 228L186 236L178 216C178 196 174 176 164 162C164 180 156 196 146 206C150 226 146 246 132 262L138 300H116L112 270C108 258 104 250 104 240C104 250 100 258 96 270L92 300Z';
+
+function wolfSvg(pose = 'howl', { rim = '#dfe8ff', eyes = true } = {}) {
+  const d = pose === 'howl' ? WOLF_HOWL : WOLF_STAND;
+  const eyeXY = pose === 'howl' ? [[112, 50], [120, 44]] : [[92, 84], [116, 84]];
+  return `<svg viewBox="-10 -10 220 320" class="an-wolf">
+    <defs><filter id="wGlow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3"/></filter></defs>
+    <path d="${d}" fill="none" stroke="${rim}" stroke-width="5" opacity=".7" filter="url(#wGlow)"/>
+    <path d="${d}" fill="#04050a" stroke="${rim}" stroke-width="1.6" stroke-opacity=".9"/>
+    ${pose === 'howl' ? `<path d="${WOLF_FUR}" fill="none" stroke="#04050a" stroke-width="5" stroke-linejoin="bevel"/>` : ''}
+    ${eyes ? `<g class="an-eyes">${eyeXY.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="7" fill="#ffcf30" opacity=".5" filter="url(#wGlow)"/><ellipse cx="${x}" cy="${y}" rx="3.4" ry="2.4" fill="#ffe070"/>`).join('')}</g>` : ''}
+  </svg>`;
+}
+
+/** 늑대 눈 초근접 */
+function wolfEyes() {
+  const r = rnd(4);
+  let fur = '';
+  for (let i = 0; i < 160; i++) {
+    const x = r() * 1600;
+    const y = r() * 900;
+    fur += `<path d="M${f(x)} ${f(y)}q${f(10 + r() * 20)} ${f(-4 + r() * 8)} ${f(30 + r() * 40)} ${f(10 + r() * 16)}" stroke="${r() > 0.7 ? '#4a3a30' : '#1a1210'}" stroke-width="${f(3 + r() * 5)}" fill="none" stroke-linecap="round"/>`;
+  }
+  const eye = (cx, flip) => `<g transform="translate(${cx} 450) scale(${flip} 1)">
+    <path d="M-230 20C-150 -110 150 -120 230 -30C150 90 -150 110 -230 20Z" fill="#1a0a00"/>
+    <path d="M-210 16C-140 -96 140 -104 210 -26C140 76 -140 94 -210 16Z" fill="url(#iris)"/>
+    <ellipse cx="0" cy="-4" rx="26" ry="92" fill="#0a0400" class="an-pupil"/>
+    <ellipse cx="-70" cy="-50" rx="36" ry="18" fill="#fff" opacity=".85"/>
+    <path d="M-240 10C-150 -130 150 -140 240 -40" stroke="#000" stroke-width="30" fill="none" stroke-linecap="round"/>
+    <path d="M-260 -80L260 -150" stroke="#0a0806" stroke-width="44" stroke-linecap="round"/>
+  </g>`;
+  return svg(`<defs><radialGradient id="iris"><stop offset="0" stop-color="#fff2a0"/><stop offset=".5" stop-color="#ffc020"/><stop offset=".85" stop-color="#c86a00"/><stop offset="1" stop-color="#5a2a00"/></radialGradient></defs>
+    <rect width="1600" height="900" fill="#2a201c"/>${fur}${eye(450, 1)}${eye(1150, -1)}
+    <path d="M760 300L840 300L860 900H740Z" fill="#1a1210"/>`);
+}
+
+/** 달리는 사람 (옆모습 두 동작) */
+const RUN = [
+  'M40 20C40 10 52 8 55 16C58 24 50 30 44 28C38 44 36 58 38 74L52 92L46 124L40 122L42 96L28 82L16 104L6 100L20 72L26 50L12 60L6 54L28 36Z',
+  'M40 20C40 10 52 8 55 16C58 24 50 30 44 28C40 44 40 58 42 74L30 94L36 124L28 124L22 96L34 74L28 52L14 44L18 38L32 44Z',
+];
+function runner(x, y, s, tool, i) {
+  const toolSvg = tool === 'torch'
+    ? '<path d="M44 40L70 -6" stroke="#2a1a0a" stroke-width="4"/><circle cx="72" cy="-18" r="26" fill="#ffa040" opacity=".35"/><path class="an-flame" d="M70 -6C60 -18 66 -32 72 -44C76 -32 88 -22 76 -6Z" fill="#ffb040"/>'
+    : '<path d="M20 60L90 -10" stroke="#3a2412" stroke-width="3.5"/><path d="M84 -18L96 -6M88 -22L100 -10M92 -26L104 -14" stroke="#8a8a90" stroke-width="3"/>';
+  return `<g transform="translate(${x} ${y}) scale(${s})"><g class="an-runner" style="animation-delay:${(i % 3) * 0.07}s">
+    ${toolSvg}
+    <path class="an-run0" d="${RUN[0]}" fill="#06070c"/><path class="an-run1" d="${RUN[1]}" fill="#06070c"/>
+  </g></g>`;
+}
+
+/** 서 있는 사람 실루엣 (환호 · 조문) */
+const STAND = 'M-6 -79C-13 -78 -17 -74 -18 -66L-21 -38C-21 -35 -17 -35 -16 -37L-14 -56L-14 -28L-13 -1H-3L-1 -38H1L3 -1H13L14 -28L14 -56L16 -37C17 -35 21 -35 21 -38L18 -66C17 -74 13 -78 6 -79ZM-7 -88C-7 -97 7 -97 7 -88C7 -83 4 -79 0 -79C-4 -79 -7 -83 -7 -88Z';
+const CHEER = 'M-6 -79C-13 -78 -17 -74 -18 -66L-26 -100C-27 -103 -22 -104 -21 -101L-14 -68L-14 -28L-13 -1H-3L-1 -38H1L3 -1H13L14 -28L14 -68L21 -101C22 -104 27 -103 26 -100L18 -66C17 -74 13 -78 6 -79ZM-7 -88C-7 -97 7 -97 7 -88C7 -83 4 -79 0 -79C-4 -79 -7 -83 -7 -88Z';
+const POINT = 'M-6 -79C-13 -78 -17 -74 -18 -66L-21 -38C-21 -35 -17 -35 -16 -37L-14 -56L-14 -28L-13 -1H-3L-1 -38H1L3 -1H13L14 -28L14 -60L46 -66L46 -61L17 -56L16 -37L18 -66C17 -74 13 -78 6 -79ZM-7 -88C-7 -97 7 -97 7 -88C7 -83 4 -79 0 -79C-4 -79 -7 -83 -7 -88Z';
+const person = (x, y, s, d, fill = '#06070c', cls = '') => `<g transform="translate(${x} ${y}) scale(${s})"><g class="${cls}"><path d="${d}" fill="${fill}"/></g></g>`;
+
+/* ═════════════ 효과 ═════════════ */
+
+/** 집중선 (가운데로 모이는 만화 선) */
+function focusLines(color = '#fff', count = 90, inner = 260) {
+  const r = rnd(9);
+  let s = '';
+  for (let i = 0; i < count; i++) {
+    const a = (i / count) * Math.PI * 2 + r() * 0.05;
+    const w = 0.006 + r() * 0.012;
+    const r0 = inner + r() * 140;
+    s += `<path d="M${f(800 + Math.cos(a - w) * 1400)} ${f(450 + Math.sin(a - w) * 1400)}L${f(800 + Math.cos(a) * r0)} ${f(450 + Math.sin(a) * r0)}L${f(800 + Math.cos(a + w) * 1400)} ${f(450 + Math.sin(a + w) * 1400)}Z"/>`;
+  }
+  return `<svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" class="an-focus"><g fill="${color}">${s}</g></svg>`;
+}
+/** 가로 속도선 */
+function speedLines(color = '#fff', count = 40) {
+  const r = rnd(12);
+  let s = '';
+  for (let i = 0; i < count; i++) s += `<rect x="${f(r() * 1600)}" y="${f(r() * 900)}" width="${f(200 + r() * 600)}" height="${f(1 + r() * 4)}" opacity="${f(0.3 + r() * 0.6)}"/>`;
+  return `<svg viewBox="0 0 1600 900" preserveAspectRatio="none" class="an-speed"><g fill="${color}">${s}</g></svg>`;
+}
+const sfxText = (text, cls = '', style = '') => `<div class="an-sfx ${cls}" style="${style}">${text}</div>`;
+const portrait = (role, cls = '') => `<div class="an-portrait ${cls}"><img src="assets/role/${role}.svg" alt=""></div>`;
+
+/* ═════════════ 연출 도구 ═════════════ */
+
+function director(stage, sound) {
+  const timers = [];
+  const at = (sec, fn) => timers.push(setTimeout(fn, sec * 1000));
+  let current = null;
+  const cut = (html, cls = '') => {
+    const el = document.createElement('div');
+    el.className = `an-shot ${cls}`;
+    el.innerHTML = html;
+    stage.appendChild(el);
+    if (current) current.remove();
+    current = el;
+    return el;
+  };
+  const add = (html) => { if (current) current.insertAdjacentHTML('beforeend', html); };
+  const q = (sel) => (current ? [...current.querySelectorAll(sel)] : []);
+  const anim = (sel, frames, opts) => q(sel).forEach((el, i) => el.animate(frames, { fill: 'forwards', easing: 'ease-in-out', ...opts, delay: (opts.delay || 0) + (opts.stagger || 0) * i }));
+  const shake = (power = 14, dur = 500) => stage.animate(
+    Array.from({ length: 12 }, (_, i) => ({ transform: i === 11 ? 'none' : `translate(${(Math.random() - 0.5) * power * 2}px, ${(Math.random() - 0.5) * power * 2}px)` })),
+    { duration: dur, easing: 'linear' },
+  );
+  const flash = (color = '#fff', dur = 260) => {
+    const el = document.createElement('div');
+    el.className = 'an-flash';
+    el.style.background = color;
+    stage.appendChild(el);
+    el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: dur, fill: 'forwards' }).onfinish = () => el.remove();
+  };
+  /** 흑백 반전 임팩트 컷 */
+  const impact = (dur = 240) => {
+    stage.classList.add('an-impact');
+    timers.push(setTimeout(() => stage.classList.remove('an-impact'), dur));
+  };
+  return { at, cut, add, anim, shake, flash, impact, sound, stop: () => timers.forEach(clearTimeout) };
+}
+
+/* ═════════════ 장면들 ═════════════ */
 
 const SCENES = {
-  /* 늑대인간 승리: 마을 불이 하나씩 꺼지고, 절벽 위 늑대인간이 달을 보며 운다 */
-  wolf(ctx) {
-    const { scene, camera, bloomPass } = ctx;
-    scene.fog = new THREE.FogExp2(0x0a1432, 0.0065);
-    const s = sky(scene);
-    const m = moon(scene, v3(0, 90, -330), 190);
-    const amb = new THREE.HemisphereLight(0x5a78c8, 0x05070e, 0.55);
-    const moonLight = new THREE.DirectionalLight(0xb8c8ff, 1.6);
-    moonLight.position.set(0, 60, -200);
-    moonLight.castShadow = true;
-    moonLight.shadow.mapSize.set(2048, 2048);
-    Object.assign(moonLight.shadow.camera, { left: -120, right: 120, top: 120, bottom: -120, far: 500 });
-    scene.add(amb, moonLight);
-    ground(scene, { color: 0x1a2440 });
-    const vil = village(scene, VILLAGE_SPOTS);
-    forest(scene, { count: 520, inner: 30, outer: 320, color: 0x0a1226, avoid: (x, z) => (Math.abs(x) < 50 && z < -25 && z > -140) || (Math.abs(x) < 14 && z > -30) });
-    const c = cliff(scene, 0, -118, 26);
-    const wolf = silhouette(PATHS.howl, 22, { color: 0x04050a, rim: 0xd8e4ff });
-    wolf.position.set(-2, c.topY - 30, -118);
-    scene.add(wolf);
-    const e = eyes(wolf, 0xffc020, 0.7, 1.1);
-    e.group.position.set(3.1, 20.6, 1.4);
-    const red = new THREE.PointLight(0xff2010, 0, 400, 1);
-    red.position.set(0, 60, -60);
-    scene.add(red);
-    mistLayers(scene, { y: 1, count: 22, radius: 160 });
-    particles(scene, { count: 160, area: [140, 20, 160], center: v3(0, 0.5, -60), color: 0xb8ff80, size: 0.5 });
-    const cam = cameraPath(camera, [
-      [0, v3(0, 3.5, 70), v3(0, 14, -200)],
-      [5, v3(0, 7, 12), v3(0, 16, -200)],
-      [8.5, v3(-12, 12, -48), v3(0, 26, -118)],
-      [11, v3(-6, 22, -82), v3(0, 36, -118)],
-      [16, v3(18, 14, -70), v3(0, 34, -118)],
-    ]);
-    const shake = new THREE.Vector3();
-    let howled = false;
-    let flashed = false;
-    return (t) => {
-      cam(t);
-      // 창문 불빛이 하나씩 꺼진다
-      vil.windows.forEach((w, i) => {
-        const k = span(t, 2.4 + (i % 16) * 0.22, 2.6 + (i % 16) * 0.22);
-        w.mat.color.setRGB(lerp(3, 0.04, k), lerp(1.9, 0.05, k), lerp(0.7, 0.08, k));
-      });
-      // 늑대인간이 절벽 뒤에서 올라온다
-      const rise = span(t, 5, 7.2, ease.back);
-      wolf.position.y = c.topY - 30 + rise * 30;
-      e.mat.opacity = span(t, 7, 7.4);
-      if (t > 7.3 && !howled) { howled = true; ctx.sound('howl'); }
-      // 울부짖을 때 흔들림 + 달빛 맥박
-      const hw = t > 7.3 && t < 10 ? Math.sin(t * 40) * 0.12 * (1 - span(t, 7.3, 10)) : 0;
-      shake.set(hw, hw * 0.6, 0);
-      camera.position.add(shake);
-      m.halo.scale.setScalar(m.halo.userData.base * (1 + 0.15 * Math.sin(Math.max(0, t - 7.3) * 3) * (t > 7.3 ? 1 : 0)));
-      wolf.scale.y = 1 + (t > 7.3 && t < 10 ? Math.sin((t - 7.3) * 5) * 0.02 : 0);
-      // 붉은 번개
-      const fl = t > 10 ? Math.max(0, 1 - (t - 10) * 1.6) : 0;
-      if (t > 10 && !flashed) { flashed = true; ctx.sound('slash'); ctx.overlay('claw'); }
-      red.intensity = fl * 60000 + span(t, 10, 16) * 6000;
-      amb.color.setRGB(lerp(0.35, 1, fl), lerp(0.47, 0.1, fl), lerp(0.78, 0.08, fl));
-      s.uniforms.bottom.value.setRGB(lerp(0.15, 0.5, span(t, 10, 13)), lerp(0.31, 0.05, span(t, 10, 13)), lerp(0.56, 0.08, span(t, 10, 13)));
-      bloomPass.strength = 0.7 + fl * 1.2;
-    };
-  },
-
-  /* 마을 승리: 횃불 든 마을 사람들이 행진하고, 새벽 해가 떠오르며 늑대인간이 쓰러진다 */
-  village(ctx) {
-    const { scene, camera, bloomPass } = ctx;
-    scene.fog = new THREE.FogExp2(0x0a1432, 0.006);
-    const s = sky(scene);
-    const sun = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex('rgba(255,250,220,1)', 'rgba(255,140,40,0)'), color: new THREE.Color(3, 2.2, 1.2), blending: THREE.AdditiveBlending, depthWrite: false, fog: false, toneMapped: false }));
-    sun.scale.setScalar(170);
-    scene.add(sun);
-    const amb = new THREE.HemisphereLight(0x5a78c8, 0x05070e, 0.5);
-    const sunLight = new THREE.DirectionalLight(0xffb070, 0);
-    sunLight.position.set(80, 30, -200);
-    sunLight.castShadow = true;
-    sunLight.shadow.mapSize.set(2048, 2048);
-    Object.assign(sunLight.shadow.camera, { left: -120, right: 120, top: 120, bottom: -120, far: 500 });
-    scene.add(amb, sunLight);
-    const gr = ground(scene, { color: 0x1a2440 });
-    village(scene, VILLAGE_SPOTS.map(([x, z, r, sc]) => [x - 40, z + 20, r, sc]));
-    forest(scene, { count: 480, inner: 36, outer: 320, avoid: (x, z) => Math.abs(z + 20) < 22 || (x < -10 && z < -10 && z > -80) || (x < 10 && z > -4 && z < 90) });
-    const c = cliff(scene, 42, -34, 14);
-    const wolf = silhouette(PATHS.wolf, 12, { color: 0x05060a, rim: 0xffc890 });
-    wolf.position.set(42, c.topY, -34);
-    wolf.rotation.y = -0.4;
-    scene.add(wolf);
-    // 행진하는 마을 사람들
-    const crowd = [];
-    for (let i = 0; i < 9; i++) {
-      const p = new THREE.Group();
-      const body = silhouette(i % 3 === 0 ? PATHS.cheer : PATHS.coat, 5.4 + (i % 3) * 0.3, { color: 0x06070c, rim: 0xffb070 });
-      p.add(body);
-      if (i % 2) {
-        const fork = silhouette(PATHS.fork, 6.6, { color: 0x1a120a, rim: null });
-        fork.position.set(-1.1, 0, 0.1);
-        p.add(fork);
-      } else {
-        const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 2.4), new THREE.MeshStandardMaterial({ color: 0x2a1a0a }));
-        stick.position.set(1.1, 3.8, 0.2);
-        stick.rotation.z = -0.25;
-        p.add(stick);
-        flame(p, v3(1.4, 5.2, 0.2), { size: 1.1, light: 30, range: 22 });
-      }
-      p.userData.base = v3(-70 - (i % 3) * 6 - i * 2, 0, -14 - (i % 3) * 4);
-      p.userData.phase = i * 0.7;
-      p.rotation.y = 0.25;
-      scene.add(p);
-      crowd.push(p);
-    }
-    const embers = particles(scene, { count: 220, area: [80, 16, 30], center: v3(-30, 1, -18), color: 0xffa040, size: 0.45, speed: [1.2, 1.2, 0] });
-    mistLayers(scene, { y: 1, count: 16, radius: 150, color: '#c8b0a0' });
-    const cam = cameraPath(camera, [
-      [0, v3(-84, 4, 14), v3(-70, 5, -20)],
-      [5, v3(-44, 5, 22), v3(-14, 6, -22)],
-      [8, v3(-26, 8, 26), v3(24, 10, -30)],
-      [11, v3(-30, 12, 40), v3(10, 16, -120)],
-      [16, v3(-16, 16, 54), v3(10, 24, -140)],
-    ]);
-    let hit = false;
-    let cheered = false;
-    return (t) => {
-      cam(t);
-      const dawn = span(t, 3, 12);
-      s.uniforms.top.value.setRGB(lerp(0.01, 0.22, dawn), lerp(0.03, 0.34, dawn), lerp(0.07, 0.62, dawn));
-      s.uniforms.mid.value.setRGB(lerp(0.05, 0.8, dawn), lerp(0.14, 0.42, dawn), lerp(0.35, 0.36, dawn));
-      s.uniforms.bottom.value.setRGB(lerp(0.15, 1, dawn), lerp(0.31, 0.7, dawn), lerp(0.56, 0.36, dawn));
-      s.starMat.opacity = 0.85 * (1 - dawn);
-      scene.fog.color.setRGB(lerp(0.04, 0.42, dawn), lerp(0.08, 0.3, dawn), lerp(0.2, 0.3, dawn));
-      scene.fog.density = lerp(0.006, 0.0032, dawn);
-      sun.position.set(90, lerp(-60, 70, span(t, 4, 13, ease.out)), -330);
-      sunLight.intensity = dawn * 2.4;
-      amb.intensity = 0.5 + dawn * 0.5;
-      gr.material.color.setRGB(lerp(0.1, 0.45, dawn), lerp(0.14, 0.42, dawn), lerp(0.25, 0.3, dawn));
-      // 행진
-      const walk = span(t, 0, 8.5, (x) => x);
-      crowd.forEach((p, i) => {
-        const b = p.userData.base;
-        p.position.set(b.x + walk * 80, Math.abs(Math.sin(t * 6 + p.userData.phase)) * 0.35, b.z);
-        if (t > 9.4) {
-          p.rotation.y = lerp(p.rotation.y, 0.1, 0.05);
-          p.position.y = Math.abs(Math.sin(t * 7 + i)) * 1.2;
-        }
-      });
-      // 늑대인간이 쓰러진다
-      const fall = span(t, 8.2, 9.6, ease.in);
-      if (t > 8.2 && !hit) { hit = true; ctx.sound('hit'); }
-      if (t > 9.4 && !cheered) { cheered = true; ctx.sound('cheer'); }
-      wolf.rotation.z = -fall * 1.7;
-      wolf.position.set(42 + fall * 6, c.topY - fall * c.topY * 1.1, -34 + fall * 3);
-      embers.material.opacity = 1 - dawn * 0.6;
-      bloomPass.strength = 0.9 + span(t, 9, 12) * 0.5;
-    };
-  },
-
-  /* 무두장이 승리: 비 내리는 무덤가, 무두장이 유령이 웃으며 떠오른다 */
-  tanner(ctx) {
-    const { scene, camera, bloomPass } = ctx;
-    scene.fog = new THREE.FogExp2(0x3a4250, 0.012);
-    const s = sky(scene, { top: '#20242c', mid: '#3a4250', bottom: '#5a6270', stars: 0 });
-    const amb = new THREE.HemisphereLight(0x8a94a8, 0x1a1e24, 0.9);
-    const dl = new THREE.DirectionalLight(0xc8d0e0, 0.8);
-    dl.position.set(-30, 50, 20);
-    dl.castShadow = true;
-    scene.add(amb, dl);
-    ground(scene, { color: 0x3a4030 });
-    forest(scene, { count: 300, inner: 40, outer: 260, color: 0x1a1e24 });
-    village(scene, VILLAGE_SPOTS.map(([x, z, r, sc]) => [x, z - 30, r, sc]));
-    const stoneMat = new THREE.MeshStandardMaterial({ color: 0x6a707a, roughness: 1 });
-    const stones = [[-8, -6], [8, -8], [-16, -14], [14, -16], [0, -18], [-22, -4], [22, -4]];
-    for (const [x, z] of stones) {
-      const g = new THREE.Group();
-      const b = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.6, 0.5), stoneMat);
-      b.position.y = 1.3;
-      const tp = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 0.5, 16, 1, false, 0, Math.PI), stoneMat);
-      tp.rotation.set(Math.PI / 2, 0, Math.PI / 2);
-      tp.position.y = 2.6;
-      g.add(b, tp);
-      g.position.set(x, 0, z);
-      g.rotation.set((Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.15);
-      g.traverse((o) => { o.castShadow = true; });
-      scene.add(g);
-    }
-    // 새 무덤
-    const mound = new THREE.Mesh(new THREE.SphereGeometry(3, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 1 }));
-    mound.scale.set(1, 0.35, 1.8);
-    scene.add(mound);
-    const cross = new THREE.Group();
-    const wood = new THREE.MeshStandardMaterial({ color: 0x4a3420 });
-    const v = new THREE.Mesh(new THREE.BoxGeometry(0.4, 4, 0.3), wood);
-    v.position.y = 2;
-    const hbar = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.4, 0.3), wood);
-    hbar.position.y = 3;
-    cross.add(v, hbar);
-    cross.position.set(0, 0, -5.6);
-    scene.add(cross);
-    // 둘러선 조문객
-    [[-9, 3, 0.6], [-6, 7, 0.3], [7, 6, -0.4], [10, 1, -0.7], [-3, 9, 0.1]].forEach(([x, z, r]) => {
-      const p = silhouette(PATHS.coat, 5.6, { color: 0x14161c, rim: 0x8a94a8 });
-      p.position.set(x, 0, z);
-      p.rotation.y = r + Math.PI;
-      p.rotation.x = 0.06;
-      scene.add(p);
+  /* 늑대인간 승리 */
+  wolf(D) {
+    // 1. 잠든 마을, 불이 하나씩 꺼진다
+    D.at(0, () => {
+      D.sound('start:wolf');
+      D.cut(`
+        ${layer(svg(`<defs><linearGradient id="s1" x2="0" y2="1"><stop offset="0" stop-color="#030712"/><stop offset=".7" stop-color="#0e2458"/><stop offset="1" stop-color="#27508e"/></linearGradient>${MOON_DEFS}</defs><rect width="1600" height="900" fill="url(#s1)"/>${stars(160, 3)}${moonSvg(1150, 260, 150)}`), 'pan-slow')}
+        ${layer(svg(trees(40, 700, 120, 120, '#0c1830', 5)), 'pan-mid')}
+        ${layer(svg(`<path d="M0 900V720C400 690 1200 700 1600 720V900Z" fill="#070a14"/>${houses(760, true)}`), 'pan-mid2')}
+        ${layer(svg(trees(8, 940, 360, 200, '#020308', 8)), 'pan-fast')}
+        <div class="an-fog"></div>`);
+      D.anim('.pan-slow', [{ transform: 'translateX(0) scale(1.1)' }, { transform: 'translateX(-2%) scale(1.1)' }], { duration: 3600 });
+      D.anim('.pan-mid', [{ transform: 'translateX(0) scale(1.1)' }, { transform: 'translateX(-5%) scale(1.1)' }], { duration: 3600 });
+      D.anim('.pan-mid2', [{ transform: 'translateX(0) scale(1.1)' }, { transform: 'translateX(-8%) scale(1.1)' }], { duration: 3600 });
+      D.anim('.pan-fast', [{ transform: 'translateX(0) scale(1.15)' }, { transform: 'translateX(-18%) scale(1.15)' }], { duration: 3600 });
+      D.anim('.win', [{ fill: '#ffc868' }, { fill: '#161c2c' }], { duration: 120, delay: 800, stagger: 120 });
     });
-    // 유령
-    const ghost = silhouette(PATHS.ghost, 7, { color: 0xdfe8f8, emissive: 0x8aa0c8, emissiveIntensity: 0.45, rim: 0xc8d8ff, depth: 20 });
-    ghost.material.transparent = true;
-    ghost.material.opacity = 0;
-    scene.add(ghost);
-    const face = new THREE.Group();
-    const dark = new THREE.MeshBasicMaterial({ color: 0x1a1e24 });
-    for (const x of [-0.65, 0.65]) {
-      const eye = new THREE.Mesh(new THREE.CircleGeometry(0.3, 16), dark);
-      eye.position.set(x, 3.7, 0.95);
-      face.add(eye);
-    }
-    const smile = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.1, 8, 20, Math.PI), dark);
-    smile.rotation.z = Math.PI;
-    smile.position.set(0, 3.1, 0.95);
-    face.add(smile);
-    ghost.add(face);
-    const ghostLight = new THREE.PointLight(0xc8d8ff, 0, 30, 1.5);
-    ghost.add(ghostLight);
-    ghostLight.position.y = 4;
-    const rain = particles(scene, { count: 1600, area: [120, 60, 120], center: v3(0, 0, -10), color: 0xaab4c8, size: 0.18, speed: [-2, -38, 0], additive: false, streak: true });
-    rain.material.map = null;
-    const flash = new THREE.PointLight(0xdfe8ff, 0, 600, 0.6);
-    flash.position.set(-40, 80, -60);
-    scene.add(flash);
-    mistLayers(scene, { y: 0.5, count: 18, radius: 80, color: '#aab4c8', opacity: 0.22 });
-    const cam = cameraPath(camera, [
-      [0, v3(0, 30, 50), v3(0, 0, -6)],
-      [5, v3(0, 10, 26), v3(0, 2, -4)],
-      [9, v3(8, 8, 18), v3(0, 8, 0)],
-      [16, v3(-6, 14, 22), v3(0, 14, 0)],
-    ]);
-    let boom = false;
-    let rose = false;
-    return (t) => {
-      cam(t);
-      const f = (t > 3 && t < 3.5) || (t > 3.7 && t < 3.9) ? 1 : 0;
-      if (t > 3 && !boom) { boom = true; ctx.sound('thunder'); }
-      flash.intensity = f * 90000;
-      const up = span(t, 5, 10);
-      if (t > 5 && !rose) { rose = true; ctx.sound('ghost'); }
-      ghost.position.set(Math.sin(t * 1.4) * 0.6 * up, -6 + up * 12 + Math.sin(t * 2) * 0.4, 0);
-      ghost.material.opacity = up * 0.8;
-      ghostLight.intensity = up * 260;
-      ghost.rotation.z = Math.sin(t * 1.8) * 0.08;
-      s.uniforms.mid.value.setRGB(0.23 + f * 0.5, 0.26 + f * 0.5, 0.31 + f * 0.5);
-      bloomPass.strength = 0.8 + up * 0.6;
-    };
+    // 2. 겁에 질린 마을 사람 클로즈업
+    D.at(3.4, () => {
+      D.sound('whoosh');
+      D.cut(`<div class="an-bg" style="background:#0a1020"></div>${focusLines('#3a4a70')}${portrait('villager')}${sfxText('...!?', 'small', 'left:64%;top:16%')}`);
+      D.anim('.an-portrait', [{ transform: 'translate(-50%,-50%) scale(1.05)' }, { transform: 'translate(-50%,-50%) scale(1.35)' }], { duration: 1700, easing: 'ease-out' });
+      D.anim('.an-focus', [{ transform: 'scale(1.3)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }], { duration: 300 });
+      D.anim('.an-sfx', [{ transform: 'scale(0) rotate(-20deg)' }, { transform: 'scale(1.2) rotate(8deg)' }, { transform: 'scale(1) rotate(6deg)' }], { duration: 350, delay: 300 });
+      D.shake(6, 1600);
+    });
+    // 3. 절벽 위로 늑대인간이 솟아오른다
+    D.at(5.2, () => {
+      D.sound('whoosh');
+      D.cut(`
+        ${layer(svg(`<defs><linearGradient id="s3" x2="0" y2="1"><stop offset="0" stop-color="#050a1e"/><stop offset="1" stop-color="#1c3c7c"/></linearGradient>${MOON_DEFS}</defs><rect width="1600" height="900" fill="url(#s3)"/>${stars(120, 7)}${moonSvg(800, 380, 330)}`), 'moon-bg')}
+        ${focusLines('#dfe8ff', 70, 360)}
+        ${layer(svg('<path d="M420 900L520 700C560 660 640 640 700 650C760 640 860 636 920 660C1000 680 1080 720 1160 900Z" fill="#04050a"/><path d="M700 650C760 640 860 636 920 660" stroke="#dfe8ff" stroke-width="4" fill="none" opacity=".7"/>'))}
+        <div class="an-wolf-wrap">${wolfSvg('stand')}</div>`);
+      D.anim('.moon-bg', [{ transform: 'scale(1.25)' }, { transform: 'scale(1.05)' }], { duration: 3200, easing: 'ease-out' });
+      D.anim('.an-wolf-wrap', [{ transform: 'translate(-50%, 70%) scale(.9)' }, { transform: 'translate(-50%, 0) scale(1)', offset: 0.7 }, { transform: 'translate(-50%, -2%) scale(1.02)' }], { duration: 1500, easing: 'cubic-bezier(.2,.8,.3,1.2)' });
+      D.anim('.an-focus', [{ opacity: 0 }, { opacity: 0 }, { opacity: 0.3 }], { duration: 1600 });
+      D.anim('.an-eyes', [{ opacity: 0 }, { opacity: 1 }], { duration: 150, delay: 1300 });
+    });
+    // 4. 고개를 치켜들고 운다
+    D.at(6.9, () => {
+      const w = document.querySelector('.an-wolf-wrap');
+      if (w) w.innerHTML = wolfSvg('howl');
+      D.sound('howl');
+      D.flash('#dfe8ff', 200);
+      D.shake(18, 1400);
+      D.add(sfxText('아우우우우—!!', 'howl', 'left:6%;top:12%'));
+      D.anim('.an-sfx', [{ transform: 'scale(.3) rotate(-12deg)', opacity: 0 }, { transform: 'scale(1.15) rotate(-6deg)', opacity: 1 }, { transform: 'scale(1) rotate(-6deg)', opacity: 1 }], { duration: 400 });
+      D.anim('.an-focus', [{ opacity: 0.3, transform: 'scale(1)' }, { opacity: 0.85, transform: 'scale(1.06)' }, { opacity: 0.45, transform: 'scale(1)' }], { duration: 400, iterations: 5 });
+    });
+    // 5. 눈 초근접 → 임팩트
+    D.at(9.1, () => {
+      D.cut(`<div class="an-zoomer">${wolfEyes()}</div>`);
+      D.anim('.an-zoomer', [{ transform: 'scale(1.7)' }, { transform: 'scale(1.1)' }], { duration: 900, easing: 'cubic-bezier(.1,.9,.2,1)' });
+      D.anim('.an-pupil', [{ transform: 'scaleX(1)' }, { transform: 'scaleX(.3)' }], { duration: 300, delay: 500, easing: 'ease-in' });
+    });
+    D.at(9.85, () => { D.impact(260); D.sound('impact'); D.shake(26, 400); });
+    // 6. 할퀴기
+    D.at(10.3, () => {
+      D.sound('slash');
+      D.cut(`<div class="an-bg" style="background:radial-gradient(circle at 50% 50%, #5a0808, #0a0000)"></div>${CLAW}${sfxText('스악!!', 'slash', 'right:8%;bottom:16%')}`);
+      D.flash('#fff', 180);
+      D.anim('.cl', [{ clipPath: 'inset(0 100% 100% 0)' }, { clipPath: 'inset(0 0 0 0)' }], { duration: 260, stagger: 70, easing: 'cubic-bezier(.2,.9,.3,1)' });
+      D.anim('.an-sfx', [{ transform: 'scale(2) rotate(10deg)', opacity: 0 }, { transform: 'scale(1) rotate(-8deg)', opacity: 1 }], { duration: 250, delay: 300 });
+      D.shake(30, 600);
+    });
+    // 7. 핏빛 달 아래 제목
+    D.at(11.8, () => {
+      D.cut(`
+        ${layer(svg(`<defs><linearGradient id="s7" x2="0" y2="1"><stop offset="0" stop-color="#1a0000"/><stop offset=".6" stop-color="#5a0a0a"/><stop offset="1" stop-color="#8a1a10"/></linearGradient>
+          <radialGradient id="rm"><stop offset="0" stop-color="#ffd0a0"/><stop offset=".7" stop-color="#e85a30"/><stop offset="1" stop-color="#a02010"/></radialGradient>
+          <radialGradient id="rh"><stop offset=".4" stop-color="#ff6040" stop-opacity=".5"/><stop offset="1" stop-color="#ff2000" stop-opacity="0"/></radialGradient></defs>
+          <rect width="1600" height="900" fill="url(#s7)"/><circle cx="800" cy="330" r="500" fill="url(#rh)"/><circle cx="800" cy="330" r="240" fill="url(#rm)"/>
+          ${trees(36, 760, 140, 110, '#1a0404', 11)}${houses(820, false).replace(/#070a14/g, '#0a0000')}<path d="M0 900V810C500 790 1100 790 1600 810V900Z" fill="#0a0000"/>`), 'title-bg')}
+        <div class="an-wolf-wrap small">${wolfSvg('howl', { rim: '#ffb090' })}</div>`, 'with-title');
+      D.anim('.title-bg', [{ transform: 'scale(1.15)' }, { transform: 'scale(1)' }], { duration: 3200, easing: 'ease-out' });
+      D.flash('#ff2000', 500);
+    });
   },
 
-  /* 모두 패배: 짙은 안개 속 텅 빈 마을, 까마귀 떼 */
-  none(ctx) {
-    const { scene, camera } = ctx;
-    scene.fog = new THREE.FogExp2(0x1a2030, 0.018);
-    sky(scene, { top: '#0a0e18', mid: '#1a2030', bottom: '#2a3040', stars: 200 });
-    scene.add(new THREE.HemisphereLight(0x6a7490, 0x0a0c10, 0.7));
-    ground(scene, { color: 0x20242c });
-    const vil = village(scene, VILLAGE_SPOTS.map(([x, z, r, sc]) => [x, z + 30, r, sc]));
-    vil.windows.forEach((w) => w.mat.color.setRGB(0.05, 0.05, 0.07));
-    forest(scene, { count: 300, inner: 60, outer: 260, color: 0x10141e });
-    mistLayers(scene, { y: 1, count: 30, radius: 100, color: '#8a94a8', opacity: 0.3 });
-    const crows = [];
-    for (let i = 0; i < 14; i++) {
-      const c = silhouette(PATHS.crow, 1.4, { color: 0x000000, rim: null, depth: 2 });
-      c.userData.o = v3(-80 - Math.random() * 60, 12 + Math.random() * 12, -30 + Math.random() * 30);
-      c.userData.s = 8 + Math.random() * 6;
-      scene.add(c);
-      crows.push(c);
-    }
-    const cam = cameraPath(camera, [
-      [0, v3(-30, 6, 40), v3(0, 4, -20)],
-      [16, v3(30, 10, 36), v3(0, 6, -20)],
-    ]);
-    return (t) => {
-      cam(t);
-      crows.forEach((c, i) => {
-        c.position.set(c.userData.o.x + t * c.userData.s, c.userData.o.y + Math.sin(t * 3 + i) * 0.8, c.userData.o.z);
-        c.scale.y = 0.6 + Math.abs(Math.sin(t * 9 + i)) * 0.8;
-      });
-    };
+  /* 마을 승리 */
+  village(D) {
+    // 1. 횃불 행렬이 숲을 가른다
+    D.at(0, () => {
+      D.sound('start:village');
+      let run = '';
+      for (let i = 0; i < 8; i++) run += runner(40 + i * 150 + (i % 2) * 40, 590 + (i % 3) * 30, 2.2 + (i % 3) * 0.2, i % 2 ? 'torch' : 'fork', i);
+      D.cut(`
+        ${layer(svg(`<defs><linearGradient id="v1" x2="0" y2="1"><stop offset="0" stop-color="#050a1e"/><stop offset="1" stop-color="#2a3a6a"/></linearGradient></defs><rect width="1600" height="900" fill="url(#v1)"/>${stars(100, 2)}`))}
+        ${layer(svg(trees(34, 720, 160, 120, '#0c1428', 21)), 'pan-mid')}
+        ${layer(svg(`<path d="M0 900V760H1600V900Z" fill="#05060a"/><g class="an-march">${run}</g>`))}
+        ${layer(svg(trees(7, 960, 380, 160, '#020308', 22)), 'pan-fast')}
+        ${speedLines('#ffd8a0', 30)}`);
+      D.anim('.pan-mid', [{ transform: 'translateX(0) scale(1.1)' }, { transform: 'translateX(-8%) scale(1.1)' }], { duration: 3200, easing: 'linear' });
+      D.anim('.pan-fast', [{ transform: 'translateX(10%) scale(1.2)' }, { transform: 'translateX(-40%) scale(1.2)' }], { duration: 3200, easing: 'linear' });
+      D.anim('.an-march', [{ transform: 'translateX(-500px)' }, { transform: 'translateX(300px)' }], { duration: 3200, easing: 'linear' });
+      D.anim('.an-speed', [{ transform: 'translateX(40%)' }, { transform: 'translateX(-60%)' }], { duration: 600, iterations: 6, easing: 'linear' });
+    });
+    // 2. 예언자: "저 녀석이다!"
+    D.at(3.2, () => {
+      D.sound('whoosh');
+      D.cut(`<div class="an-bg" style="background:radial-gradient(circle,#3a4aa0,#0a0a2a)"></div>${focusLines('#b8e0ff')}${portrait('seer', 'glow')}${sfxText('저 녀석이다!', 'shout', 'left:5%;top:10%')}`);
+      D.anim('.an-portrait', [{ transform: 'translate(-50%,-50%) scale(1.3)' }, { transform: 'translate(-50%,-50%) scale(1.1)' }], { duration: 1600, easing: 'ease-out' });
+      D.anim('.an-sfx', [{ transform: 'scale(0) rotate(-10deg)' }, { transform: 'scale(1.15) rotate(-6deg)' }, { transform: 'scale(1) rotate(-6deg)' }], { duration: 350, delay: 200 });
+      D.anim('.an-focus', [{ transform: 'rotate(0deg)' }, { transform: 'rotate(2deg)' }], { duration: 120, iterations: 14, direction: 'alternate' });
+    });
+    // 3. 늑대인간 당황
+    D.at(5, () => {
+      D.cut(`<div class="an-bg" style="background:#1a0a0a"></div>${focusLines('#ff9080', 100, 300)}${portrait('werewolf')}${sfxText('!!', 'small', 'right:16%;top:14%')}`);
+      D.shake(12, 900);
+      D.anim('.an-portrait', [{ transform: 'translate(-50%,-50%) scale(1.15)' }, { transform: 'translate(-53%,-50%) scale(1.15)' }], { duration: 60, iterations: 14, direction: 'alternate' });
+    });
+    // 4. 쇠스랑 일격 → 늑대인간이 날아간다
+    D.at(6.4, () => {
+      D.sound('impact');
+      D.impact(200);
+      D.cut(`
+        <div class="an-bg" style="background:radial-gradient(circle at 55% 45%, #fff8e0, #ffb050 40%, #6a2010)"></div>
+        ${focusLines('#fff', 110, 200)}
+        <div class="an-wolf-wrap fly">${wolfSvg('stand', { rim: '#fff4d0', eyes: false })}</div>
+        ${sfxText('쾅!!', 'boom', 'left:30%;top:22%')}`);
+      D.shake(34, 700);
+      D.anim('.an-wolf-wrap', [{ transform: 'translate(-50%, 0) rotate(0) scale(1.1)' }, { transform: 'translate(160%, -90%) rotate(300deg) scale(.08)' }], { duration: 1300, easing: 'cubic-bezier(.3,.1,.6,1)' });
+      D.anim('.an-sfx', [{ transform: 'scale(3)', opacity: 0 }, { transform: 'scale(1) rotate(-8deg)', opacity: 1 }], { duration: 220 });
+    });
+    D.at(7.7, () => D.add('<div class="an-twinkle"></div>'));
+    // 5. 새벽이 밝아 오고 환호
+    D.at(8.6, () => {
+      D.sound('cheer');
+      let crowd = '';
+      for (let i = 0; i < 11; i++) crowd += person(90 + i * 142, 900, 3.3 + (i % 3) * 0.3, i % 2 ? CHEER : STAND, '#12080a', 'an-cheer');
+      D.cut(`
+        ${layer(svg(`<defs><linearGradient id="d1" x2="0" y2="1"><stop offset="0" stop-color="#3a5aa0"/><stop offset=".5" stop-color="#f09860"/><stop offset=".8" stop-color="#ffd890"/></linearGradient>
+          <radialGradient id="sun"><stop offset="0" stop-color="#fffbe0"/><stop offset=".5" stop-color="#ffe080"/><stop offset="1" stop-color="#ffb040" stop-opacity="0"/></radialGradient></defs>
+          <rect width="1600" height="900" fill="url(#d1)"/><g class="an-sun"><circle cx="800" cy="640" r="420" fill="url(#sun)"/>
+          ${Array.from({ length: 16 }, (_, i) => `<path d="M800 640L${f(800 + Math.cos((i / 16) * Math.PI * 2) * 1400)} ${f(640 + Math.sin((i / 16) * Math.PI * 2) * 1400)}L${f(800 + Math.cos((i / 16 + 0.02) * Math.PI * 2) * 1400)} ${f(640 + Math.sin((i / 16 + 0.02) * Math.PI * 2) * 1400)}Z" fill="#fff4c0" opacity=".18"/>`).join('')}</g>`), 'dawn')}
+        ${layer(svg(`${trees(30, 700, 130, 90, '#3a2230', 31)}<path d="M0 900V690C300 660 600 680 800 700C1000 680 1300 660 1600 690V900Z" fill="#2a1420"/>${houses(760, false, 7).replace(/#070a14/g, '#1a0c14')}`))}
+        ${layer(svg(crowd))}`, 'with-title');
+      D.anim('.an-sun', [{ transform: 'translateY(300px)' }, { transform: 'translateY(0)' }], { duration: 3000, easing: 'ease-out' });
+      D.anim('.an-cheer', [{ transform: 'translateY(0)' }, { transform: 'translateY(-8px)' }], { duration: 300, iterations: 20, direction: 'alternate', stagger: 60 });
+      D.anim('.dawn', [{ transform: 'scale(1.1)' }, { transform: 'scale(1)' }], { duration: 5000 });
+    });
+  },
+
+  /* 무두장이 승리 */
+  tanner(D) {
+    const rain = '<div class="an-rain"></div>';
+    // 1. 빗속, 무두장이의 섬뜩한 미소
+    D.at(0, () => {
+      D.sound('start:tanner');
+      D.cut(`<div class="an-bg" style="background:#2a303a"></div>${portrait('tanner', 'grey')}${rain}${sfxText('후후…', 'small', 'left:62%;top:18%')}`);
+      D.anim('.an-portrait', [{ transform: 'translate(-50%,-50%) scale(1)' }, { transform: 'translate(-50%,-50%) scale(1.25)' }], { duration: 2800, easing: 'ease-in' });
+    });
+    // 2. 손가락질하는 마을 사람들
+    D.at(2.8, () => {
+      D.sound('whoosh');
+      let crowd = '';
+      for (let i = 0; i < 7; i++) crowd += person(160 + i * 210, 900, 4.2, POINT, '#10141a', 'an-point');
+      D.cut(`<div class="an-bg" style="background:linear-gradient(#4a5260,#2a303a)"></div>${focusLines('#8a94a8', 60, 360)}${layer(svg(crowd))}${sfxText('저놈을 처형하라!', 'shout', 'left:24%;top:10%')}${rain}`);
+      D.anim('.an-point', [{ transform: 'translateY(0)' }, { transform: 'translateY(-3px)' }], { duration: 200, iterations: 12, direction: 'alternate', stagger: 40 });
+      D.anim('.an-sfx', [{ transform: 'scale(0)' }, { transform: 'scale(1) rotate(-4deg)' }], { duration: 300 });
+      D.shake(8, 900);
+    });
+    // 3. 번개
+    D.at(4.6, () => {
+      D.sound('thunder');
+      D.cut(`${layer(svg(`<rect width="1600" height="900" fill="#1a1e24"/>${trees(30, 760, 160, 100, '#08090c', 41)}<path d="M0 900V760H1600V900Z" fill="#050608"/>
+        <path d="M700 0L660 260L740 280L620 560L700 580L560 900" stroke="#fff" stroke-width="10" fill="none"/>
+        <g fill="#3a404a"><path d="M300 900V720Q360 660 420 720V900Z"/><path d="M1100 900V700Q1170 630 1240 700V900Z"/></g><path d="M780 900V740H800V700H840V740H860V760H840V900Z" fill="#4a3420"/>`))}${rain}`);
+      D.flash('#fff', 180);
+      D.shake(20, 600);
+    });
+    D.at(4.95, () => D.flash('#fff', 300));
+    // 4. 무덤에서 유령이 되어 웃으며 떠오른다
+    D.at(6.2, () => {
+      D.sound('ghost');
+      D.cut(`
+        ${layer(svg(`<defs><radialGradient id="gg"><stop offset="0" stop-color="#eef4ff" stop-opacity=".6"/><stop offset="1" stop-color="#8aa0c8" stop-opacity="0"/></radialGradient></defs>
+          <rect width="1600" height="900" fill="#262c36"/>${trees(30, 760, 160, 100, '#141820', 43)}<path d="M0 900V770H1600V900Z" fill="#0c0e12"/>
+          <path d="M700 900V780Q800 740 900 780V900Z" fill="#3a2a1a"/><circle cx="800" cy="480" r="380" fill="url(#gg)"/>`))}
+        <div class="an-ghost"><div class="an-ghost-body"><img src="assets/role/tanner.svg" alt=""></div></div>
+        ${sfxText('드디어 자유다~!', 'shout ghosty', 'right:5%;top:10%')}
+        ${rain}`, 'with-title');
+      D.anim('.an-ghost', [{ transform: 'translate(-50%, 60%) scale(.6)', opacity: 0 }, { transform: 'translate(-50%, 0) scale(1)', opacity: 0.92 }], { duration: 2200, easing: 'ease-out' });
+      D.anim('.an-ghost-body', [{ transform: 'translateY(0) rotate(-3deg)' }, { transform: 'translateY(-18px) rotate(3deg)' }], { duration: 900, iterations: 10, direction: 'alternate' });
+      D.anim('.an-sfx', [{ opacity: 0, transform: 'scale(.5)' }, { opacity: 1, transform: 'scale(1) rotate(4deg)' }], { duration: 500, delay: 1400 });
+    });
+  },
+
+  /* 모두 패배 */
+  none(D) {
+    D.at(0, () => {
+      D.sound('start:none');
+      let crows = '';
+      const r = rnd(5);
+      for (let i = 0; i < 12; i++) crows += `<path transform="translate(${f(r() * 300)} ${f(150 + r() * 250)}) scale(${f(3 + r() * 3)})" d="M0 0C-3 -3 -8 -3 -12 0C-9 0 -8 2 -8 3C-6 1 -3 2 -2 3L0 1L2 3C3 2 6 1 8 3C8 2 9 0 12 0C8 -3 3 -3 0 0Z" fill="#000"/>`;
+      D.cut(`
+        ${layer(svg(`<rect width="1600" height="900" fill="#1a2030"/>${stars(40, 9, 300)}${trees(36, 720, 150, 110, '#10141e', 51)}<path d="M0 900V740H1600V900Z" fill="#080a10"/>${houses(790, false)}`), 'pan-slow')}
+        ${layer(svg(`<g class="an-crows">${crows}</g>`))}
+        <div class="an-fog thick"></div>`, 'with-title');
+      D.anim('.pan-slow', [{ transform: 'scale(1.15) translateX(2%)' }, { transform: 'scale(1.05) translateX(-2%)' }], { duration: 9000 });
+      D.anim('.an-crows', [{ transform: 'translateX(-300px)' }, { transform: 'translate(1900px, -200px)' }], { duration: 7000, easing: 'linear' });
+    });
   },
 };
 
 const TITLES = {
-  wolf: '늑대인간의 승리',
-  village: '마을의 승리',
-  tanner: '무두장이의 승리',
-  none: '아무도 이기지 못했다',
+  wolf: ['늑대인간의 승리', 11.8],
+  village: ['마을의 승리', 9.2],
+  tanner: ['무두장이의 승리', 7.4],
+  none: ['아무도 이기지 못했다', 3],
 };
 
 /** 초승달처럼 가운데가 두껍고 끝이 뾰족한 할퀸 자국 */
@@ -363,14 +404,12 @@ function clawPath(x0, y0, x1, y1, w) {
   const nx = -(y1 - y0) / len;
   const ny = (x1 - x0) / len;
   const bend = len * 0.08;
-  const c1 = [mx + nx * bend, my + ny * bend];
-  const c2 = [mx + nx * (bend + w), my + ny * (bend + w)];
-  return `M${x0} ${y0}Q${c1[0]} ${c1[1]} ${x1} ${y1}Q${c2[0]} ${c2[1]} ${x0} ${y0}Z`;
+  return `M${x0} ${y0}Q${f(mx + nx * bend)} ${f(my + ny * bend)} ${x1} ${y1}Q${f(mx + nx * (bend + w))} ${f(my + ny * (bend + w))} ${x0} ${y0}Z`;
 }
-const CLAW = `<svg class="cs-claw" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
-  <defs><linearGradient id="cg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff7a50"/><stop offset=".5" stop-color="#e01a10"/><stop offset="1" stop-color="#5a0000"/></linearGradient>
-  <filter id="cblur"><feGaussianBlur stdDeviation="10"/></filter></defs>
-  ${[0, 1, 2, 3].map((i) => `<g class="cl c${i}"><path d="${clawPath(420 + i * 190, 40 + i * 30, 980 + i * 170, 860 - i * 20, 70 - Math.abs(i - 1.5) * 12)}" fill="#ff2a10" opacity=".55" filter="url(#cblur)"/><path d="${clawPath(420 + i * 190, 40 + i * 30, 980 + i * 170, 860 - i * 20, 56 - Math.abs(i - 1.5) * 10)}" fill="url(#cg)"/><path d="${clawPath(430 + i * 190, 60 + i * 30, 970 + i * 170, 840 - i * 20, 18)}" fill="#2a0000" opacity=".6"/></g>`).join('')}
+const CLAW = `<svg class="an-claw" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+  <defs><linearGradient id="cg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff9a70"/><stop offset=".5" stop-color="#e01a10"/><stop offset="1" stop-color="#5a0000"/></linearGradient>
+  <filter id="cblur"><feGaussianBlur stdDeviation="12"/></filter></defs>
+  ${[0, 1, 2, 3].map((i) => `<g class="cl"><path d="${clawPath(360 + i * 200, 20 + i * 30, 960 + i * 180, 880 - i * 20, 80 - Math.abs(i - 1.5) * 14)}" fill="#ff2a10" opacity=".6" filter="url(#cblur)"/><path d="${clawPath(360 + i * 200, 20 + i * 30, 960 + i * 180, 880 - i * 20, 62 - Math.abs(i - 1.5) * 12)}" fill="url(#cg)"/><path d="${clawPath(372 + i * 200, 44 + i * 30, 948 + i * 180, 856 - i * 20, 20)}" fill="#1a0000" opacity=".7"/></g>`).join('')}
 </svg>`;
 
 /**
@@ -379,50 +418,28 @@ const CLAW = `<svg class="cs-claw" viewBox="0 0 1600 900" preserveAspectRatio="x
  * @param {'wolf'|'village'|'tanner'|'none'} kind
  * @param {{sub?:string, sound?:(name:string)=>void}} opts
  */
-export function playCutscene(host, kind, { sub = '', sound = () => {}, at = null } = {}) {
-  const build = SCENES[kind] || SCENES.none;
+export function playCutscene(host, kind, { sub = '', sound = () => {} } = {}) {
+  const k = SCENES[kind] ? kind : 'none';
+  const [title, titleAt] = TITLES[k];
   return new Promise((resolve) => {
-    host.innerHTML = `<div class="cs-stage"></div>
+    host.innerHTML = `<div class="an-stage"></div>
       <div class="cs-bars"></div>
-      <div class="cs-fx"></div>
-      <div class="cs-title" style="--d:${kind === 'wolf' ? 11 : kind === 'village' ? 10.5 : kind === 'tanner' ? 10 : 5}s">${TITLES[kind] || TITLES.none}${sub ? `<small>${sub}</small>` : ''}</div>
+      <div class="an-title" style="animation-delay:${titleAt + 0.4}s"><span>${title}</span>${sub ? `<small>${sub}</small>` : ''}</div>
       <button class="btn btn-sm cs-skip">건너뛰기 ▸</button>`;
     host.hidden = false;
-    let world;
-    try {
-      world = makeRenderer(host.querySelector('.cs-stage'), { bloom: 0.9, threshold: 0.92, radius: 0.45 });
-    } catch (e) {
-      console.warn('3D를 켤 수 없어 결말 영상을 건너뜁니다', e);
-      host.hidden = true;
-      host.innerHTML = '';
-      resolve();
-      return;
-    }
-    const fx = host.querySelector('.cs-fx');
-    const ctx = {
-      ...world,
-      sound,
-      overlay: (name) => {
-        if (name === 'claw') {
-          fx.innerHTML = CLAW;
-          fx.classList.add('go');
-        }
-      },
-    };
-    const update = build(ctx);
-    world.resetClock();
-    world.tickers.add((t) => update(at != null ? at : Math.min(t, LENGTH)));
-    sound(`start:${kind}`);
+    const D = director(host.querySelector('.an-stage'), sound);
+    SCENES[k](D);
     let done = false;
     const end = () => {
       if (done) return;
       done = true;
-      world.dispose();
+      D.stop();
+      host.getAnimations({ subtree: true }).forEach((a) => a.cancel());
       host.hidden = true;
       host.innerHTML = '';
       resolve();
     };
     host.querySelector('.cs-skip').addEventListener('click', end);
-    if (at == null) setTimeout(end, LENGTH * 1000 + 400);
+    setTimeout(end, LENGTH[k] * 1000 + 500);
   });
 }

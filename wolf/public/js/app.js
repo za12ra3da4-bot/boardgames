@@ -576,7 +576,7 @@ function render3d() {
     if (over && over.original[p.pid] !== over.final[p.pid]) state = `처음: ${ROLES[over.original[p.pid]].name}`;
     return {
       pid: p.pid, seat: p.seat, isMe: me, online: p.online,
-      nameHtml: `${esc(p.name)}${p.isBot ? ' 🤖'.replace('🤖', '<small>AI</small>') : ''}`,
+      nameHtml: `${esc(p.name)}${p.isBot ? ' <small>AI</small>' : ''}`,
       label, labelTeam, state,
       pick: mode && mode.players && !me,
       picked: S.sel.includes(p.pid) || (g.phase === 'vote' && g.me && g.me.vote === p.pid),
