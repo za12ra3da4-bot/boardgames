@@ -24,7 +24,7 @@ export function currentStep(g, pid) {
   if (pr) {
     if (['missed', 'indians', 'duel'].includes(pr.type)) return 'shoot';
     if (pr.type === 'dying') return 'death';
-    if (pr.type === 'play' || pr.type === 'discard') return 'turn';
+    if (pr.type === 'play' || pr.type === 'discard' || pr.type === 'draw') return 'turn';
   }
   const t = g.turn;
   if (t && t.stage === 'start') return 'check';
@@ -37,6 +37,7 @@ function nowTip(g, pid, { esc, pname }) {
   if (!pr) return '카드가 처리되는 중...';
   if (pr.pid !== pid) return `<b>${esc(pname(pr.pid))}</b>님이 선택하는 중이에요.`;
   switch (pr.type) {
+    case 'draw': return '차례 시작! 가운데 <b>덱</b>에서 카드를 끌어와 내 손으로 가져오세요 (눌러도 돼요).';
     case 'play': return '손패에서 카드를 눌러 내세요. 대상이 필요한 카드는 누른 뒤 <b>상대 자리</b>를 클릭! 다 했으면 <b>턴 마치기</b>.';
     case 'missed': return '총에 맞았어요! <b>빗나감!</b> 카드를 눌러 피하거나 <b>맞기</b>를 누르세요.';
     case 'indians': return '인디언 습격! <b>뱅!</b> 카드를 버리거나 체력을 잃으세요.';

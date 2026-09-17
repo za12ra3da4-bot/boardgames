@@ -121,6 +121,9 @@ class Game {
       this.addLog('ability', `{p:${p.pid}} ${B.CHAR[p.char].name} 선택 (체력 ${p.maxHp})`);
     }
     this.phase = 'play';
+    const sheriff = this.players.find((p) => p.role === 'sheriff');
+    this.event({ type: 'sheriff', pid: sheriff.pid });
+    this.addLog('win', `{p:${sheriff.pid}} 님이 {r:sheriff}입니다! 보안관부터 시작합니다`);
     for (const p of this.players) this.give(p, p.hp);
     this.changed();
     setImmediate(() => this.run());
@@ -270,6 +273,7 @@ class Game {
       case 'store': return { card: pr.data.cards[0].id };
       case 'kit': return { back: pr.data.cards[0].id };
       case 'jesse': case 'pedro': return { from: 'deck' };
+      case 'draw': return { take: true };
       default: return { card: null };
     }
   }
@@ -396,6 +400,11 @@ class Game {
     this.changed();
   }
 
+  /** 덱에서 카드를 가져온다 (자동) */
+  async takeFromDeck(p, n) {
+    return this.give(p, n);
+  }
+
   async drawPhase(p) {
     if (p.char === 'jesse') {
       const targets = this.alive().filter((q) => q !== p && q.hand.length);
@@ -408,7 +417,7 @@ class Game {
           this.event({ type: 'steal', from: q.pid, to: p.pid, cards: [c], vis: [p.pid, q.pid] });
           this.addLog('ability', `{p:${p.pid}} {p:${q.pid}}의 손패에서 1장을 가져왔습니다`);
           this.afterLoss(q);
-          this.give(p, 1);
+          await this.takeFromDeck(p, 1);
           return;
         }
       }
@@ -420,7 +429,7 @@ class Game {
         p.hand.push(c);
         this.event({ type: 'take', pid: p.pid, cards: [c] });
         this.addLog('ability', `{p:${p.pid}} 버린 더미에서 {c:${c.type}}를 가져왔습니다`);
-        this.give(p, 1);
+        await this.takeFromDeck(p, 1);
         return;
       }
     }
@@ -443,16 +452,16 @@ class Game {
       return;
     }
     if (p.char === 'jack') {
-      const got = this.give(p, 2);
+      const got = await this.takeFromDeck(p, 2);
       if (got[1]) {
         this.event({ type: 'reveal', pid: p.pid, card: got[1] });
         const red = got[1].suit === 'H' || got[1].suit === 'D';
         this.addLog('ability', `{p:${p.pid}} 두 번째 카드 공개: {c:${got[1].type}} (${B.SUIT_NAME[got[1].suit]})${red ? ' → 1장 더!' : ''}`);
-        if (red) this.give(p, 1);
+        if (red) await this.takeFromDeck(p, 1);
       }
       return;
     }
-    this.give(p, 2);
+    await this.takeFromDeck(p, 2);
   }
 
   /** 판정! 덱 맨 위를 뒤집는다. 루크는 2장 중 유리한 쪽 */
@@ -573,6 +582,8 @@ class Game {
         return a.from === 'deck' || pr.data.targets.includes(a.from) ? null : '가져올 곳을 고르세요';
       case 'pedro':
         return a.from === 'deck' || a.from === 'discard' ? null : '가져올 곳을 고르세요';
+      case 'draw':
+        return null;
       default:
         return '알 수 없는 요청입니다';
     }
@@ -976,6 +987,8 @@ class Game {
         const top = this.discard[this.discard.length - 1];
         return { from: top && this.value(p, top) >= 6 ? 'discard' : 'deck' };
       }
+      case 'draw':
+        return { take: true };
       case 'play':
         return this.botPlay(p);
       default:

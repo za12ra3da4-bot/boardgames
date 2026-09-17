@@ -24,4 +24,48 @@ function rng(seed) {
 
 const f = (n) => Number(n.toFixed(1));
 
-module.exports = { svg, lin, rad, grainFilter, blur, drop, rng, f, stops };
+/** 빗금 한 칸 (필터 안에서 바둑판처럼 이어 붙인다) */
+const hatchTile = (d, w = 0.9) => `data:image/svg+xml;utf8,${encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" width="7" height="7"><path d="${d}" stroke="#3e2210" stroke-width="${w}" stroke-linecap="square" fill="none"/></svg>`,
+)}`;
+
+/**
+ * 펜 스케치 필터: 그림을 누런 종이 위 세피아 펜 그림으로 바꾼다.
+ * 밝기에 따라 빗금(한 겹 → 두 겹 → 촘촘히)을 치고, 윤곽은 떨리는 펜 선으로 뽑는다.
+ * 필터를 거는 묶음 안에는 반드시 불투명한 바탕이 있어야 한다.
+ */
+function sketchFilter(id, { wobble = 2.2, bend = 6, ink = 3.2, seed = 3, tile = 8 } = {}) {
+  const t1 = hatchTile('M-1 9L9 -1M-1 1L1 -1M7 9L9 7', 1);
+  const t2 = hatchTile('M-1 -1L9 9M-1 7L1 9M7 -1L9 1', 1);
+  const t3 = hatchTile('M0 2.2C2 1.6 5 2.8 8 2M0 6C3 5.4 5 6.6 8 5.8', 0.9);
+  const tileAttr = `x="0" y="0" width="${tile}" height="${tile}"`;
+  return `<filter id="${id}" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+    <feColorMatrix in="SourceGraphic" type="matrix" values=".3 .59 .11 0 0  .3 .59 .11 0 0  .3 .59 .11 0 0  0 0 0 1 0" result="gray"/>
+    <feTurbulence type="fractalNoise" baseFrequency="0.011" numOctaves="2" seed="${seed}" result="bendN"/>
+    <feDisplacementMap in="gray" in2="bendN" scale="${bend}" xChannelSelector="R" yChannelSelector="G" result="g0"/>
+    <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="2" seed="${seed + 1}" result="jitA"/>
+    <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="${seed + 7}" result="jitB"/>
+    <feDisplacementMap in="g0" in2="jitA" scale="${wobble}" xChannelSelector="R" yChannelSelector="G" result="g"/>
+    <feDisplacementMap in="g0" in2="jitB" scale="${wobble * 1.6}" xChannelSelector="G" yChannelSelector="R" result="gB"/>
+    <feColorMatrix in="g" type="matrix" values=".40 0 0 0 .58  .46 0 0 0 .47  .52 0 0 0 .33  0 0 0 1 0" result="wash"/>
+    <feColorMatrix in="g" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -1 0 0 0 1" result="dark"/>
+    <feComponentTransfer in="dark" result="m1"><feFuncA type="discrete" tableValues="0 0 1 1 1"/></feComponentTransfer>
+    <feComponentTransfer in="dark" result="m2"><feFuncA type="discrete" tableValues="0 0 0 1 1"/></feComponentTransfer>
+    <feComponentTransfer in="dark" result="m3"><feFuncA type="discrete" tableValues="0 0 0 0 1"/></feComponentTransfer>
+    <feImage href="${t1}" ${tileAttr} result="i1"/><feTile in="i1" result="p1"/>
+    <feImage href="${t2}" ${tileAttr} result="i2"/><feTile in="i2" result="p2"/>
+    <feImage href="${t3}" ${tileAttr} result="i3"/><feTile in="i3" result="p3"/>
+    <feDisplacementMap in="p1" in2="jitB" scale="3" xChannelSelector="R" yChannelSelector="G" result="q1"/>
+    <feDisplacementMap in="p2" in2="jitA" scale="3" xChannelSelector="G" yChannelSelector="R" result="q2"/>
+    <feComposite in="q1" in2="m1" operator="in" result="k1"/>
+    <feComposite in="q2" in2="m2" operator="in" result="k2"/>
+    <feComposite in="p3" in2="m3" operator="in" result="k3"/>
+    <feConvolveMatrix in="g" order="3" kernelMatrix="-1 -1 -1 -1 8 -1 -1 -1 -1" preserveAlpha="true" result="e"/>
+    <feColorMatrix in="e" type="matrix" values="0 0 0 0 .22  0 0 0 0 .12  0 0 0 0 .05  ${ink} 0 0 0 -.1" result="lines"/>
+    <feConvolveMatrix in="gB" order="3" kernelMatrix="-1 -1 -1 -1 8 -1 -1 -1 -1" preserveAlpha="true" result="eB"/>
+    <feColorMatrix in="eB" type="matrix" values="0 0 0 0 .30  0 0 0 0 .18  0 0 0 0 .08  ${ink * 0.55} 0 0 0 -.12" result="lines2"/>
+    <feMerge><feMergeNode in="wash"/><feMergeNode in="k1"/><feMergeNode in="k2"/><feMergeNode in="k3"/><feMergeNode in="lines2"/><feMergeNode in="lines"/></feMerge>
+  </filter>`;
+}
+
+module.exports = { svg, lin, rad, grainFilter, blur, drop, rng, f, stops, sketchFilter };

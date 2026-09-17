@@ -1,5 +1,6 @@
 // 황야의 뱅 - 브라우저 쪽 전체 화면과 조작
 import { rulesPanelHtml, rulesModalHtml } from './rules.js';
+import { cardHtml, zoomCardHtml, chCardHtml, boardHtml, esc, ic } from './cards.js';
 
 const B = window.BANG;
 const SFX = window.SFX;
@@ -9,10 +10,6 @@ const T = B.TYPES;
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const ic = (n) => `<i class="ic ic-${n}"></i>`;
-const SUIT_IC = { S: 'spade', H: 'heart', D: 'diamond', C: 'club' };
-const isRed = (suit) => suit === 'H' || suit === 'D';
 
 function token() {
   let t = null;
@@ -45,6 +42,8 @@ const S = {
   chatLog: [],
   toastedOver: false,
   introShown: false,
+  dealPending: false,
+  skipDrawFly: 0,     // 내가 끌어서 가져온 카드는 날아가는 연출을 생략
 };
 
 /* ═════════════════════════ 소켓 ═════════════════════════ */
@@ -137,46 +136,6 @@ function showZoom(html, anchor) {
 const hideZoom = () => { zoom.hidden = true; };
 
 /* ═════════════════════════ 카드 그리기 ═════════════════════════ */
-
-/** 카드에 찍히는 효과 아이콘 (실제 뱅 카드는 글 대신 기호로 효과를 보여 준다) */
-const CARD_ICONS = {
-  bang: ['target'],
-  missed: ['shield'],
-  beer: ['heal'],
-  saloon: ['heal', 'heal'],
-  panic: ['swap'],
-  catbalou: ['x'],
-  stagecoach: ['deck', 'deck'],
-  wellsfargo: ['deck', 'deck', 'deck'],
-  gatling: ['target', 'users'],
-  indians: ['gun', 'users'],
-  duel: ['gun', 'gun'],
-  store: ['cards', 'users'],
-  barrel: ['check'],
-  scope: ['eye'],
-  mustang: ['eye'],
-  jail: ['clock'],
-  dynamite: ['skull'],
-};
-
-function cardHtml(card, opt = {}) {
-  const { cls = '', style = '' } = opt;
-  if (!card) return `<div class="bcard back ${cls}" style="${style}"></div>`;
-  const info = T[card.type];
-  const blue = info.kind === 'blue';
-  const icons = (CARD_ICONS[card.type] || []).map((n) => ic(n)).join('');
-  return `<div class="bcard ${blue ? 'blue' : 'brown'} ${cls}" style="${style}" data-card="${card.id}" data-type="${card.type}">
-    <img class="bc-frame" src="assets/${blue ? 'frame-blue' : 'frame-brown'}.svg" alt="">
-    <div class="bc-art"><img src="assets/card/${card.type}.svg" alt=""></div>
-    ${blue ? '' : '<img class="bc-holes" src="assets/bullet-holes.svg" alt="">'}
-    <div class="bc-pip ${isRed(card.suit) ? 'red' : ''}">
-      <span class="bc-rank">${B.rankLabel(card.rank)}</span>${ic(SUIT_IC[card.suit])}
-    </div>
-    ${info.weapon ? `<div class="bc-sight"><i class="ic ic-target"></i><span>${info.weapon}</span></div>` : ''}
-    ${icons ? `<div class="bc-icons">${icons}</div>` : ''}
-    <div class="bc-name">${esc(info.name)}</div>
-  </div>`;
-}
 
 const hpHtml = (hp, maxHp) => {
   const full = Math.max(0, hp);
@@ -346,10 +305,15 @@ function renderLobby() {
 
   const set = B.ROLE_SETS[Math.min(B.MAX_PLAYERS, Math.max(B.MIN_PLAYERS, n))] || [];
   const count = (r) => set.filter((x) => x === r).length;
+  // 이번 인원수에 쓰이는 역할 카드를 실제로 펼쳐 보여 준다
   $('#roleTable').innerHTML = Object.entries(B.ROLES).map(([id, r]) => {
     const c = count(id);
+    const pics = c
+      ? Array.from({ length: c }, (_, i) => `<img src="assets/role/${id}.svg" alt="" style="--i:${i - (c - 1) / 2}">`).join('')
+      : `<img class="none" src="assets/role/${id}.svg" alt="" style="--i:0">`;
     return `<div class="rt-col ${c ? 'on' : ''}">
-      <b>${r.name} ${c ? `× ${c}` : '없음'}</b>
+      <div class="rt-cards">${pics}</div>
+      <b>${r.name} ${c ? `× ${c}` : '(이 인원에선 없음)'}</b>
       <div>${esc(r.goal)}</div>
     </div>`;
   }).join('');
@@ -392,43 +356,63 @@ function distTo(target) {
 
 /* ═════════════════════════ 게임: 자리 ═════════════════════════ */
 
+const hash = (v) => { let h = 7; for (const ch of String(v)) h = (h * 31 + ch.charCodeAt(0)) | 0; return Math.abs(h); };
+
+/** 역할 카드 (보안관·죽은 사람·나만 앞면, 나머지는 뒷면) */
+function roleCardHtml(role, cls = '') {
+  if (!role) return `<div class="rcard back ${cls}" title="숨겨진 역할"><img src="assets/role/back.svg" alt=""></div>`;
+  return `<div class="rcard r-${role} ${cls}" title="${esc(B.ROLES[role].name)}"><img src="assets/role/${role}.svg" alt="${esc(B.ROLES[role].name)}"></div>`;
+}
+
+/** 캐릭터 카드 (실제 뱅처럼 초록 테두리 · 초상화 · 총알 · 능력) */
+function charCardHtml(p, cls = '') {
+  return chCardHtml(p.char, { cls });
+}
+
+const weaponOf = (p) => p.equip.find((c) => T[c.type].weapon) || null;
+const gearOf = (p) => p.equip.filter((c) => !T[c.type].weapon);
+
+/** 손에 든 카드를 뒷면으로 부채꼴 표시 */
+function handFanHtml(n) {
+  const k = Math.min(n, 7);
+  const backs = Array.from({ length: k }, (_, i) => {
+    const t = k > 1 ? (i / (k - 1)) * 2 - 1 : 0;
+    return `<i style="--r:${(t * 16).toFixed(1)}deg;--x:${(t * 13).toFixed(1)}px"></i>`;
+  }).join('');
+  return `<div class="handfan" title="손패 ${n}장">${backs}<b>${n}</b></div>`;
+}
+
 function seatHtml(p, idx, total) {
   const ang = (Math.PI / 2) + (2 * Math.PI * idx) / total;
   const x = 50 + 40 * Math.cos(ang);
-  const y = 50 + 37 * Math.sin(ang);
+  const y = 50 + 36 * Math.sin(ang);
   const me = meP();
   const turn = S.g.turn;
   const cls = ['seat'];
   if (turn && turn.pid === p.pid) cls.push('cur');
   if (!p.alive) cls.push('dead');
+  const thinking = S.g.prompt && S.g.prompt.pid === p.pid;
+  if (thinking) cls.push('thinking');
 
   const d = distTo(p);
   const range = me ? B.weaponRange(me) : 0;
   const stats = [];
-  stats.push(`<span class="stat">${ic('cards')}${p.handCount}</span>`);
   if (d !== null) stats.push(`<span class="stat dist ${d > range ? 'far' : ''}">${ic('target')}거리 ${d}</span>`);
   if (!p.online) stats.push(`<span class="stat off">${ic('clock')}자리비움</span>`);
 
-  const waiting = S.g.prompt && S.g.prompt.pid === p.pid ? '<div class="waiting"></div>' : '';
-  const badge = p.role
-    ? `<div class="role-badge r-${p.role}" title="${esc(B.ROLES[p.role].name)}">${esc(B.ROLES[p.role].name[0])}</div>` : '';
-  const char = p.char ? B.CHAR[p.char] : null;
+  if (p.role === 'sheriff') cls.push('sheriff');
+  const badge = p.role === 'sheriff' ? `<div class="sheriff-badge">${ic('star')}보안관</div>` : '';
 
   return `<div class="${cls.join(' ')}" data-seat="${p.pid}" style="left:${x}%;top:${y}%">
-    <div class="seat-top">
-      <div class="face" data-char="${p.char || ''}">
-        <img src="assets/face/${p.char}.svg" alt="">
-        ${waiting}${badge}
-      </div>
-      <div class="seat-info">
-        <div class="seat-name">${esc(p.name)}${p.isBot ? ic('bot') : ''}</div>
-        <div class="seat-char">${esc(char ? char.name : '')}</div>
-        <div class="hp">${hpHtml(p.hp, p.maxHp)}</div>
-      </div>
+    ${badge}
+    ${thinking ? '<div class="think">선택 중…</div>' : ''}
+    <div class="seat-head">
+      <div class="seat-name">${esc(p.name)}${p.isBot ? ic('bot') : ''}</div>
+      ${handFanHtml(p.handCount)}
     </div>
+    ${boardHtml({ roleHtml: roleCardHtml(p.role), charHtml: charCardHtml(p), gun: weaponOf(p), hp: p.hp, maxHp: p.maxHp })}
     <div class="seat-row">${stats.join('')}</div>
-    <div class="equip">${p.equip.map((c) => cardHtml(c)).join('')}</div>
-    ${!p.alive && p.role ? `<div class="role-reveal lr r-${p.role}">${esc(B.ROLES[p.role].name)}</div>` : ''}
+    ${gearOf(p).length ? `<div class="equip">${gearOf(p).map((c) => cardHtml(c)).join('')}</div>` : ''}
   </div>`;
 }
 
@@ -584,6 +568,7 @@ function renderHand() {
 }
 
 $('#hand').addEventListener('click', (e) => {
+  if (dragJustEnded) return;
   const el = e.target.closest('.bcard');
   if (!el) return;
   const id = el.dataset.card;
@@ -734,6 +719,10 @@ function renderActionBar() {
     case 'store':
       text = `${ic('cards')}잡화점! 가운데에서 카드 1장을 고르세요`;
       break;
+    case 'draw':
+      text = `${ic('deck')}차례 시작! 가운데 <b>덱</b>을 끌어서 손으로 가져오세요 (남은 <b>${mine.data.left}장</b>)`;
+      btns.push(btn('take', `${ic('deck')}한 장 가져오기`, 'btn-gold'));
+      break;
     case 'kit':
       text = `${ic('deck')}카드 3장 중 덱에 돌려놓을 1장을 고르세요`;
       break;
@@ -788,6 +777,7 @@ $('#actionBar').addEventListener('click', async (e) => {
   if (!pr) return;
   switch (act) {
     case 'cancel': S.pick = null; renderHand(); paintTargets(); renderActionBar(); break;
+    case 'take': takeFromDeck(false); break;
     case 'end': sendPlay({ type: 'end' }); break;
     case 'none': answer({ card: null }); break;
     case 'die': answer({ type: 'die' }); break;
@@ -813,35 +803,36 @@ function renderMe() {
   const box = $('#meInfo');
   if (!me) {
     box.className = 'me-info';
-    box.innerHTML = `<div class="me-char"><div><b>관전 중</b><small>게임을 지켜보고 있습니다.</small></div></div>`;
+    box.innerHTML = `<div class="me-txt"><b>관전 중</b><small>게임을 지켜보고 있습니다.</small></div>`;
     return;
   }
   const char = B.CHAR[me.char];
   const role = B.ROLES[me.role];
   const isTurn = g.turn && g.turn.pid === me.pid;
-  box.className = `me-info ${isTurn ? 'cur' : ''}`;
+  // 보안관은 실제 게임처럼 처음부터 앞면
+  const hidden = roleHidden && me.role !== 'sheriff' && me.alive;
+  box.className = `me-info ${isTurn ? 'cur' : ''} ${me.role === 'sheriff' ? 'sheriff' : ''}`;
+  const roleSlot = `<div class="me-role-card ${hidden ? 'hide' : ''}" title="눌러서 내 역할 보기/가리기">
+      ${hidden ? roleCardHtml(null) : roleCardHtml(me.role)}
+    </div>`;
   box.innerHTML = `
-    <div class="me-char">
-      <img src="assets/face/${me.char}.svg" alt="" data-char="${me.char}">
-      <div><b>${esc(char.name)}</b><small>${esc(char.ability)}</small></div>
+    ${me.role === 'sheriff' ? `<div class="sheriff-badge">${ic('star')}내가 보안관</div>` : ''}
+    ${boardHtml({ roleHtml: roleSlot, charHtml: charCardHtml(me), gun: weaponOf(me), hp: me.hp, maxHp: me.maxHp, cls: 'big' })}
+    <div class="me-txt">
+      <b>${esc(char.name)} <small class="me-role-name">${hidden ? '· 역할 카드를 눌러 확인' : `· ${esc(role.name)}`}</small></b>
+      <small>${esc(char.ability)}</small>
     </div>
+    ${hidden ? '' : `<div class="me-goal">${esc(role.goal)}</div>`}
     <div class="me-row">
-      <div class="me-role ${roleHidden ? 'hide' : ''}" title="눌러서 보기/가리기">
-        <img src="assets/role/${me.role}.svg" alt="">
-        <b>${roleHidden ? '내 역할 보기' : esc(role.name)}</b>
-      </div>
-    </div>
-    ${roleHidden ? '' : `<small style="color:#dcc8a8;line-height:1.5">${esc(role.goal)}</small>`}
-    <div class="me-row">
-      <div class="me-hp">${hpHtml(me.hp, me.maxHp)}</div>
+      <span class="stat">${ic('heart')}체력 ${me.hp}/${me.maxHp}</span>
       <span class="stat">${ic('gun')}사거리 ${B.weaponRange(me)}</span>
       ${!me.alive ? '<span class="stat off">탈락</span>' : ''}
     </div>
-    <div class="me-equip">${me.equip.map((c) => cardHtml(c)).join('')}</div>`;
+    ${gearOf(me).length ? `<div class="me-equip">${gearOf(me).map((c) => cardHtml(c)).join('')}</div>` : ''}`;
 }
 
 $('#meInfo').addEventListener('click', (e) => {
-  if (e.target.closest('.me-role')) { roleHidden = !roleHidden; renderMe(); }
+  if (e.target.closest('.me-role-card')) { roleHidden = !roleHidden; renderMe(); }
 });
 
 /* ═════════════════════════ 게임: 가운데 (덱·버린 카드·판정·잡화점) ═════════════════════════ */
@@ -849,7 +840,28 @@ $('#meInfo').addEventListener('click', (e) => {
 function renderCenter() {
   const g = S.g;
   $('#deckCount').textContent = String(g.deckCount);
-  $('#discardPile').innerHTML = g.discardTop ? cardHtml(g.discardTop) : '';
+  // 덱은 남은 장수만큼 두껍게
+  const thick = Math.min(9, Math.ceil(g.deckCount / 9));
+  const deckCard = $('#deckPile .bcard');
+  deckCard.style.boxShadow = [
+    ...Array.from({ length: thick }, (_, i) => `${-(i + 1) * 0.6}px ${(i + 1) * 1.1}px 0 ${i % 2 ? '#1c0c04' : '#d9bf8f'}`),
+    '0 10px 18px rgba(0,0,0,.55)',
+  ].join(',');
+  deckCard.hidden = g.deckCount === 0;
+  const canTake = !!(myPrompt() && myPrompt().type === 'draw');
+  $('#deckPile').classList.toggle('takeable', canTake);
+  // 버린 카드는 조금씩 비뚤게 겹쳐 쌓인다
+  if (g.discardTop) {
+    const top = g.discardTop;
+    const rot = (hash(top.id) % 19) - 9;
+    const under = Math.min(3, g.discardCount - 1);
+    $('#discardPile').innerHTML = `<div class="tossed">
+      ${Array.from({ length: under }, (_, i) => `<div class="bcard under" style="--rot:${((hash(top.id + i) % 27) - 13)}deg"></div>`).join('')}
+      ${cardHtml(top, { cls: 'top', style: `--rot:${rot}deg` })}
+    </div>`;
+  } else {
+    $('#discardPile').innerHTML = '';
+  }
 
   const store = $('#storeArea');
   if (g.store && g.store.length) {
@@ -924,6 +936,7 @@ function openModal(html, opt = {}) {
   modal.hidden = false;
 }
 function closeModal(value) {
+  if (S.dealPending) { S.dealPending = false; setTimeout(dealAnimation, 150); }
   modal.hidden = true;
   modalBox.innerHTML = '';
   const r = modalResolve;
@@ -1012,10 +1025,8 @@ function renderPickChar() {
     const hp = c.hp + (me.role === 'sheriff' ? 1 : 0);
     const chosen = done === id;
     return `<button class="pc-card ${done && !chosen ? 'taken' : ''}" data-char-pick="${id}" ${done ? 'disabled' : ''}>
-      <img src="assets/char/${id}.svg" alt="">
-      <b>${esc(c.name)}</b>
-      <div class="pc-hp">${hpHtml(hp, hp)}</div>
-      <p>${esc(c.ability)}</p>
+      ${chCardHtml(id)}
+      <span class="pc-note">${chosen ? '선택함' : `체력 ${hp}${hp !== c.hp ? ' (보안관 +1)' : ''} · 이 캐릭터로`}</span>
     </button>`;
   };
 
@@ -1066,6 +1077,7 @@ function showIntro() {
   openModal(`<div class="intro">
       <div class="intro-kicker">당신의 정체</div>
       <h2>${esc(role.name)}</h2>
+      <p class="intro-sheriff">${ic('star')}이번 판 보안관: <b>${esc(pname((S.g.players.find((p) => p.role === 'sheriff') || {}).pid))}</b>${me.role === 'sheriff' ? ' (바로 당신!)' : ''}</p>
       <div class="intro-cards">
         <div class="intro-role">
           <img src="assets/role/${me.role}.svg" alt="">
@@ -1073,7 +1085,7 @@ function showIntro() {
           <p>${esc(role.goal)}</p>
         </div>
         <div class="intro-char">
-          <img src="assets/face/${me.char}.svg" alt="">
+          ${chCardHtml(me.char)}
           <b>${esc(char.name)}</b>
           <p>${esc(char.ability)}</p>
           <p style="margin-top:6px;color:#c8b48a">체력 ${me.maxHp}</p>
@@ -1137,6 +1149,27 @@ function anchorRect(pid) {
 const deckRect = () => $('#deckPile').getBoundingClientRect();
 const discardRect = () => $('#discardPile').getBoundingClientRect();
 const center = (r) => (r ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : null);
+
+/** 덱에서 한 장씩 돌아가며 나눠 주기 */
+function dealAnimation() {
+  const g = S.g;
+  if (!g) return;
+  const ring = ringOrder();
+  const most = Math.max(...ring.map((p) => (p.pid === S.me && g.me ? g.me.hand.length : p.handCount)));
+  let t = 0;
+  for (let k = 0; k < most; k++) {
+    for (const p of ring) {
+      const n = p.pid === S.me && g.me ? g.me.hand.length : p.handCount;
+      if (k >= n) continue;
+      const at = t;
+      setTimeout(() => {
+        flyCard(deckRect(), anchorRect(p.pid), null);
+        if (at % 140 === 0) SFX.card();
+      }, at);
+      t += 70;
+    }
+  }
+}
 
 function flyCard(fromR, toR, card, delay = 0) {
   const a = center(fromR);
@@ -1215,7 +1248,13 @@ function runEvent(e) {
     case 'turn':
       SFX.turn();
       break;
+    case 'sheriff':
+      SFX.bell();
+      toast(`${ic('star')}<b>${esc(pname(e.pid))}</b> 님이 보안관입니다!`, 'gold');
+      pulse(e.pid, 'healed');
+      break;
     case 'draw':
+      if (e.pid === S.me && S.skipDrawFly > 0) { S.skipDrawFly--; break; }
       SFX.draw();
       (e.cards || Array(e.n || 1).fill(null)).forEach((c, i) => flyCard(deckRect(), anchorRect(e.pid), c, i * 90));
       break;
@@ -1287,6 +1326,248 @@ function runEvent(e) {
   }
 }
 
+/* ═════════════════════════ 카드를 손으로 집어 옮기기 ═════════════════════════ */
+
+const DRAG_MIN = 7;
+let drag = null;
+let dragJustEnded = false;
+
+/** 내 차례 시작에 덱에서 한 장 집어 온다 */
+function takeFromDeck(dragged) {
+  const pr = myPrompt();
+  if (!pr || pr.type !== 'draw') return;
+  if (dragged) S.skipDrawFly++;
+  SFX.draw();
+  answer({ take: true });
+}
+
+$('#deckPile').addEventListener('click', () => {
+  if (dragJustEnded) return;
+  takeFromDeck(false);
+});
+
+function startDrag(e, kind, card, srcEl) {
+  if (e.button !== 0) return;
+  drag = { kind, card, srcEl, x0: e.clientX, y0: e.clientY, moved: false, ghost: null };
+}
+
+$('#hand').addEventListener('pointerdown', (e) => {
+  const el = e.target.closest('.bcard');
+  if (!el || !myPrompt() || !S.g.me) return;
+  const card = S.g.me.hand.find((c) => c.id === el.dataset.card);
+  if (card) startDrag(e, 'hand', card, el);
+});
+$('#deckPile').addEventListener('pointerdown', (e) => {
+  const pr = myPrompt();
+  if (!pr || pr.type !== 'draw') return;
+  startDrag(e, 'deck', null, $('#deckPile .bcard'));
+});
+
+function beginDragVisual() {
+  hideZoom();
+  document.body.classList.add('is-dragging');
+  const d = drag;
+  if (d.kind === 'hand' && myPrompt() && myPrompt().type === 'play') {
+    const chk = playCheck(d.card);
+    if (chk.ok && chk.target) { S.pick = d.card; paintTargets(); }
+  }
+  d.ghost = document.createElement('div');
+  d.ghost.className = 'drag-ghost';
+  d.ghost.innerHTML = d.kind === 'deck' ? '<div class="bcard back"></div>' : cardHtml(d.card);
+  flyLayer.appendChild(d.ghost);
+  if (d.srcEl) d.srcEl.classList.add('dragging');
+  SFX.card();
+}
+
+let dropEl = null;
+function markDrop(x, y) {
+  const el = document.elementFromPoint(x, y);
+  const seat = el && el.closest('#seats .seat.can-target');
+  const table = el && (el.closest('#felt') || el.closest('#meInfo'));
+  const target = seat || table;
+  if (target === dropEl) return;
+  if (dropEl) dropEl.classList.remove('drop-hover');
+  dropEl = target;
+  if (dropEl) dropEl.classList.add('drop-hover');
+}
+
+document.addEventListener('pointermove', (e) => {
+  if (!drag) return;
+  if (!drag.moved) {
+    if (Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < DRAG_MIN) return;
+    drag.moved = true;
+    beginDragVisual();
+  }
+  drag.ghost.style.transform = `translate(${e.clientX - 55}px, ${e.clientY - 40}px) rotate(-5deg)`;
+  markDrop(e.clientX, e.clientY);
+});
+
+function endDragVisual(d) {
+  document.body.classList.remove('is-dragging');
+  if (d.ghost) d.ghost.remove();
+  if (d.srcEl) d.srcEl.classList.remove('dragging');
+  if (dropEl) dropEl.classList.remove('drop-hover');
+  dropEl = null;
+}
+
+function dropCard(d, x, y) {
+  const el = document.elementFromPoint(x, y);
+  if (d.kind === 'deck') {
+    // 덱 밖 아무 데나 내려놓으면 내 손으로 가져온 것
+    if (!el || !el.closest('#deckPile')) takeFromDeck(true);
+    return;
+  }
+  const pr = myPrompt();
+  if (!pr) return;
+  const seat = el && el.closest('#seats .seat');
+  const onTable = !!(el && (el.closest('#felt') || el.closest('#meInfo')));
+  const card = d.card;
+  if (pr.type === 'play') {
+    const chk = playCheck(card);
+    if (!chk.ok) {
+      toast(chk.why || '지금은 낼 수 없는 카드예요', 'err');
+    } else if (chk.target) {
+      if (seat && seat.classList.contains('can-target')) { chooseTarget(seat.dataset.seat); return; }
+      toast('노릴 사람의 판 위에 내려놓으세요', 'err');
+    } else if (onTable) {
+      sendPlay({ type: 'play', card: card.id });
+      return;
+    }
+    S.pick = null;
+    renderHand(); paintTargets(); renderActionBar();
+    return;
+  }
+  // 빗나감! · 뱅! 대응 · 맥주 등은 테이블에 내려놓으면 낸다
+  if (onTable) onHandClick(card);
+}
+
+document.addEventListener('pointerup', (e) => {
+  if (!drag) return;
+  const d = drag;
+  drag = null;
+  if (!d.moved) return;
+  endDragVisual(d);
+  dragJustEnded = true;
+  setTimeout(() => { dragJustEnded = false; }, 60);
+  dropCard(d, e.clientX, e.clientY);
+});
+document.addEventListener('pointercancel', () => {
+  if (drag && drag.moved) endDragVisual(drag);
+  drag = null;
+});
+
+/* ═════════════════════════ 다른 사람의 손 (테이블 위 마우스) ═════════════════════════ */
+
+// 자리마다 테이블이 돌아가 보이므로, 보낼 때는 "모두 같은 기준"으로 바꾸고 받을 때 내 시점으로 돌린다
+const RING_X = 40;
+const RING_Y = 36;
+function viewTurn() {
+  const g = S.g;
+  if (!g) return 0;
+  const i = g.players.findIndex((p) => p.pid === S.me);
+  return (2 * Math.PI * Math.max(0, i)) / g.players.length;
+}
+function toShared(xp, yp) {
+  const u = (xp - 50) / RING_X;
+  const v = (yp - 50) / RING_Y;
+  const r = Math.hypot(u, v);
+  const a = Math.atan2(v, u) + viewTurn();
+  return { x: +(r * Math.cos(a)).toFixed(3), y: +(r * Math.sin(a)).toFixed(3) };
+}
+function fromShared(x, y) {
+  const r = Math.hypot(x, y);
+  const a = Math.atan2(y, x) - viewTurn();
+  return { xp: 50 + RING_X * r * Math.cos(a), yp: 50 + RING_Y * r * Math.sin(a) };
+}
+
+let cursorAt = 0;
+let cursorShown = false;
+function sendCursor(pos) {
+  const now = performance.now();
+  if (now - cursorAt < 66) return;
+  cursorAt = now;
+  cursorShown = true;
+  socket.emit('cursor', { ...pos, down: !!(drag && drag.moved) });
+}
+felt.addEventListener('pointermove', (e) => {
+  if (!S.g || S.g.phase !== 'play') return;
+  const r = felt.getBoundingClientRect();
+  sendCursor(toShared(((e.clientX - r.left) / r.width) * 100, ((e.clientY - r.top) / r.height) * 100));
+});
+// 내 손패를 만지작거리면 내 자리 앞에 손이 보인다
+$('#meArea').addEventListener('pointermove', (e) => {
+  if (!S.g || S.g.phase !== 'play' || !meP()) return;
+  const r = $('#meArea').getBoundingClientRect();
+  const t = (e.clientX - r.left) / r.width - 0.5;
+  sendCursor(toShared(50 + t * 24, 90));
+});
+function hideMyCursor() {
+  if (!cursorShown || (drag && drag.moved)) return;
+  cursorShown = false;
+  socket.emit('cursor', { x: 0, y: 0, out: true });
+}
+felt.addEventListener('pointerleave', (e) => { if (!e.relatedTarget || !e.relatedTarget.closest('#meArea')) hideMyCursor(); });
+$('#meArea').addEventListener('pointerleave', (e) => { if (!e.relatedTarget || !e.relatedTarget.closest('#felt')) hideMyCursor(); });
+
+const HA = window.HAND_ART;
+const HAND_PX = 78;                    // 테이블에 그릴 손 너비 (카드 한 장쯤)
+const HAND_K = HAND_PX / HA.W;
+
+/** 그 사람의 어깨 위치: 자리보다 바깥쪽이라 팔이 테이블 가장자리에서 뻗어 들어온다 */
+function shoulderOf(pid) {
+  const ring = ringOrder();
+  const idx = ring.findIndex((p) => p.pid === pid);
+  if (idx < 0) return { xp: 50, yp: 130 };
+  const ang = Math.PI / 2 + (2 * Math.PI * idx) / ring.length;
+  return { xp: 50 + RING_X * 1.55 * Math.cos(ang), yp: 50 + RING_Y * 1.55 * Math.sin(ang) };
+}
+
+const handsLayer = document.createElement('div');
+handsLayer.className = 'hands-layer';
+felt.appendChild(handsLayer);
+const hands = new Map();
+
+socket.on('cursor', (c) => {
+  if (!S.g || S.g.phase !== 'play' || c.pid === S.me) return;
+  let h = hands.get(c.pid);
+  if (c.out) { if (h) h.el.classList.add('gone'); return; }
+  if (!h) {
+    const el = document.createElement('div');
+    const hue = hash(c.pid) % 360;
+    const uid = `h${hash(c.pid).toString(36)}`;
+    el.className = 'phand';
+    el.style.setProperty('--hue', String(hue));
+    el.innerHTML = `<div class="arm" style="width:${HAND_PX}px;left:${-HA.TIP.x * HAND_K}px;top:${-HA.TIP.y * HAND_K}px;transform-origin:${HA.TIP.x * HAND_K}px ${HA.TIP.y * HAND_K}px">
+        <div class="pose open">${HA.hand(`${uid}o`, hue, 'open')}</div>
+        <div class="pose grab">${HA.hand(`${uid}g`, hue, 'grab')}</div>
+      </div><span></span>`;
+    handsLayer.appendChild(el);
+    h = { el, arm: el.querySelector('.arm'), t: 0, deg: null };
+    hands.set(c.pid, h);
+  }
+  const at = fromShared(c.x, c.y);
+  h.el.style.left = `${at.xp}%`;
+  h.el.style.top = `${at.yp}%`;
+  // 손가락이 어깨 → 마우스 방향을 향하도록 돌린다 (한 바퀴 휙 돌지 않게 가까운 각도로)
+  const sh = shoulderOf(c.pid);
+  const fr = felt.getBoundingClientRect();
+  let deg = (Math.atan2(((at.yp - sh.yp) * fr.height) / 100, ((at.xp - sh.xp) * fr.width) / 100) * 180) / Math.PI + 90;
+  if (h.deg !== null) deg += Math.round((h.deg - deg) / 360) * 360;
+  h.deg = deg;
+  h.arm.style.transform = `rotate(${deg.toFixed(1)}deg)`;
+  h.el.classList.toggle('down', !!c.down);
+  h.el.classList.remove('gone');
+  h.el.querySelector('span').textContent = pname(c.pid) === '?' ? c.name : pname(c.pid);
+  h.t = Date.now();
+});
+setInterval(() => {
+  for (const h of hands.values()) if (Date.now() - h.t > 4000) h.el.classList.add('gone');
+}, 1000);
+function clearHands() {
+  for (const h of hands.values()) h.el.remove();
+  hands.clear();
+}
+
 /* ═════════════════════════ 턴 배너 ═════════════════════════ */
 
 const STAGE = { start: '차례 시작', draw: '카드 뽑는 중', play: '카드 내는 중', discard: '손패 정리 중', end: '차례 종료' };
@@ -1299,7 +1580,9 @@ function renderBanner() {
   const t = g.turn;
   if (!t) { el.innerHTML = ''; return; }
   const mine = t.pid === S.me;
-  el.innerHTML = `${ic(mine ? 'gun' : 'clock')}<b>${mine ? '내 차례' : `${esc(pname(t.pid))}의 차례`}</b>
+  const tp = pl(t.pid);
+  const star = tp && tp.role === 'sheriff' ? `<span class="banner-sheriff">${ic('star')}보안관</span>` : '';
+  el.innerHTML = `${ic(mine ? 'gun' : 'clock')}<b>${mine ? '내 차례' : `${esc(pname(t.pid))}의 차례`}</b>${star}
     <span style="color:var(--muted)">· ${STAGE[t.stage] || ''} · ${t.no}턴</span>`;
 }
 
@@ -1335,6 +1618,8 @@ function render() {
     S.pick = null; S.discardSel = []; S.sidSel = []; S.answered = 0;
     S.toastedOver = false;
     S.introShown = false;
+    S.skipDrawFly = 0;
+    clearHands();
     roleHidden = true;
     specialFor = 0;
   }
@@ -1367,6 +1652,7 @@ function render() {
   if (!S.introShown) {
     S.introShown = true;
     closeModal();
+    S.dealPending = true;
     setTimeout(showIntro, 200);
   } else {
     playEvents();
@@ -1389,19 +1675,14 @@ document.addEventListener('mouseover', (e) => {
     const id = card.dataset.card;
     const all = S.g ? [...(S.g.me ? S.g.me.hand : []), ...S.g.players.flatMap((p) => p.equip), ...(S.g.store || [])] : [];
     const data = all.find((c) => c.id === id) || { id, type, suit: 'S', rank: 14 };
-    showZoom(cardHtml(data), card);
+    showZoom(zoomCardHtml(data), card);
     return;
   }
   const face = e.target.closest('[data-char]');
   if (face && face.dataset.char) {
     const c = B.CHAR[face.dataset.char];
     if (!c) return;
-    showZoom(`<div class="zoom-char">
-      <img src="assets/char/${c.id}.svg" alt="">
-      <b>${esc(c.name)}</b>
-      <p>${esc(c.ability)}</p>
-      <p style="margin-top:6px;color:#c8b48a">체력 ${c.hp}</p>
-    </div>`, face);
+    showZoom(`<div class="zoom-card">${chCardHtml(c.id)}</div>`, face);
   }
 });
 document.addEventListener('mouseout', (e) => {

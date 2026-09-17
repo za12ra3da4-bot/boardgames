@@ -11,6 +11,14 @@
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+<svg class="svg-defs" width="0" height="0" aria-hidden="true" focusable="false">
+  <filter id="rough" x="-5%" y="-15%" width="110%" height="130%">
+    <feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="2" seed="4" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="1.3" result="d"/>
+    <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -5 3.9" result="k"/>
+    <feComposite in="d" in2="k" operator="in"/>
+  </filter>
+</svg>
 <div class="dust" aria-hidden="true"></div>
 <div class="conn" id="conn" hidden></div>
 
@@ -139,6 +147,7 @@
 <script src="/socket.io/socket.io.js"></script>
 <script src="shared/bang.js"></script>
 <script src="js/sfx.js"></script>
+<script src="shared/hand-art.js"></script>
 <script type="module" src="js/app.js"></script>
 </body>
 </html>

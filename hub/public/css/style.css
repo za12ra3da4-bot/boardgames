@@ -1,18 +1,13 @@
+/* 보드게임 밤 - 나무 탁자 위에 게임 상자를 진열한 모습 (2000년대 보드게임 가게 느낌) */
 :root {
-  --bg: #100b10;
-  --panel: #1c151c;
-  --panel2: #241b23;
-  --line: #3a2d35;
-  --gold: #d9b45a;
-  --gold2: #f2d68a;
-  --paper: #efe3c8;
-  --text: #eadfca;
-  --muted: #a8998a;
-  --green: #5fbf7a;
-  --amber: #d9a93c;
+  --ink: #1c120a;
+  --paper: #f1e4c4;
+  --red: #c8261c;
+  --yellow: #f2c230;
   --font: 'Noto Sans KR', system-ui, -apple-system, 'Malgun Gothic', sans-serif;
   --display: 'Black Han Sans', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
-  --serif: 'Gowun Batang', 'Batang', serif;
+  --western: 'Rye', Georgia, serif;
+  --print-shadow: 4px 5px 0 rgba(20, 8, 0, .5);
 }
 
 * { box-sizing: border-box; }
@@ -20,131 +15,166 @@
 html, body { margin: 0; min-height: 100%; }
 body {
   font-family: var(--font);
-  color: var(--text);
+  color: var(--ink);
   background:
-    radial-gradient(1100px 650px at 50% -14%, #2e1c2c 0, transparent 62%),
-    radial-gradient(900px 520px at 100% 112%, #201524 0, transparent 60%),
-    var(--bg);
+    radial-gradient(ellipse at 50% 35%, rgba(0, 0, 0, 0) 40%, rgba(30, 12, 0, .55) 100%),
+    #9a5e2a url(/bang/assets/wood.svg) 0 0 / 512px 512px;
   overflow-x: hidden;
 }
 img { max-width: 100%; }
-button { font-family: inherit; }
 a { color: inherit; text-decoration: none; }
 
-/* 종이 질감 */
-.grain {
-  position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: .5;
-  background:
-    repeating-linear-gradient(0deg, rgba(255, 230, 190, .02) 0 1px, transparent 1px 3px),
-    repeating-linear-gradient(90deg, rgba(0, 0, 0, .07) 0 2px, transparent 2px 140px);
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer;
+  font-family: inherit; font-weight: 900; font-size: 14px; padding: 7px 14px;
+  color: #fff; background: var(--red); border: 2.5px solid var(--ink); border-radius: 5px;
+  box-shadow: 3px 3px 0 var(--ink); transition: transform .06s, box-shadow .06s;
 }
+.btn:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); }
+.btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
 
-/* ───── 아이콘 (SVG 마스크 - 이모지 안 씀) */
-.ic {
-  display: inline-block; width: 1.05em; height: 1.05em; flex: none;
-  background: currentColor; vertical-align: -.16em;
-  -webkit-mask: var(--i) center / contain no-repeat; mask: var(--i) center / contain no-repeat;
-}
-.ic-users { --i: url(../assets/users.svg); }
-.ic-clock { --i: url(../assets/clock.svg); }
-
-/* ───── 상단 바 */
+/* ───── 상단 빨간 띠 */
 .top {
-  position: relative; z-index: 1;
-  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
-  padding: 18px clamp(16px, 4vw, 40px);
-  border-bottom: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(30, 22, 30, .8), transparent);
+  display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  padding-block: 12px; padding-inline: clamp(16px, 4vw, 40px);
+  background: var(--red); border-bottom: 4px solid var(--ink); box-shadow: 0 4px 0 rgba(20, 8, 0, .35);
 }
 .brand { display: flex; align-items: center; gap: 12px; }
-.brand-mark { width: 40px; height: 40px; }
-.brand-name { font-family: var(--display); font-size: 20px; letter-spacing: .02em; color: var(--gold2); }
-.brand-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
-
+.brand-mark { width: 44px; height: 44px; filter: drop-shadow(2px 2px 0 var(--ink)); }
+.brand-name { font-family: var(--display); font-size: 26px; color: #fff4dc; text-shadow: 2px 2px 0 var(--ink); line-height: 1.1; }
+.brand-sub { font-size: 12px; color: #ffe0c8; font-weight: 700; }
 .addr {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 10px 8px 14px;
-  border: 1px solid var(--line); border-radius: 999px;
-  background: rgba(20, 14, 20, .6);
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 6px 8px 6px 12px; background: var(--paper); border: 2.5px solid var(--ink); border-radius: 6px;
+  box-shadow: 3px 3px 0 var(--ink);
 }
-.addr-label { font-size: 11px; color: var(--muted); letter-spacing: .06em; }
-.addr code { font-size: 13px; color: var(--gold2); font-family: ui-monospace, Menlo, Consolas, monospace; }
-.copy {
-  border: 1px solid var(--line); background: var(--panel2); color: var(--text);
-  border-radius: 999px; padding: 5px 12px; font-size: 12px; cursor: pointer;
-  transition: border-color .15s, color .15s;
+.addr span { font-size: 12px; font-weight: 900; color: #6b5236; }
+.addr code { font-size: 14px; font-weight: 700; color: var(--ink); font-family: ui-monospace, Menlo, Consolas, monospace; }
+.addr .btn { background: var(--yellow); color: var(--ink); padding: 4px 11px; font-size: 13px; }
+
+/* ───── 진열대 */
+.wrap { max-width: 1180px; margin: 0 auto; padding: clamp(24px, 5vw, 48px) clamp(16px, 4vw, 24px) 70px; }
+.shelf-head { text-align: center; margin-bottom: 18px; }
+.shelf-head h1 {
+  margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(38px, 7vw, 62px); line-height: 1.1;
+  color: #fff4dc; -webkit-text-stroke: 2px var(--ink); text-shadow: 5px 5px 0 var(--ink);
 }
-.copy:hover { border-color: var(--gold); color: var(--gold2); }
-.copy.done { color: var(--green); border-color: var(--green); }
-
-/* ───── 본문 */
-.wrap {
-  position: relative; z-index: 1;
-  max-width: 1040px; margin: 0 auto;
-  padding: clamp(28px, 6vw, 56px) clamp(16px, 4vw, 24px) 64px;
+.shelf-head h1 em { font-style: normal; color: var(--yellow); }
+.shelf-head p {
+  display: inline-block; margin: 14px 0 0; padding: 5px 14px; font-weight: 700; font-size: 15px;
+  background: var(--paper); border: 2.5px solid var(--ink); border-radius: 5px; box-shadow: 3px 3px 0 var(--ink);
+  transform: rotate(-1deg);
 }
-.headline {
-  font-family: var(--display); font-weight: 400;
-  font-size: clamp(34px, 7vw, 56px); line-height: 1.1; margin: 0;
-  letter-spacing: .01em;
+.shelf { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; gap: clamp(28px, 6vw, 80px); }
+.loading { color: #fff4dc; font-weight: 700; padding: 60px 0; text-shadow: 1px 1px 0 var(--ink); }
+
+.game { display: flex; flex-direction: column; align-items: center; gap: 18px; width: min(100%, 420px); }
+.game.bang { --w: 250px; --h: 340px; --d: 60px; }
+.game.clue { --w: 380px; --h: 272px; --d: 56px; }
+
+/* ───── 3D 상자 */
+.stage { position: relative; perspective: 1100px; width: 100%; height: calc(var(--h) + 50px); display: grid; place-items: center; }
+.box {
+  position: relative; width: var(--w); height: var(--h); max-width: 100%;
+  transform-style: preserve-3d; transform: rotateX(8deg) rotateY(26deg);
+  transition: transform .4s cubic-bezier(.2, .8, .2, 1);
 }
-.headline em { font-style: normal; color: var(--gold2); }
-.lede { color: var(--muted); margin: 10px 0 30px; font-size: clamp(14px, 2.2vw, 16px); }
-
-.grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
-.loading { color: var(--muted); padding: 40px 0; }
-
-/* ───── 게임 카드 */
-.card {
-  display: flex; flex-direction: column;
-  border: 1px solid var(--line); border-radius: 16px; overflow: hidden;
-  background: linear-gradient(180deg, var(--panel2), var(--panel));
-  box-shadow: 0 18px 40px rgba(0, 0, 0, .45);
-  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+.game:hover .box, .game:focus-visible .box { transform: rotateX(4deg) rotateY(10deg) translateY(-14px); }
+.face { position: absolute; }
+.face.front { inset: 0; transform: translateZ(calc(var(--d) / 2)); overflow: hidden; box-shadow: inset 0 0 0 2px rgba(0, 0, 0, .35); }
+.face.side {
+  top: 0; height: 100%; width: var(--d); left: calc(50% - var(--d) / 2);
+  transform: rotateY(-90deg) translateZ(calc(var(--w) / 2));
+  display: grid; place-items: center; overflow: hidden;
 }
-.card:hover { transform: translateY(-4px); border-color: var(--gold); box-shadow: 0 24px 54px rgba(0, 0, 0, .55); }
-.card:focus-visible { outline: 2px solid var(--gold2); outline-offset: 3px; }
-.card.off { opacity: .72; }
-.card.off:hover { transform: none; border-color: var(--line); }
-
-.card-art {
-  display: grid; place-items: center; height: 170px; padding: 18px;
-  background:
-    radial-gradient(360px 180px at 50% 120%, rgba(217, 180, 90, .18), transparent 70%),
-    repeating-linear-gradient(135deg, rgba(255, 255, 255, .018) 0 6px, transparent 6px 12px),
-    #150f15;
-  border-bottom: 1px solid var(--line);
+.face.side span { writing-mode: vertical-rl; font-family: var(--display); font-size: 30px; letter-spacing: .06em; }
+.face.lid { left: 0; width: 100%; height: var(--d); top: calc(50% - var(--d) / 2); transform: rotateX(90deg) translateZ(calc(var(--h) / 2)); }
+.floor-shadow {
+  position: absolute; left: 50%; bottom: 4px; width: calc(var(--w) * 1.05); height: 30px; transform: translateX(-46%);
+  background: radial-gradient(ellipse, rgba(20, 8, 0, .55), rgba(20, 8, 0, 0) 70%); filter: blur(4px); z-index: -1;
 }
-.card-logo { max-height: 128px; width: auto; filter: drop-shadow(0 6px 14px rgba(0, 0, 0, .5)); }
 
-.card-body { padding: 18px 20px 6px; flex: 1; }
-.card-kicker { font-size: 11px; letter-spacing: .14em; color: var(--gold); text-transform: none; }
-.card-title { font-family: var(--display); font-weight: 400; font-size: 26px; margin: 6px 0 8px; }
-.card-desc { font-family: var(--serif); color: var(--muted); font-size: 14px; line-height: 1.65; margin: 0 0 14px; }
-.card-meta { display: flex; gap: 16px; font-size: 12.5px; color: var(--muted); }
-.meta { display: inline-flex; align-items: center; gap: 6px; }
-
-.card-foot {
-  display: flex; align-items: center; gap: 9px;
-  padding: 14px 20px; margin-top: 8px;
-  border-top: 1px solid var(--line);
-  background: rgba(12, 8, 12, .45);
-  font-size: 13px;
+/* ── 황야의 뱅: 나무 상자와 수배 전단 */
+.bang .face.front, .bang .face.side, .bang .face.lid { background: #c0823e url(/bang/assets/wood.svg) 0 0 / 300px 300px; }
+.bang .face.side span { color: var(--red); -webkit-text-stroke: 1.5px var(--ink); text-shadow: 2px 2px 0 var(--ink); }
+.bang .face.side, .bang .face.lid { filter: brightness(.78); }
+.bf { position: absolute; inset: 0; }
+.bf::before { content: ''; position: absolute; inset: 12px; border: 9px solid var(--ink); border-radius: 3px; box-shadow: inset 0 0 0 2px #7a4a1c; }
+.bf-title {
+  position: absolute; left: 0; right: 0; top: 26px; text-align: center; font-family: var(--display); line-height: .9;
+  font-size: 24px; color: #fff4dc; -webkit-text-stroke: 1px var(--ink); text-shadow: 2px 2px 0 var(--ink);
 }
-.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
-.card.on .dot { background: var(--green); box-shadow: 0 0 0 4px rgba(95, 191, 122, .16); }
-.card.wait .dot { background: var(--amber); animation: pulse 1.2s ease-in-out infinite; }
-@keyframes pulse { 50% { opacity: .35; } }
-.state { color: var(--muted); }
-.card.on .state { color: var(--green); }
-.card.wait .state { color: var(--amber); }
-.go { margin-left: auto; color: var(--gold2); font-weight: 700; }
-.card.off .go { color: var(--muted); }
+.bf-title b {
+  display: block; font-weight: 400; font-size: 70px; color: var(--red); transform: skewX(-9deg) rotate(-3deg);
+  -webkit-text-stroke: 2.5px var(--ink); text-shadow: 4px 4px 0 var(--ink);
+}
+.bf-kicker { position: absolute; right: 26px; top: 112px; font-size: 10px; font-weight: 900; color: var(--red); background: #fff4dc; padding: 1px 5px; border: 1.5px solid var(--ink); transform: rotate(-3deg); }
+.bf-poster {
+  position: absolute; left: 36px; right: 36px; top: 132px; bottom: 50px; transform: rotate(2deg);
+  background: #efe3c3 url(/bang/assets/paper.svg) 0 0 / 200px; text-align: center; color: #5a3a1e;
+  clip-path: polygon(0 3%, 12% 0, 30% 2%, 52% 0, 70% 2%, 88% 0, 100% 4%, 98% 30%, 100% 55%, 97% 80%, 100% 98%, 80% 100%, 60% 97%, 38% 100%, 16% 97%, 0 100%, 3% 72%, 0 45%, 2% 20%);
+  box-shadow: inset 0 0 30px rgba(120, 70, 20, .35);
+}
+.bf-wanted { margin-top: 6px; font-family: var(--western); font-size: 29px; letter-spacing: .06em; color: #5a3a1e; }
+.bf-dead { font-family: var(--western); font-size: 8px; letter-spacing: .3em; margin-top: -2px; }
+.bf-poster img { display: block; width: 62%; margin: 4px auto 0; aspect-ratio: 1; object-fit: cover; object-position: 50% 15%; filter: sepia(1) contrast(1.2) brightness(1.05); border: 2px solid #5a3a1e; }
+.bf-reward { font-family: var(--western); font-size: 15px; margin-top: 3px; color: #7a1a12; }
+.bf-star {
+  position: absolute; left: 8px; top: 196px; width: 84px; height: 84px; display: grid; place-items: center;
+  background: linear-gradient(135deg, #fff1b8, #d9a93c 55%, #8a5a18);
+  clip-path: polygon(50% 0, 62% 26%, 93% 25%, 72% 50%, 93% 75%, 62% 74%, 50% 100%, 38% 74%, 7% 75%, 28% 50%, 7% 25%, 38% 26%);
+  transform: rotate(-12deg); filter: drop-shadow(2px 3px 0 var(--ink));
+}
+.bf-star span { font-size: 10px; font-weight: 900; line-height: 1.15; text-align: center; color: var(--ink); }
+.bf-foot { position: absolute; left: 0; right: 0; bottom: 27px; text-align: center; font-size: 10px; font-weight: 900; color: #fff4dc; text-shadow: 1px 1px 0 var(--ink); }
 
-.foot { margin-top: 34px; color: var(--muted); font-size: 12.5px; line-height: 1.7; }
-.foot b { color: var(--text); font-weight: 700; }
+/* ── 밤의 저택: 짙은 초록 띠 + 인물 그림 + 문구 띠 */
+.clue .face.side, .clue .face.lid { background: #12301f; }
+.clue .face.side span { color: #f3ead2; font-size: 26px; }
+.clue .face.lid { filter: brightness(.85); }
+.cf { position: absolute; inset: 0; display: grid; grid-template-rows: 37% 45% 18%; background: #12301f; }
+.cf-band { position: relative; background: #173a2a url(/bang/assets/paper.svg) 0 0 / 220px; }
+.cf-badge { position: absolute; left: 14px; top: 12px; padding: 2px 9px; border: 2px solid #d9b45a; border-radius: 6px; color: #f0dcae; font-weight: 900; font-size: 12px; }
+.cf-small { position: absolute; left: 15px; bottom: 12px; font-size: 8.5px; font-weight: 900; letter-spacing: .18em; color: #d9b45a; }
+.cf-title {
+  position: absolute; right: 16px; bottom: 4px; font-family: var(--display); font-size: 62px; line-height: 1;
+  color: #f3ead2; letter-spacing: -.01em; text-shadow: 3px 3px 0 #06120b;
+}
+.cf-art { position: relative; overflow: hidden; background: #5a1a14; border-top: 3px solid #06120b; }
+.cf-room { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .85; filter: saturate(1.4) hue-rotate(-12deg); }
+.cf-face {
+  position: absolute; bottom: -6px; left: calc(var(--i) * 16.4% - 3%); width: 28%; height: 112%;
+  object-fit: cover; object-position: 50% 12%; filter: saturate(1.4) contrast(1.1);
+  -webkit-mask: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent);
+  mask: linear-gradient(90deg, transparent, #000 22%, #000 78%, transparent);
+}
+.cf-tag {
+  display: grid; place-items: center; background: #e8dcb0 url(/bang/assets/paper.svg) 0 0 / 200px;
+  border-top: 3px solid #06120b; font-family: var(--display); font-size: 21px; color: #173a2a;
+}
+
+.gf { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 8px; background: var(--paper); }
+.gf img { width: 50%; }
+
+/* ───── 상자 아래 설명 쪽지 */
+.label {
+  width: 100%; max-width: 360px; padding: 12px 14px 14px; text-align: center; position: relative;
+  background: var(--paper) url(/bang/assets/paper.svg) 0 0 / 300px; border: 3px solid var(--ink); border-radius: 6px;
+  box-shadow: var(--print-shadow); transform: rotate(-.6deg);
+}
+.game.clue .label { transform: rotate(.6deg); }
+.label b { display: block; font-family: var(--display); font-weight: 400; font-size: 24px; color: #9a1d14; }
+.label p { margin: 4px 0 8px; font-size: 13.5px; line-height: 1.55; color: #3a2a18; }
+.meta { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-bottom: 10px; }
+.meta span { font-size: 11.5px; font-weight: 900; padding: 1px 8px; border-radius: 3px; background: var(--ink); color: #fff4dc; }
+.label .go { font-size: 16px; padding: 8px 26px; }
+.game:hover .label .go { background: #e0301f; }
 
 @media (max-width: 520px) {
-  .addr { width: 100%; justify-content: space-between; }
-  .card-art { height: 140px; }
+  .game.bang { --w: 210px; --h: 286px; --d: 50px; }
+  .game.clue { --w: 300px; --h: 216px; --d: 46px; }
+  .bf-title b { font-size: 56px; }
+  .cf-title { font-size: 46px; }
+  .bf-poster { top: 108px; }
+  .bf-star { top: 160px; width: 70px; height: 70px; }
 }

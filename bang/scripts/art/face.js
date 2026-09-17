@@ -1,6 +1,6 @@
 'use strict';
 // 초상화 공통 부품: 눈·눈썹·코·입·림라이트, 전신/얼굴 크롭 출력
-const { svg, lin, rad, grainFilter, blur, rng, f } = require('./lib');
+const { svg, lin, rad, grainFilter, blur, rng, f, sketchFilter } = require('./lib');
 
 function eye(o) {
   const { cx, cy, w = 30, h = 13, iris = '#4a3020', skin, lid = '#1a1012', heavy = 0, squint = 0, lash = false, side = 'L', id, bag = false } = o;
@@ -74,14 +74,22 @@ function portrait({ bg, rimColor, defs, body }) {
     ${rad('bg', bg, 0.5, 0.36, 0.8)}
     ${lin('rimFade', [[0, '#000'], [0.52, '#000'], [1, '#fff']], 0, 0, 1, 0)}
     <mask id="rimMask" maskUnits="userSpaceOnUse" x="0" y="0" width="300" height="380"><rect width="300" height="380" fill="url(#rimFade)"/></mask>
-    ${rad('vig', [[0.5, '#000', 0], [1, '#000', 0.75]], 0.5, 0.42, 0.78)}
+    ${rad('vig', [[0.55, '#000', 0], [1, '#7a5530', 0.45]], 0.5, 0.42, 0.78)}
+    ${rad('sepiaWash', [[0, '#d8b688', 0.9], [0.7, '#e8d2b0', 0.5], [1, '#f6efe0', 0]], 0.5, 0.5, 0.5)}
+    ${sketchFilter('sketch', { seed: 8, wobble: 2.8 })}
     ${rad('glow', [[0, rimColor, 0.4], [1, rimColor, 0]], 0.5, 0.5, 0.5)}
     ${grainFilter('grain')}
     ${blur('soft', 1.6)}
     ${lin('brass', [[0, '#fff1b8'], [0.45, '#d8a93c'], [1, '#6e4a12']])}
     ${lin('steel', [[0, '#eef2f6'], [0.5, '#9aa3ae'], [1, '#4a5058']])}
     ${defs}`;
-  const content = `<rect width="300" height="380" fill="url(#bg)"/>${body}<rect width="300" height="380" fill="url(#vig)"/><rect width="300" height="380" filter="url(#grain)" opacity=".14"/>`;
+  const content = `<rect width="300" height="380" fill="#f6efe0"/>
+    <g filter="url(#sketch)">
+      <rect width="300" height="380" fill="#fff"/>
+      <ellipse cx="150" cy="200" rx="150" ry="190" fill="url(#sepiaWash)"/>
+      ${body}
+    </g>
+    <rect width="300" height="380" fill="url(#vig)"/><rect width="300" height="380" filter="url(#grain)" opacity=".08"/>`;
   return {
     full: svg(300, 380, content, { defs: allDefs }),
     face: svg(200, 200, content, { defs: allDefs, vb: '46 40 208 208' }),

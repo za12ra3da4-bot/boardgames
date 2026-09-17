@@ -2,7 +2,7 @@
 // 카드 22종 일러스트 + 카드 테두리(갈색/파란색) + 총알 구멍 + 카드 뒷면
 // 실제 뱅 카드처럼 그림이 카드 한 면을 가득 채우는 서부 유화풍.
 // 빛은 항상 왼쪽 위에서 온다: 왼위 = 하이라이트, 오른아래 = 그림자 + 땅에 드리운 그림자.
-const { svg, lin, rad, grainFilter, blur, rng, f } = require('./lib');
+const { svg, lin, rad, grainFilter, blur, rng, f, sketchFilter } = require('./lib');
 
 const INK = '#2b1a0f';
 const GROUND = 196;          // 사물이 서 있는 바닥 높이 (그림 좌표계)
@@ -37,12 +37,42 @@ const DEFS = [
   rad('glow', [[0, '#ffe9a8', 0.8], [1, '#ffb040', 0]], 0.5, 0.5, 0.5),
 ].join('');
 
+const PAPER = '#f6eedb';
+
 const SCENE_DEFS = [
-  rad('sky', [[0, '#ffeab4'], [0.42, '#efb864'], [1, '#c0783a']], 0.5, 0.4, 0.85),
-  lin('dirt', [[0, '#a4652f'], [1, '#6b3c18']]),
-  rad('vig2', [[0.5, '#000', 0], [1, '#2a1708', 0.62]], 0.5, 0.48, 0.74),
-  `<filter id="mono"><feColorMatrix type="saturate" values="0.05"/><feComponentTransfer><feFuncR type="linear" slope="1.06" intercept="0.02"/><feFuncG type="linear" slope="1.02"/><feFuncB type="linear" slope="0.97"/></feComponentTransfer></filter>`,
+  // 선이 살짝 떨리고 색이 바랜 옛날 인쇄물
+  `<filter id="vintage" x="-3%" y="-3%" width="106%" height="106%" color-interpolation-filters="sRGB">
+    <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="7" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="3.4" xChannelSelector="R" yChannelSelector="G" result="w"/>
+    <feColorMatrix in="w" type="matrix" values="0.74 0.15 0.04 0 0.10  0.12 0.72 0.05 0 0.09  0.09 0.12 0.62 0 0.09  0 0 0 1 0"/>
+  </filter>`,
+  // 무기 카드: 흑백(세피아) 연필화
+  `<filter id="vintageMono" x="-3%" y="-3%" width="106%" height="106%" color-interpolation-filters="sRGB">
+    <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="9" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="3.4" xChannelSelector="R" yChannelSelector="G" result="w"/>
+    <feColorMatrix in="w" type="matrix" values="0.30 0.55 0.10 0 0.10  0.28 0.52 0.10 0 0.09  0.25 0.47 0.10 0 0.08  0 0 0 1 0"/>
+  </filter>`,
+  sketchFilter('sketch', { seed: 5 }),
+  // 수채 번짐
+  `<filter id="wash" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="13"/></filter>`,
+  // 종이 얼룩과 섬유
+  `<filter id="paperNoise" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="1.2" numOctaves="2" seed="11"/><feColorMatrix values="0 0 0 0 .42  0 0 0 0 .30  0 0 0 0 .18  0 0 0 .5 -.14"/></filter>`,
+  // 인쇄 망점
+  `<pattern id="dots" width="3.6" height="3.6" patternUnits="userSpaceOnUse" patternTransform="rotate(18)"><circle cx="1.8" cy="1.8" r=".75" fill="#6a2a18"/></pattern>`,
+  // 가장자리가 종이색으로 스며든다
+  rad('edgefade', [[0.7, PAPER, 0], [0.9, PAPER, 0.75], [1, PAPER, 1]], 0.5, 0.5, 0.62),
 ].join('');
+
+/** 사방으로 퍼지는 속도선 (만화 같은 효과) */
+function speedLines(cx, cy, seed = 3) {
+  const r = rng(seed);
+  return Array.from({ length: 34 }, (_, i) => {
+    const a = (i / 34) * Math.PI * 2 + r() * 0.1;
+    const r1 = 30 + r() * 30;
+    const r2 = 150 + r() * 60;
+    return `<path d="M${f(cx + Math.cos(a) * r1)} ${f(cy + Math.sin(a) * r1)}L${f(cx + Math.cos(a) * r2)} ${f(cy + Math.sin(a) * r2)}" stroke="#fff8e8" stroke-width="${f(1 + r() * 2.4)}" opacity=".55"/>`;
+  }).join('');
+}
 
 /* ═════════════ 그리기 도구 ═════════════ */
 
@@ -145,84 +175,97 @@ function arrow(x, y, ang, i) {
   </g>`;
 }
 
+/** 리볼버 (오른쪽을 향함). len 이 클수록 총열이 길다 */
 function pistol({ len, frame, barrel, lever = false, rod = false }) {
-  return `<g transform="translate(58 96)">
-    ${cast(70, 46, 8, 104, 0.35)}
-    <path d="M0 0h${len}v16H0Z" fill="${barrel}" stroke="${INK}" stroke-width="3"/>
-    <path d="M4 3h${len - 8}" stroke="#fff" stroke-opacity=".35" stroke-width="2.4"/>
-    ${rod ? `<path d="M6 19h${len - 16}v6H6Z" fill="${barrel}" stroke="${INK}" stroke-width="2.4"/>` : ''}
-    <path d="M${len - 4} -3h10v22h-10Z" fill="url(#steel)" stroke="${INK}" stroke-width="2.4"/>
-    <path d="M${len + 4} 1L${len + 12} 1" stroke="${INK}" stroke-width="3" stroke-linecap="round"/>
-    <path d="M-34-6h40v30h-40Z" fill="${frame}" stroke="${INK}" stroke-width="3" stroke-linejoin="round"/>
-    <circle cx="-14" cy="9" r="14" fill="url(#iron)" stroke="${INK}" stroke-width="3"/>
-    ${Array.from({ length: 6 }, (_, i) => {
-    const a = (i / 6) * Math.PI * 2;
-    return `<circle cx="${f(-14 + Math.cos(a) * 8)}" cy="${f(9 + Math.sin(a) * 8)}" r="2.6" fill="#0d0603"/>`;
-  }).join('')}
-    <path d="M-34 20C-44 46-40 62-26 68L-2 60C-12 48-14 34-12 22Z" fill="url(#wood)" stroke="${INK}" stroke-width="3" stroke-linejoin="round"/>
-    <path d="M-30 28C-36 46-34 56-26 60" stroke="#3e2010" stroke-width="2" fill="none" opacity=".6"/>
-    <path d="M2 22C2 34 8 38 16 38" stroke="${INK}" stroke-width="3" fill="none" stroke-linecap="round"/>
-    <path d="M6 24C6 32 10 34 15 34" stroke="${INK}" stroke-width="3.4" fill="none" stroke-linecap="round"/>
-    ${lever ? `<path d="M-6 26C10 44 26 44 40 32" stroke="${INK}" stroke-width="4.5" fill="none" stroke-linecap="round"/>` : ''}
-    ${rim(`M-2-4h${len - 2}`, 2, '#fff', 0.35)}
-    ${rim('M-32-4h36', 2, '#fff', 0.3)}
+  const L = len + 70;   // 총열 끝 x
+  return `<g transform="translate(60 92)">
+    ${cast(66, 50, 8, 108, 0.35)}
+    <path d="M38 8C62 5 ${L - 30} 4 ${L - 6} 5C${L - 1} 5 ${L + 2} 8 ${L + 2} 11C${L + 2} 15 ${L - 2} 17 ${L - 7} 17C${L - 32} 18 64 18 44 19C40 16 38 12 38 8Z" fill="${barrel}" stroke="${INK}" stroke-width="2.8" stroke-linejoin="round"/>
+    <path d="M${L - 10} 5C${L - 9} 0 ${L - 5} 0 ${L - 4} 5" fill="${INK}"/>
+    <path d="M46 8.5C70 7 ${L - 34} 6.5 ${L - 12} 7.5" stroke="#fff" stroke-opacity=".4" stroke-width="2" fill="none" stroke-linecap="round"/>
+    ${rod ? `<path d="M48 20C70 21 ${L - 40} 21 ${L - 24} 22C${L - 21} 23 ${L - 21} 26 ${L - 24} 26C${L - 44} 26 70 26 50 25Z" fill="${barrel}" stroke="${INK}" stroke-width="2.2"/>` : ''}
+    <path d="M6 3C20 -2 38 0 46 6C48 12 49 18 48 24C42 30 32 31 24 31C14 31 7 25 5 17C4 11 4 6 6 3Z" fill="${frame}" stroke="${INK}" stroke-width="2.8" stroke-linejoin="round"/>
+    <path d="M14 7C24 4 36 5 40 12C43 19 36 26 26 27C16 27 11 21 11 15C11 11 12 8 14 7Z" fill="url(#iron)" stroke="${INK}" stroke-width="2.4"/>
+    <path d="M17 9C15 14 16 21 20 25M26 7C24 13 25 21 28 26M34 9C33 14 33 20 35 24" stroke="#0d0603" stroke-width="1.6" fill="none" opacity=".7"/>
+    <path d="M7 5C2 -1 -6 -5 -11 -3C-12 0 -8 2 -4 5C-1 7 2 9 4 10Z" fill="url(#iron)" stroke="${INK}" stroke-width="2.4" stroke-linejoin="round"/>
+    <path d="M9 23C0 34 -9 50 -8 64C-7 71 -1 74 7 73C15 72 21 67 22 60C20 50 21 40 25 31Z" fill="url(#wood)" stroke="${INK}" stroke-width="2.8" stroke-linejoin="round"/>
+    <path d="M6 32C1 42 -3 52 -2 62M13 34C9 44 7 54 8 64" stroke="#3e2010" stroke-width="1.4" fill="none" opacity=".6"/>
+    <circle cx="8" cy="50" r="2.2" fill="url(#brass)" stroke="${INK}" stroke-width="1"/>
+    <path d="M24 31C22 41 29 46 39 43C44 41 45 36 43 31" stroke="${INK}" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+    <path d="M31 31C30 35 32 39 36 39" stroke="${INK}" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+    ${lever ? `<path d="M22 32C18 46 28 56 44 52C54 49 56 40 50 30" stroke="${INK}" stroke-width="4" fill="none" stroke-linecap="round"/>` : ''}
+    ${rim('M8 4C20 0 34 1 42 6', 2, '#fff', 0.4)}
   </g>`;
 }
 
+/** 장총 (오른쪽을 향함) */
 function rifle({ len, receiver, lever }) {
-  return `<g transform="translate(24 96) rotate(-7)">
-    ${cast(110, 66, 8, 108, 0.3)}
-    <path d="M60 2h${len}v13H60Z" fill="url(#blued)" stroke="${INK}" stroke-width="3"/>
-    <path d="M64 5h${len - 8}" stroke="#fff" stroke-opacity=".32" stroke-width="2"/>
-    <path d="M60 17h${len - 26}v9H60Z" fill="url(#wood2)" stroke="${INK}" stroke-width="2.6"/>
-    <path d="M${60 + len} 0h9v17h-9Z" fill="url(#steel)" stroke="${INK}" stroke-width="2.4"/>
-    <path d="M20-4h44v30H20Z" fill="${receiver}" stroke="${INK}" stroke-width="3" stroke-linejoin="round"/>
-    <path d="M24 0h36v8H24Z" fill="#1a1f26" opacity=".45"/>
-    <path d="M-38 6C-44 4-44 22-34 26L20 26V-2L-14-2C-24-2-32 2-38 6Z" fill="url(#wood)" stroke="${INK}" stroke-width="3" stroke-linejoin="round"/>
-    <path d="M-30 8C-36 12-36 20-30 22" stroke="#3e2010" stroke-width="2" fill="none" opacity=".6"/>
-    <path d="M30 26C30 36 36 40 44 40" stroke="${INK}" stroke-width="3" fill="none" stroke-linecap="round"/>
-    ${lever ? `<path d="M22 26C16 48 40 54 58 42" stroke="${INK}" stroke-width="5" fill="none" stroke-linecap="round"/>` : ''}
-    ${rim(`M62 4h${len - 6}`, 2, '#fff', 0.35)}
-    ${rim('M-34 8C-40 12-40 20-32 24', 2, '#c89a5a', 0.45)}
+  const L = len + 76;
+  return `<g transform="translate(22 98) rotate(-6)">
+    ${cast(112, 70, 8, 110, 0.3)}
+    <path d="M62 3C90 1 ${L - 30} 1 ${L - 4} 2C${L + 1} 2 ${L + 3} 5 ${L + 3} 8C${L + 3} 11 ${L} 13 ${L - 4} 13C${L - 32} 14 90 15 62 15Z" fill="url(#blued)" stroke="${INK}" stroke-width="2.6" stroke-linejoin="round"/>
+    <path d="M${L - 8} 2C${L - 7} -2 ${L - 3} -2 ${L - 2} 2" fill="${INK}"/>
+    <path d="M66 5C92 4 ${L - 36} 4 ${L - 10} 5" stroke="#fff" stroke-opacity=".35" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    <path d="M62 16C80 17 ${L - 50} 17 ${L - 30} 18C${L - 26} 19 ${L - 26} 25 ${L - 30} 25C${L - 52} 26 80 27 62 26Z" fill="url(#wood2)" stroke="${INK}" stroke-width="2.3" stroke-linejoin="round"/>
+    <path d="M22 -3C36 -6 54 -5 64 -1C67 6 67 18 64 26C54 29 36 29 22 27C19 18 19 6 22 -3Z" fill="${receiver}" stroke="${INK}" stroke-width="2.6" stroke-linejoin="round"/>
+    <path d="M28 4C38 2 50 2 58 4" stroke="#1a1f26" stroke-width="3" opacity=".4" fill="none"/>
+    <path d="M22 0C6 -2 -18 2 -34 6C-44 9 -46 20 -38 26C-26 30 0 28 22 26Z" fill="url(#wood)" stroke="${INK}" stroke-width="2.6" stroke-linejoin="round"/>
+    <path d="M-30 10C-38 14 -38 20 -32 23M-6 5C-14 8 -16 16 -10 22" stroke="#3e2010" stroke-width="1.4" fill="none" opacity=".6"/>
+    <path d="M32 27C31 37 37 41 46 40" stroke="${INK}" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+    ${lever ? `<path d="M24 27C16 44 30 56 48 52C60 49 62 38 56 28" stroke="${INK}" stroke-width="4.2" fill="none" stroke-linecap="round"/>` : ''}
+    ${rim('M-32 8C-14 3 6 1 20 1', 2, '#c89a5a', 0.45)}
   </g>`;
 }
 
 /* ═════════════ 배경 ═════════════ */
 
 const SCENE_BACK = `
-  <path d="M0 158L28 132L50 146L76 118L102 142L128 122L156 146L184 124L212 144L240 130V300H0Z" fill="#b9793f" opacity=".42"/>
-  <path d="M0 186L34 166L62 182L92 160L124 184L154 164L188 184L216 166L240 180V300H0Z" fill="#8d5526" opacity=".5"/>`;
+  <path d="M0 136L26 116L46 126L70 104L96 124L122 108L150 128L178 110L206 126L240 114V210H0Z" fill="#c99a6a" opacity=".32"/>`;
 
 const SCENE_FRONT = `
-  <path d="M0 262Q60 250 124 258T240 252V300H0Z" fill="url(#dirt)"/>
-  <path d="M0 276Q70 268 132 274T240 270V300H0Z" fill="#5a3014" opacity=".75"/>
-  <g fill="#3a1d0a" opacity=".72">
-    <ellipse cx="26" cy="284" rx="15" ry="5"/><ellipse cx="206" cy="290" rx="19" ry="6"/>
-    <path d="M214 272c0-8 3-13 6-13s6 5 6 13v14h-12z"/>
-    <path d="M214 276c-5 0-8-4-8-9s2-6 4-6 4 3 4 8zM226 274c5 0 9-4 9-10s-2-7-4-7-4 4-4 9z"/>
-  </g>`;
+  <path d="M0 190Q60 182 124 188T240 184V210H0Z" fill="#b98a5a" opacity=".5"/>
+  <path d="M0 200Q70 194 132 199T240 196V210H0Z" fill="#8a5a34" opacity=".4"/>`;
+
+let WASH_NOW = null;
 
 /**
- * 그림이 카드 한 면을 가득 채운다 (240×300).
- * mono: 무기는 실제 뱅처럼 흑백 일러스트.
+ * 카드 가운데 들어가는 그림 (240×210).
+ * 옛날 카드처럼 수채로 번진 바탕 위에 떨리는 선, 바랜 색, 망점, 종이 결.
+ * mono: 무기는 흑백 연필화.
  */
-const art = (body, { rays = true, bg = 'url(#sky)', extraDefs = '', mono = false, lift = 30, zoom = 1.2 } = {}) => {
-  const inner = `
-    <rect width="240" height="300" fill="${bg}"/>
-    ${rays ? sunRays(120, 110, '#fff6dc', 0.15) : ''}
-    <ellipse cx="120" cy="120" rx="118" ry="90" fill="url(#glow)" opacity=".28"/>
-    ${SCENE_BACK}
-    <g transform="translate(120 ${lift}) scale(${zoom}) translate(-120 0)">${body}</g>
-    ${SCENE_FRONT}`;
-  return svg(240, 300, `
-    ${mono ? `<g filter="url(#mono)">${inner}</g>` : inner}
-    <rect width="240" height="300" fill="url(#vig2)"/>
-    <rect width="240" height="300" filter="url(#grain)" opacity=".2"/>`, { defs: DEFS + SCENE_DEFS + extraDefs });
+const art = (body, { rays = false, bg = '', extraDefs = '', mono = false, scene = true, wash, zoom = 1.22 } = {}) => {
+  const w = wash || WASH_NOW || '#e0a888';
+  return svg(240, 210, `
+    <rect width="240" height="210" fill="${PAPER}"/>
+    <g filter="url(#sketch)">
+      <rect width="240" height="210" fill="#fff"/>
+      ${bg ? `<rect width="240" height="210" fill="${bg}" opacity=".6"/>` : ''}
+      <g filter="url(#wash)" opacity="${mono ? 0.25 : 0.4}">
+        <ellipse cx="98" cy="88" rx="96" ry="64" fill="${w}"/>
+        <ellipse cx="172" cy="124" rx="72" ry="54" fill="${w}" opacity=".8"/>
+        <ellipse cx="54" cy="150" rx="62" ry="32" fill="${w}" opacity=".6"/>
+      </g>
+      ${rays ? speedLines(120, 100) : ''}
+      ${scene ? SCENE_BACK : ''}
+      <g transform="translate(120 112) scale(${zoom}) translate(-120 -112)">${body}</g>
+      ${scene ? SCENE_FRONT : ''}
+    </g>
+    ${mono ? '' : `<rect width="240" height="210" fill="${w}" opacity=".22" style="mix-blend-mode:multiply"/>`}
+    <rect width="240" height="210" filter="url(#paperNoise)"/>
+    <rect width="240" height="210" fill="url(#edgefade)"/>`, { defs: DEFS + SCENE_DEFS + extraDefs });
+};
+
+/** 카드마다 수채 바탕색 */
+const WASH = {
+  bang: '#ec8e78', missed: '#dcc08a', beer: '#ecc070', panic: '#dca0a0', catbalou: '#caa0c4',
+  stagecoach: '#dcb890', wellsfargo: '#c8ac78', gatling: '#e69a78', indians: '#e4a870', duel: '#eca888',
+  store: '#ccbc90', saloon: '#dca870', barrel: '#cca078', scope: '#a8c4d8', mustang: '#dcb080',
+  jail: '#acacbc', dynamite: '#ec8070',
 };
 
 /* ═════════════ 카드 22종 ═════════════ */
 
-const ART = {
+const ART_BODY = {
   // 정면으로 겨눈 리볼버가 불을 뿜는다
   bang: () => art(`
     ${cast(120, 56, 9, GROUND - 6, 0.4)}
@@ -234,7 +277,7 @@ const ART = {
     ${burst(196, 96, 14, 42, 18, '#ffd15a')}
     ${burst(196, 96, 10, 24, 10, '#fff8dc', 'none')}
     <path d="M168 58l-10-16M186 46l-2-20M216 52l12-16M226 84l18-6M214 132l14 14M176 132l-8 16"
-      stroke="#e0621c" stroke-width="4" stroke-linecap="round" opacity=".85"/>`),
+      stroke="#e0621c" stroke-width="4" stroke-linecap="round" opacity=".85"/>`, { rays: true }),
 
   // 총알이 모자를 스치고 지나간다
   missed: () => art(`
@@ -258,7 +301,7 @@ const ART = {
   beer: () => art(`
     ${cast(120, 44, 8, GROUND, 0.45)}
     <g transform="translate(0 6)">
-      ${outline('M74 74h84v104c0 10-8 16-18 16H92c-10 0-18-6-18-16Z', 'url(#beerGold)')}
+      ${outline('M74 74C71 108 71 148 75 176C76 187 83 194 94 194H138C149 194 156 187 157 176C161 148 161 108 158 74Z', 'url(#beerGold)')}
       ${shade('M132 74h26v104c0 10-8 16-18 16h-18c10 0 10-6 10-16Z', 0.22)}
       ${outline('M158 96c22-6 32 8 30 26c-2 18-16 26-30 22Z', 'url(#glassBlue)', 2.6)}
       <path d="M86 92v84M104 96v76" stroke="#fff6d0" stroke-width="3" opacity=".45" stroke-linecap="round"/>
@@ -499,48 +542,47 @@ const ART = {
   winchester: () => art(rifle({ len: 104, receiver: 'url(#brass)', lever: true }), { mono: true }),
 };
 
+const ART = Object.fromEntries(Object.entries(ART_BODY).map(([k, fn]) => [k, () => {
+  WASH_NOW = WASH[k] || null;
+  try { return fn(); } finally { WASH_NOW = null; }
+}]));
+
 /* ═════════════ 테두리 · 총알 구멍 · 뒷면 ═════════════ */
 
 function frame(kind) {
   const blue = kind === 'blue';
-  const c = blue ? ['#2f6d9a', '#0d2a45', '#9ccaf0'] : ['#8a5228', '#3a2210', '#f0c080'];
-  const r = rng(blue ? 11 : 7);
-  const scuff = Array.from({ length: 7 }, () => `<ellipse cx="${f(12 + r() * 226)}" cy="${f(12 + r() * 326)}" rx="${f(8 + r() * 26)}" ry="${f(4 + r() * 12)}" fill="#000" opacity=".06"/>`).join('');
+  const green = kind === 'green';
+  const [c1, c2, c3] = blue ? ['#6e9cc4', '#44739c', '#1f3f5e']
+    : green ? ['#a4c078', '#86a45a', '#3e5a24'] : ['#c8945a', '#a8733e', '#5a3818'];
+  // 실제 뱅처럼 갈색·캐릭터 카드 테두리에는 총알이 뚫고 지나간 구멍 (파란 카드는 없음)
+  const holes = blue ? [] : [
+    [64, 6, 6], [118, 5, 5.2], [133, 9, 4.4], [244, 72, 5.6], [245, 206, 5], [240, 264, 5.4],
+    [6, 98, 6], [8, 224, 5.2], [13, 246, 4.4], [100, 345, 5.6], [178, 345, 5], [192, 340, 4.2],
+  ];
+  const hex = (h, i) => f(parseInt(h.slice(i, i + 2), 16) / 255);
+  const cut = holes.length
+    ? `<mask id="cut"><rect width="250" height="350" fill="#fff"/>${holes.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="#000"/>`).join('')}</mask>` : '';
+  const defs = DEFS + SCENE_DEFS + cut
+    + lin('rim', [[0, c1], [0.5, c2], [1, c1]], 0, 0, 1, 1)
+    + rad('aged', [[0.55, '#000', 0], [1, '#6a4a20', 0.18]], 0.5, 0.5, 0.75)
+    + '<clipPath id="round"><rect width="250" height="350" rx="16"/></clipPath>'
+    + `<filter id="weave" x="0" y="0" width="100%" height="100%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.6 0.07" numOctaves="2" seed="3" result="a"/>
+        <feTurbulence type="fractalNoise" baseFrequency="0.07 0.6" numOctaves="2" seed="5" result="b"/>
+        <feComposite in="a" in2="b" operator="arithmetic" k2=".5" k3=".5"/>
+        <feColorMatrix values="0 0 0 0 ${hex(c3, 1)}  0 0 0 0 ${hex(c3, 3)}  0 0 0 0 ${hex(c3, 5)}  -2.2 0 0 0 1.45"/>
+      </filter>`;
   return svg(250, 350, `
-    <rect width="250" height="350" rx="14" fill="url(#edge)"/>
-    ${scuff}
-    <rect width="250" height="350" rx="14" fill="#000" filter="url(#grain)" opacity=".16"/>
-    <rect x="3.5" y="3.5" width="243" height="343" rx="12" fill="none" stroke="${c[2]}" stroke-opacity=".4" stroke-width="1.5"/>
-    <rect x="9" y="9" width="232" height="332" rx="9" fill="none" stroke="#000" stroke-opacity=".45" stroke-width="1"/>
-    <rect x="15" y="15" width="220" height="255" fill="#1a0e05"/>
-    <rect x="15" y="15" width="220" height="255" fill="none" stroke="${INK}" stroke-width="2.5"/>
-    <rect x="15" y="276" width="220" height="44" rx="4" fill="url(#plate)" stroke="${INK}" stroke-width="2"/>
-    <path d="M22 281H228M22 315H228" stroke="${c[2]}" stroke-opacity=".35" stroke-width="1"/>
-    ${[[24, 332], [226, 332]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="4" fill="url(#brass)" stroke="${INK}" stroke-width="1.2"/>`).join('')}`, {
-    defs: DEFS + lin('edge', [[0, c[0]], [0.55, c[1]], [1, c[0]]], 0, 0, 1, 1) + lin('plate', [[0, c[0]], [1, c[1]]]),
-  });
-}
-
-/** 갈색 카드에만 있는 총알 구멍 (파란 테두리 카드에는 없다) */
-function bulletHoles() {
-  const r = rng(29);
-  const spots = [[27, 63], [223, 121], [21, 214], [229, 247], [46, 300], [204, 41]];
-  const body = spots.map(([x, y]) => {
-    const rot = f(r() * 360);
-    const rr = f(4.4 + r() * 1.8);
-    const cracks = Array.from({ length: 5 }, (_, i) => {
-      const a = (i / 5) * Math.PI * 2 + r();
-      const d = rr + 1.5 + r() * 3.5;
-      return `<path d="M${f(Math.cos(a) * rr * 0.8)} ${f(Math.sin(a) * rr * 0.8)}L${f(Math.cos(a) * d)} ${f(Math.sin(a) * d)}" stroke="#0d0603" stroke-width="1.4" stroke-linecap="round" opacity=".75"/>`;
-    }).join('');
-    return `<g transform="translate(${x} ${y}) rotate(${rot})">
-      <ellipse rx="${f(rr + 3.4)}" ry="${f(rr + 2.6)}" fill="#000" opacity=".28"/>
-      <ellipse rx="${rr}" ry="${f(rr * 0.86)}" fill="#0d0603"/>
-      <path d="M${f(-rr - 2)} 0A${f(rr + 2)} ${f(rr + 1.6)} 0 0 1 ${f(rr + 2)} 0" fill="none" stroke="#fff" stroke-opacity=".22" stroke-width="1.3"/>
-      ${cracks}
-    </g>`;
-  }).join('');
-  return svg(250, 350, body);
+    <g clip-path="url(#round)"${holes.length ? ' mask="url(#cut)"' : ''}>
+      <rect width="250" height="350" fill="url(#rim)"/>
+      <rect width="250" height="350" filter="url(#weave)"/>
+      <rect width="250" height="350" fill="#000" filter="url(#grain)" opacity=".22"/>
+      <rect x="14" y="14" width="222" height="322" rx="9" fill="${PAPER}"/>
+      <rect x="14" y="14" width="222" height="322" rx="9" filter="url(#paperNoise)"/>
+      <rect x="14" y="14" width="222" height="322" rx="9" fill="url(#aged)"/>
+      <rect x="14" y="14" width="222" height="322" rx="9" fill="none" stroke="${c3}" stroke-opacity=".45" stroke-width="1.2"/>
+      ${holes.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${f(r + 1.5)}" fill="none" stroke="#2e1a08" stroke-opacity=".6" stroke-width="1.8"/>`).join('')}
+    </g>`, { defs });
 }
 
 function cardBack() {
@@ -561,4 +603,4 @@ function cardBack() {
   });
 }
 
-module.exports = { ART, frame, bulletHoles, cardBack, suitShape, burst, sunRays, INK, DEFS, art };
+module.exports = { ART, frame, cardBack, suitShape, burst, sunRays, INK, DEFS, art };

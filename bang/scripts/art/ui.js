@@ -1,7 +1,7 @@
 'use strict';
 // UI 아이콘, 체력 탄환, 역할 카드 그림, 규칙 설명 그림, 로고
 const { svg, lin, rad, drop, rng, f } = require('./lib');
-const { art, burst, suitShape, INK } = require('./cards');
+const { art, burst, suitShape, INK, frame } = require('./cards');
 
 const ICONS = {
   spade: '<path d="M12 2C18 8 22 11 22 15a4.5 4.5 0 0 1-8 2.6L15.5 22h-7l1.5-4.4A4.5 4.5 0 0 1 2 15c0-4 4-7 10-13z" fill="#000" stroke="none"/>',
@@ -76,28 +76,113 @@ function star(cx, cy, r, fill, stroke = INK) {
   return `<path d="M${pts.join('L')}Z" fill="${fill}" stroke="${stroke}" stroke-width="4" stroke-linejoin="round"/>${tips}`;
 }
 
+// ───────────────────────── 역할 카드 (실제 뱅 역할 카드처럼: 위 한글·영문 이름, 가운데 검은 실루엣, 아래 목표)
+
+const KFONT = "'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif";
+const SIL = '#17110b';
+
+/** 끝마다 구슬이 달린 보안관 별 */
+function badgeStar(cx, cy, n, R, r) {
+  const pts = [];
+  for (let i = 0; i < n * 2; i++) {
+    const a = (i / (n * 2)) * Math.PI * 2 - Math.PI / 2;
+    const rr = i % 2 ? r : R;
+    pts.push(`${f(cx + Math.cos(a) * rr)} ${f(cy + Math.sin(a) * rr)}`);
+  }
+  const balls = Array.from({ length: n }, (_, i) => {
+    const a = (i / n) * Math.PI * 2 - Math.PI / 2;
+    return `<circle cx="${f(cx + Math.cos(a) * (R + 3))}" cy="${f(cy + Math.sin(a) * (R + 3))}" r="8" fill="url(#silver)" stroke="${SIL}" stroke-width="3.4"/>`;
+  }).join('');
+  const hatch = Array.from({ length: 9 }, (_, i) => `<path d="M${cx + 6 + i * 6} ${cy - R}l-40 ${R * 2}" stroke="${SIL}" stroke-width="1.2" opacity=".35"/>`).join('');
+  return `<g>
+    <path d="M${pts.join('L')}Z" fill="url(#silver)" stroke="${SIL}" stroke-width="4.5" stroke-linejoin="round"/>
+    <clipPath id="starClip"><path d="M${pts.join('L')}Z"/></clipPath>
+    <g clip-path="url(#starClip)">${hatch}</g>
+    ${balls}
+    <circle cx="${cx}" cy="${cy}" r="${f(r * 0.72)}" fill="none" stroke="${SIL}" stroke-width="2.4"/>
+  </g>`;
+}
+
+function banner(cx, cy, w, text, size) {
+  return `<path d="M${cx - w / 2 - 10} ${cy - 12}H${cx + w / 2 + 10}L${cx + w / 2 + 2} ${cy}L${cx + w / 2 + 10} ${cy + 12}H${cx - w / 2 - 10}L${cx - w / 2 - 2} ${cy}Z" fill="#fbf6ea" stroke="${SIL}" stroke-width="3"/>
+    <text x="${cx}" y="${cy + size * 0.36}" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-weight="700" font-size="${size}" letter-spacing="1.5" fill="${SIL}">${text}</text>`;
+}
+
+/** 무법자: 모자 · 복면 · 긴 외투 · 비스듬한 장총 */
+const OUTLAW = `<g transform="translate(0 4)">
+  <path d="M74 236L176 128" stroke="${SIL}" stroke-width="6" stroke-linecap="round"/>
+  <path d="M170 124l14-12 6 6-12 14z" fill="${SIL}"/>
+  <path d="M66 244l18-18 8 8-16 16z" fill="${SIL}"/>
+  <path d="M101 146C94 176 90 222 84 258H112L119 214L125 222L131 214L138 258H166C160 222 156 176 149 146C140 138 110 138 101 146Z" fill="${SIL}"/>
+  <path d="M104 150L146 196" stroke="#fbf6ea" stroke-width="4" stroke-dasharray="3 5"/>
+  <circle cx="125" cy="124" r="15" fill="${SIL}"/>
+  <path d="M104 111C104 90 110 84 125 84C140 84 146 90 146 111Z" fill="${SIL}"/>
+  <path d="M116 88C120 94 130 94 134 88" stroke="#fbf6ea" stroke-width="1.6" fill="none" opacity=".6"/>
+  <ellipse cx="125" cy="111" rx="38" ry="7.5" fill="${SIL}"/>
+  <path d="M113 121h8M129 121h8" stroke="#fbf6ea" stroke-width="3" stroke-linecap="round"/>
+  <path d="M108 127H142L125 146Z" fill="${SIL}" stroke="#fbf6ea" stroke-width="1.4"/>
+  <circle cx="120" cy="132" r="1.6" fill="#fbf6ea"/><circle cx="130" cy="132" r="1.6" fill="#fbf6ea"/><circle cx="125" cy="138" r="1.6" fill="#fbf6ea"/>
+  <path d="M84 258h30M136 258h30" stroke="${SIL}" stroke-width="6" stroke-linecap="round"/></g>`;
+
+/** 배신자: 챙 넓은 모자를 눌러쓴 험상궂은 얼굴 (가슴 위까지) */
+const RENEGADE = `
+  <path d="M104 190L100 212C80 218 62 234 56 262H194C188 234 170 218 150 212L146 190Z" fill="${SIL}"/>
+  <path d="M100 206C112 216 138 216 150 206L154 222C136 234 114 234 96 222Z" fill="${SIL}" stroke="#fbf6ea" stroke-width="1.6"/>
+  ${[[106, 216], [118, 222], [131, 222], [143, 216], [112, 228], [138, 228]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="2" fill="#fbf6ea"/>`).join('')}
+  <path d="M96 118C94 150 99 176 111 191C118 200 132 200 139 191C151 176 156 150 154 118Z" fill="${SIL}"/>
+  <path d="M104 128L120 134M146 128L130 134" stroke="#fbf6ea" stroke-width="3" stroke-linecap="round"/>
+  <path d="M106 139C110 136 117 136 121 139C117 142 110 142 106 139ZM129 139C133 136 140 136 144 139C140 142 133 142 129 139Z" fill="#fbf6ea"/>
+  <circle cx="114" cy="139" r="2.1" fill="${SIL}"/><circle cx="136" cy="139" r="2.1" fill="${SIL}"/>
+  <path d="M125 142V160L120 164" stroke="#fbf6ea" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+  <path d="M125 168C118 164 106 166 98 176C108 174 116 176 125 174C134 176 142 174 152 176C144 166 132 164 125 168Z" fill="#fbf6ea"/>
+  <path d="M112 182C120 186 130 186 138 182" stroke="#fbf6ea" stroke-width="1.8" fill="none"/>
+  ${[[106, 186], [110, 190], [140, 186], [144, 190], [116, 192], [134, 192], [125, 194]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.1" fill="#fbf6ea"/>`).join('')}
+  <path d="M140 146L146 158" stroke="#fbf6ea" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M90 120C90 90 102 78 125 78C148 78 160 90 160 120Z" fill="${SIL}"/>
+  <path d="M112 84C116 94 134 94 138 84" stroke="#fbf6ea" stroke-width="1.8" fill="none"/>
+  <path d="M92 110C112 116 138 116 158 110" stroke="#fbf6ea" stroke-width="3"/>
+  <path d="M56 124C74 108 176 108 194 124C182 134 68 134 56 124Z" fill="${SIL}"/>
+  <path d="M64 124C84 116 166 116 186 124" stroke="#fbf6ea" stroke-width="1.2" fill="none" opacity=".7"/>`;
+
+const ROLE_INFO = {
+  sheriff: { ko: '보안관', en: 'SHERIFF', goal: ['무법자와 배신자를', '모두 잡아라!'] },
+  deputy: { ko: '부관', en: 'DEPUTY', goal: ['보안관을 지켜라!'] },
+  outlaw: { ko: '무법자', en: 'OUTLAW', goal: ['보안관을 쓰러뜨려라!'] },
+  renegade: { ko: '배신자', en: 'RENEGADE', goal: ['모두 쓰러뜨리고', '홀로 남아라!'] },
+};
+
+function roleCard(id, pic) {
+  const info = ROLE_INFO[id];
+  const lines = info.goal.map((g, i) => `<text x="125" y="${f(296 + (i - (info.goal.length - 1) / 2) * 21)}" text-anchor="middle" font-family="${KFONT}" font-weight="800" font-size="17" fill="${SIL}">${g}</text>`).join('');
+  return svg(250, 350, `
+    ${frame('brown').replace('<svg ', '<svg x="0" y="0" ')}
+    <text x="125" y="55" text-anchor="middle" font-family="${KFONT}" font-weight="800" font-size="30" letter-spacing="6" fill="${SIL}">${info.ko}</text>
+    <text x="125" y="75" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="11" letter-spacing="3" fill="${SIL}">${info.en}</text>
+    ${pic}
+    ${lines}`, {
+    defs: lin('silver', [[0, '#ffffff'], [0.5, '#dcdcdc'], [1, '#9a9a9a']], 0, 0, 1, 1),
+  });
+}
+
+/** 역할 카드 뒷면 (숨겨진 역할) */
+const ROLE_BACK = svg(250, 350, `
+  <rect width="250" height="350" rx="14" fill="url(#rb)"/>
+  <rect width="250" height="350" rx="14" fill="#000" filter="url(#rgrain)" opacity=".28"/>
+  <rect x="12" y="12" width="226" height="326" rx="9" fill="none" stroke="#d9a94a" stroke-width="3"/>
+  <rect x="20" y="20" width="210" height="310" rx="6" fill="none" stroke="#d9a94a" stroke-opacity=".45" stroke-width="1.2" stroke-dasharray="6 4"/>
+  ${star(125, 160, 70, 'none', '#d9a94a')}
+  <text x="125" y="186" text-anchor="middle" font-family="Georgia, serif" font-size="74" font-weight="700" fill="#e8c070">?</text>
+  <text x="125" y="300" text-anchor="middle" font-family="Georgia, serif" font-size="20" letter-spacing="4" fill="#d9a94a">ROLE</text>`, {
+  defs: rad('rb', [[0, '#5a3418'], [1, '#1c0c04']], 0.5, 0.45, 0.8)
+    + '<filter id="rgrain"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2"/><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1.6 0 0 0 -.62"/></filter>',
+});
+
 const ROLE_ART = {
-  sheriff: art(`${burst(120, 96, 20, 90, 60, '#fff0c0', 'none')}${star(120, 96, 68, 'url(#brass)')}<circle cx="120" cy="96" r="30" fill="none" stroke="${INK}" stroke-width="2.5"/>
-    <text x="120" y="102" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="15" font-weight="700" letter-spacing="1" fill="${INK}">SHERIFF</text>`),
-  deputy: art(`${star(120, 96, 58, 'url(#steel)')}<circle cx="120" cy="96" r="26" fill="none" stroke="${INK}" stroke-width="2.5"/>
-    <text x="120" y="101" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="13" font-weight="700" letter-spacing="1" fill="${INK}">DEPUTY</text>`),
-  outlaw: art(`
-    <rect x="46" y="10" width="148" height="172" fill="#f0dcae" stroke="${INK}" stroke-width="3" transform="rotate(-3 120 96)"/>
-    <text x="120" y="42" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="28" font-weight="700" letter-spacing="3" fill="${INK}" transform="rotate(-3 120 96)">WANTED</text>
-    <g transform="rotate(-3 120 96)">
-      <ellipse cx="120" cy="100" rx="28" ry="32" fill="#c89a6a" stroke="${INK}" stroke-width="3"/>
-      <path d="M80 82C80 62 160 62 160 82L172 86C164 92 76 92 68 86Z" fill="${INK}"/>
-      <path d="M92 104C104 116 136 116 148 104L146 132L120 146L94 132Z" fill="#9e2a22" stroke="${INK}" stroke-width="3"/>
-      <circle cx="108" cy="96" r="3" fill="${INK}"/><circle cx="132" cy="96" r="3" fill="${INK}"/>
-      <text x="120" y="172" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="16" font-weight="700" fill="#9e2a22">$ 5,000</text>
-    </g>
-    <circle cx="186" cy="20" r="5" fill="#6a6a70" stroke="${INK}" stroke-width="2"/>`, { rays: false }),
-  renegade: art(`
-    ${burst(120, 96, 14, 86, 56, '#3a0e0a', 'none')}
-    <path d="M40 90C60 60 100 64 120 78C140 64 180 60 200 90C188 118 150 120 120 104C90 120 52 118 40 90Z" fill="${INK}" stroke="#000" stroke-width="3"/>
-    <path d="M70 88C80 80 96 82 104 90C96 96 80 96 70 88ZM136 90C144 82 160 80 170 88C160 96 144 96 136 90Z" fill="#e8342a"/>
-    <path d="M40 90C28 94 20 104 22 110M200 90C212 94 220 104 218 110" stroke="${INK}" stroke-width="4" fill="none"/>
-    <path d="M86 140l12 18 10-12 12 20 10-16 12 14 12-22" stroke="url(#brass)" stroke-width="6" fill="none" stroke-linejoin="round"/>`, { rays: false, bg: 'url(#redbg)', extraDefs: rad('redbg', [[0, '#b83a2a'], [1, '#3a0e08']]) }),
+  back: ROLE_BACK,
+  sheriff: roleCard('sheriff', `${badgeStar(125, 172, 6, 70, 40)}${banner(125, 176, 92, 'SHERIFF', 17)}`),
+  deputy: roleCard('deputy', `${badgeStar(125, 172, 5, 70, 32)}${banner(125, 178, 84, 'DEPUTY', 16)}`),
+  outlaw: roleCard('outlaw', OUTLAW),
+  renegade: roleCard('renegade', RENEGADE),
 };
 
 // ───────────────────────── 규칙 설명 그림 (260x130)
