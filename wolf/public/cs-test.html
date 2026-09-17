@@ -1,0 +1,11 @@
+<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="css/style.css">
+<script type="importmap">{ "imports": { "three": "/wolf/vendor/three/build/three.module.js", "three/addons/": "/wolf/vendor/three/examples/jsm/" } }</script>
+<style>.cs-title{animation:none!important;opacity:1}</style>
+<body><div id="cutscene" class="cutscene" hidden></div>
+<script type="module">
+import { playCutscene } from './js/cutscene.js';
+const q = new URLSearchParams(location.search);
+const at = q.get('t');
+window.play = (k, a) => playCutscene(document.getElementById('cutscene'), k, { sub: '테스트', at: a });
+if (q.get('k')) play(q.get('k'), at != null ? Number(at) : null);
+</script>

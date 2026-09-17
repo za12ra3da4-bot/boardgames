@@ -1,196 +1,428 @@
-// 게임이 끝날 때 나오는 짧은 결말 영상 (SVG + CSS 애니메이션)
-const WOLF = 'M-13 0L-9 -20C-14 -30 -18 -40 -16 -52C-21 -55 -27 -58 -31 -54L-36 -49L-35 -55L-39 -53L-35 -59C-30 -65 -22 -66 -15 -62C-13 -70 -9 -76 -3 -78L-7 -92L1 -83C4 -85 7 -85 10 -83L13 -96L15 -80C19 -78 25 -76 31 -73L33 -69C27 -69 22 -67 18 -67C18 -63 16 -61 14 -59C22 -57 29 -53 33 -47L39 -45L35 -43L39 -39L33 -41C29 -47 23 -49 16 -49C18 -39 16 -29 12 -19L16 0H8L4 -17H-2L-6 0Z';
-const COAT = 'M-6 -79C-13 -78 -17 -74 -18 -66L-21 -38C-21 -35 -17 -35 -16 -37L-14 -56L-14 -28L-13 -1H-3L-1 -38H1L3 -1H13L14 -28L14 -56L16 -37C17 -35 21 -35 21 -38L18 -66C17 -74 13 -78 6 -79Z';
-const HEAD = 'M-7 -88C-7 -97 7 -97 7 -88C7 -83 4 -79 0 -79C-4 -79 -7 -83 -7 -88Z';
+// 게임이 끝날 때 나오는 3D 결말 영상 (three.js · 약 16초)
+import { THREE, PATHS, makeRenderer, sky, moon, forest, village, ground, silhouette, flame, particles, mistLayers, glowTex, span, ease } from './world3d.js';
 
-const W = 1600;
-const H = 900;
+const LENGTH = 16;
+const lerp = (a, b, t) => a + (b - a) * t;
+const v3 = (x, y, z) => new THREE.Vector3(x, y, z);
 
-function pine(x, y, h) {
-  const w = h * 0.34;
-  return `<path d="M${x} ${y - h}L${x + w * 0.4} ${y - h * 0.62}L${x + w * 0.2} ${y - h * 0.62}L${x + w * 0.7} ${y - h * 0.3}L${x + w * 0.35} ${y - h * 0.3}L${x + w} ${y - h * 0.08}L${x + w * 0.1} ${y - h * 0.08}V${y}H${x - w * 0.1}V${y - h * 0.08}L${x - w} ${y - h * 0.08}L${x - w * 0.35} ${y - h * 0.3}L${x - w * 0.7} ${y - h * 0.3}L${x - w * 0.2} ${y - h * 0.62}L${x - w * 0.4} ${y - h * 0.62}Z"/>`;
+/** 카메라를 경로(키프레임)대로 움직인다: [[시간, 위치, 바라볼 곳], ...] */
+function cameraPath(cam, keys) {
+  const p = new THREE.Vector3();
+  const l = new THREE.Vector3();
+  return (t) => {
+    let i = 0;
+    while (i < keys.length - 2 && t > keys[i + 1][0]) i++;
+    const [t0, p0, l0] = keys[i];
+    const [t1, p1, l1] = keys[i + 1];
+    const k = span(t, t0, t1);
+    p.lerpVectors(p0, p1, k);
+    l.lerpVectors(l0, l1, k);
+    cam.position.copy(p);
+    cam.lookAt(l);
+  };
 }
-function forest(y, n, hmin, hvar, seed) {
-  let s = '';
-  let r = seed;
-  const rnd = () => (r = (r * 16807) % 2147483647) / 2147483647;
-  for (let i = 0; i < n; i++) s += pine((i + rnd() * 0.6) * (W / n), y + rnd() * 20, hmin + rnd() * hvar);
-  return s;
+
+/** 바위 절벽 */
+function cliff(scene, x, z, h) {
+  const g = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({ color: 0x0c1020, roughness: 1, flatShading: true });
+  const rocks = [[0, h * 0.45, 0, h * 0.55], [-h * 0.35, h * 0.25, h * 0.1, h * 0.4], [h * 0.4, h * 0.3, -h * 0.1, h * 0.42], [h * 0.1, h * 0.8, 0, h * 0.3]];
+  for (const [rx, ry, rz, s] of rocks) {
+    const m = new THREE.Mesh(new THREE.DodecahedronGeometry(s, 0), mat);
+    m.position.set(rx, ry, rz);
+    m.rotation.set(Math.random(), Math.random(), Math.random());
+    m.scale.y = 1.3;
+    m.castShadow = true;
+    g.add(m);
+  }
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(h * 0.28, h * 0.36, h * 0.12, 7), mat);
+  top.position.y = h * 1.02;
+  g.add(top);
+  g.position.set(x, 0, z);
+  scene.add(g);
+  return { group: g, topY: h * 1.08 };
 }
-function village(y, lit = true) {
-  const houses = [[160, 90, 70], [300, 120, 90], [470, 80, 60], [610, 130, 100], [980, 110, 80], [1130, 90, 70], [1280, 140, 110], [1440, 100, 70]];
-  let s = '';
-  houses.forEach(([x, w, h], i) => {
-    s += `<path d="M${x} ${y}V${y - h}L${x + w / 2} ${y - h - w * 0.45}L${x + w} ${y - h}V${y}Z" fill="#05070e"/>`;
-    s += `<rect class="win w${i}" x="${x + w * 0.3}" y="${y - h * 0.7}" width="${w * 0.16}" height="${h * 0.22}" fill="#ffc860"/>`;
-    s += `<rect class="win w${(i + 3) % 8}" x="${x + w * 0.58}" y="${y - h * 0.7}" width="${w * 0.16}" height="${h * 0.22}" fill="#ffc860"/>`;
-  });
-  s += `<path d="M780 ${y}V${y - 190}L800 ${y - 250}L820 ${y - 190}V${y}Z" fill="#05070e"/><rect class="win w2" x="794" y="${y - 170}" width="12" height="20" fill="#ffc860"/>`;
-  return lit ? s : s.replace(/#ffc860/g, '#1a2030');
+
+function eyes(parent, color = 0xffc830, spread = 0.9, size = 1.4) {
+  const mat = new THREE.SpriteMaterial({ map: glowTex('rgba(255,230,120,1)', 'rgba(255,120,0,0)'), color: new THREE.Color(color).multiplyScalar(3), blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, transparent: true, opacity: 0 });
+  const a = new THREE.Sprite(mat);
+  const b = new THREE.Sprite(mat);
+  a.scale.setScalar(size);
+  b.scale.setScalar(size);
+  a.position.x = -spread / 2;
+  b.position.x = spread / 2;
+  const g = new THREE.Group();
+  g.add(a, b);
+  parent.add(g);
+  return { group: g, mat };
 }
-const person = (x, y, s, extra = '', fill = '#05070e', cls = '') => `<g class="${cls}" transform="translate(${x} ${y}) scale(${s})" fill="${fill}"><path d="${COAT}"/><path d="${HEAD}"/>${extra}</g>`;
-const PITCHFORK = '<path d="M-24 0L-26 -104H-23L-21 0Z"/><path d="M-32 -104V-116H-30V-106H-26V-118H-23V-106H-19V-116H-17V-104Z"/>';
-const TORCH = '<path d="M18 -50L28 -100L31 -99L22 -49Z"/><path class="flame" d="M29 -100C22 -108 26 -118 30 -126C32 -118 38 -112 33 -100Z" fill="#ffb040"/>';
+
+const VILLAGE_SPOTS = [[-26, -40, 0.3], [-12, -52, -0.2, 1.1], [4, -44, 0.1], [18, -56, 0.5, 1.2], [30, -42, -0.4], [-38, -60, 0.8], [40, -66, 0.2, 1.3], [-4, -70, 0, 1.4]];
 
 const SCENES = {
-  wolf: {
-    title: '늑대인간의 승리',
-    css: `
-      .moonR { animation: moonRise 3.4s cubic-bezier(.2,.7,.3,1) forwards; transform: translateY(260px); }
-      @keyframes moonRise { to { transform: none; } }
-      .win { animation: winOff .3s forwards; }
-      ${Array.from({ length: 8 }, (_, i) => `.w${i} { animation-delay: ${1 + i * 0.28}s; }`).join('')}
-      @keyframes winOff { to { fill: #121828; } }
-      .leaper { animation: leap 1.5s cubic-bezier(.4,0,.3,1) 2.2s forwards; transform: translate(-300px, 900px); }
-      @keyframes leap { 0% { transform: translate(-300px, 900px) rotate(-20deg); } 55% { transform: translate(560px, 380px) rotate(10deg); } 100% { transform: translate(800px, 560px); } }
-      .howl { animation: howl .8s ease-in-out 3.7s 3 alternate; transform-origin: 800px 560px; }
-      @keyframes howl { to { transform: scale(1.06); } }
-      .eye { opacity: 0; animation: fadeIn .2s 3.7s forwards; }
-      .flash { opacity: 0; animation: flash 1.2s 3.8s; }
-      @keyframes flash { 10% { opacity: .55; } 100% { opacity: 0; } }
-      .claw { stroke-dasharray: 1400; stroke-dashoffset: 1400; animation: claw .35s ease-out forwards; }
-      .c1 { animation-delay: 4.3s; } .c2 { animation-delay: 4.38s; } .c3 { animation-delay: 4.46s; }
-      @keyframes claw { to { stroke-dashoffset: 0; } }
-      @keyframes fadeIn { to { opacity: 1; } }
-    `,
-    svg: () => `
-      <defs>
-        <linearGradient id="csky" x2="0" y2="1"><stop offset="0" stop-color="#030712"/><stop offset=".7" stop-color="#0e2458"/><stop offset="1" stop-color="#1c3c7c"/></linearGradient>
-        <radialGradient id="cmoon"><stop offset="0" stop-color="#fffdf0"/><stop offset=".85" stop-color="#f4e2a4"/><stop offset="1" stop-color="#d8bc70"/></radialGradient>
-        <radialGradient id="chalo"><stop offset=".45" stop-color="#fff4c0" stop-opacity=".5"/><stop offset="1" stop-color="#8aa8e8" stop-opacity="0"/></radialGradient>
-      </defs>
-      <rect width="${W}" height="${H}" fill="url(#csky)"/>
-      <g class="moonR"><circle cx="800" cy="330" r="420" fill="url(#chalo)"/><circle cx="800" cy="330" r="250" fill="url(#cmoon)"/></g>
-      <g fill="#0b1630">${forest(700, 26, 140, 120, 7)}</g>
-      <path d="M0 ${H}V720C300 690 600 700 800 720C1000 700 1300 690 ${W} 720V${H}Z" fill="#05070e"/>
-      ${village(760)}
-      <path d="M700 560H900V600H700Z" fill="#05070e"/>
-      <g class="leaper"><g class="howl"><g transform="scale(3.4)" fill="#05070e"><path d="${WOLF}"/></g>
-        <g class="eye" transform="scale(3.4)"><circle cx="8" cy="-79" r="1.6" fill="#ffd23a"/><circle cx="12.5" cy="-79" r="1.6" fill="#ffd23a"/></g></g></g>
-      <rect class="flash" width="${W}" height="${H}" fill="#c01818"/>
-      <g stroke="#e02a20" stroke-width="22" stroke-linecap="round" fill="none" opacity=".9">
-        <path class="claw c1" d="M260 80L1180 860"/><path class="claw c2" d="M420 40L1340 820"/><path class="claw c3" d="M580 10L1500 780"/>
-      </g>`,
+  /* 늑대인간 승리: 마을 불이 하나씩 꺼지고, 절벽 위 늑대인간이 달을 보며 운다 */
+  wolf(ctx) {
+    const { scene, camera, bloomPass } = ctx;
+    scene.fog = new THREE.FogExp2(0x0a1432, 0.0065);
+    const s = sky(scene);
+    const m = moon(scene, v3(0, 90, -330), 190);
+    const amb = new THREE.HemisphereLight(0x5a78c8, 0x05070e, 0.55);
+    const moonLight = new THREE.DirectionalLight(0xb8c8ff, 1.6);
+    moonLight.position.set(0, 60, -200);
+    moonLight.castShadow = true;
+    moonLight.shadow.mapSize.set(2048, 2048);
+    Object.assign(moonLight.shadow.camera, { left: -120, right: 120, top: 120, bottom: -120, far: 500 });
+    scene.add(amb, moonLight);
+    ground(scene, { color: 0x1a2440 });
+    const vil = village(scene, VILLAGE_SPOTS);
+    forest(scene, { count: 520, inner: 30, outer: 320, color: 0x0a1226, avoid: (x, z) => (Math.abs(x) < 50 && z < -25 && z > -140) || (Math.abs(x) < 14 && z > -30) });
+    const c = cliff(scene, 0, -118, 26);
+    const wolf = silhouette(PATHS.howl, 22, { color: 0x04050a, rim: 0xd8e4ff });
+    wolf.position.set(-2, c.topY - 30, -118);
+    scene.add(wolf);
+    const e = eyes(wolf, 0xffc020, 0.7, 1.1);
+    e.group.position.set(3.1, 20.6, 1.4);
+    const red = new THREE.PointLight(0xff2010, 0, 400, 1);
+    red.position.set(0, 60, -60);
+    scene.add(red);
+    mistLayers(scene, { y: 1, count: 22, radius: 160 });
+    particles(scene, { count: 160, area: [140, 20, 160], center: v3(0, 0.5, -60), color: 0xb8ff80, size: 0.5 });
+    const cam = cameraPath(camera, [
+      [0, v3(0, 3.5, 70), v3(0, 14, -200)],
+      [5, v3(0, 7, 12), v3(0, 16, -200)],
+      [8.5, v3(-12, 12, -48), v3(0, 26, -118)],
+      [11, v3(-6, 22, -82), v3(0, 36, -118)],
+      [16, v3(18, 14, -70), v3(0, 34, -118)],
+    ]);
+    const shake = new THREE.Vector3();
+    let howled = false;
+    let flashed = false;
+    return (t) => {
+      cam(t);
+      // 창문 불빛이 하나씩 꺼진다
+      vil.windows.forEach((w, i) => {
+        const k = span(t, 2.4 + (i % 16) * 0.22, 2.6 + (i % 16) * 0.22);
+        w.mat.color.setRGB(lerp(3, 0.04, k), lerp(1.9, 0.05, k), lerp(0.7, 0.08, k));
+      });
+      // 늑대인간이 절벽 뒤에서 올라온다
+      const rise = span(t, 5, 7.2, ease.back);
+      wolf.position.y = c.topY - 30 + rise * 30;
+      e.mat.opacity = span(t, 7, 7.4);
+      if (t > 7.3 && !howled) { howled = true; ctx.sound('howl'); }
+      // 울부짖을 때 흔들림 + 달빛 맥박
+      const hw = t > 7.3 && t < 10 ? Math.sin(t * 40) * 0.12 * (1 - span(t, 7.3, 10)) : 0;
+      shake.set(hw, hw * 0.6, 0);
+      camera.position.add(shake);
+      m.halo.scale.setScalar(m.halo.userData.base * (1 + 0.15 * Math.sin(Math.max(0, t - 7.3) * 3) * (t > 7.3 ? 1 : 0)));
+      wolf.scale.y = 1 + (t > 7.3 && t < 10 ? Math.sin((t - 7.3) * 5) * 0.02 : 0);
+      // 붉은 번개
+      const fl = t > 10 ? Math.max(0, 1 - (t - 10) * 1.6) : 0;
+      if (t > 10 && !flashed) { flashed = true; ctx.sound('slash'); ctx.overlay('claw'); }
+      red.intensity = fl * 60000 + span(t, 10, 16) * 6000;
+      amb.color.setRGB(lerp(0.35, 1, fl), lerp(0.47, 0.1, fl), lerp(0.78, 0.08, fl));
+      s.uniforms.bottom.value.setRGB(lerp(0.15, 0.5, span(t, 10, 13)), lerp(0.31, 0.05, span(t, 10, 13)), lerp(0.56, 0.08, span(t, 10, 13)));
+      bloomPass.strength = 0.7 + fl * 1.2;
+    };
   },
 
-  village: {
-    title: '마을의 승리',
-    css: `
-      .dawn { opacity: 0; animation: fadeIn 3s .4s forwards; }
-      .sunR { transform: translateY(300px); animation: sunRise 3.6s cubic-bezier(.2,.7,.3,1) .6s forwards; }
-      @keyframes sunRise { to { transform: none; } }
-      .march { transform: translateX(-900px); animation: march 3s cubic-bezier(.3,.6,.4,1) 1s forwards; }
-      @keyframes march { to { transform: none; } }
-      .bob { animation: bob .45s ease-in-out infinite alternate; }
-      .bob2 { animation-delay: .2s; } .bob3 { animation-delay: .1s; }
-      @keyframes bob { to { transform: translateY(-8px); } }
-      .flame { animation: flick .18s infinite alternate; transform-box: fill-box; transform-origin: 50% 100%; }
-      @keyframes flick { to { transform: scale(1.12, .88); } }
-      .wolfFall { transform-origin: 1260px 760px; animation: fall 1s cubic-bezier(.5,0,.8,.4) 3.4s forwards; }
-      @keyframes fall { 40% { transform: translate(40px, -40px) rotate(20deg); } 100% { transform: translate(120px, 40px) rotate(95deg); opacity: .8; } }
-      .cheer { animation: cheer .35s ease-in-out 4.3s 6 alternate; }
-      @keyframes cheer { to { transform: translateY(-26px); } }
-      .spark { opacity: 0; animation: fadeIn .2s 3.5s forwards; }
-      @keyframes fadeIn { to { opacity: 1; } }
-    `,
-    svg: () => {
-      const crowd = [[180, 1.9, 'bob'], [330, 2.1, 'bob bob2'], [480, 1.8, 'bob bob3'], [630, 2.2, 'bob'], [780, 1.95, 'bob bob2']]
-        .map(([x, s, c], i) => `<g class="cheer"><g class="${c}">${person(x, 800, s, i % 2 ? TORCH : PITCHFORK)}</g></g>`).join('');
-      return `
-      <defs>
-        <linearGradient id="nsky" x2="0" y2="1"><stop offset="0" stop-color="#050a1e"/><stop offset="1" stop-color="#1c3060"/></linearGradient>
-        <linearGradient id="dsky" x2="0" y2="1"><stop offset="0" stop-color="#3a5aa0"/><stop offset=".55" stop-color="#f0a060"/><stop offset=".8" stop-color="#ffd890"/></linearGradient>
-        <radialGradient id="csun"><stop offset="0" stop-color="#fffbe0"/><stop offset=".7" stop-color="#ffd860"/><stop offset="1" stop-color="#ffb040" stop-opacity="0"/></radialGradient>
-      </defs>
-      <rect width="${W}" height="${H}" fill="url(#nsky)"/>
-      <rect class="dawn" width="${W}" height="${H}" fill="url(#dsky)"/>
-      <circle class="sunR" cx="1100" cy="620" r="220" fill="url(#csun)"/>
-      <g fill="#1a2238" opacity=".85">${forest(720, 24, 120, 100, 11)}</g>
-      <path d="M0 ${H}V760C400 730 1200 730 ${W} 760V${H}Z" fill="#0a0c14"/>
-      <g class="wolfFall"><g transform="translate(1260 780) scale(-2.6 2.6)" fill="#0a0c14"><path d="${WOLF}"/></g></g>
-      <g class="spark" fill="#ffd860"><path d="M1200 600l10 -30l8 30l30 8l-30 8l-8 30l-10 -30l-30 -8Z"/></g>
-      <g class="march">${crowd}</g>`;
-    },
+  /* 마을 승리: 횃불 든 마을 사람들이 행진하고, 새벽 해가 떠오르며 늑대인간이 쓰러진다 */
+  village(ctx) {
+    const { scene, camera, bloomPass } = ctx;
+    scene.fog = new THREE.FogExp2(0x0a1432, 0.006);
+    const s = sky(scene);
+    const sun = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex('rgba(255,250,220,1)', 'rgba(255,140,40,0)'), color: new THREE.Color(3, 2.2, 1.2), blending: THREE.AdditiveBlending, depthWrite: false, fog: false, toneMapped: false }));
+    sun.scale.setScalar(170);
+    scene.add(sun);
+    const amb = new THREE.HemisphereLight(0x5a78c8, 0x05070e, 0.5);
+    const sunLight = new THREE.DirectionalLight(0xffb070, 0);
+    sunLight.position.set(80, 30, -200);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.set(2048, 2048);
+    Object.assign(sunLight.shadow.camera, { left: -120, right: 120, top: 120, bottom: -120, far: 500 });
+    scene.add(amb, sunLight);
+    const gr = ground(scene, { color: 0x1a2440 });
+    village(scene, VILLAGE_SPOTS.map(([x, z, r, sc]) => [x - 40, z + 20, r, sc]));
+    forest(scene, { count: 480, inner: 36, outer: 320, avoid: (x, z) => Math.abs(z + 20) < 22 || (x < -10 && z < -10 && z > -80) || (x < 10 && z > -4 && z < 90) });
+    const c = cliff(scene, 42, -34, 14);
+    const wolf = silhouette(PATHS.wolf, 12, { color: 0x05060a, rim: 0xffc890 });
+    wolf.position.set(42, c.topY, -34);
+    wolf.rotation.y = -0.4;
+    scene.add(wolf);
+    // 행진하는 마을 사람들
+    const crowd = [];
+    for (let i = 0; i < 9; i++) {
+      const p = new THREE.Group();
+      const body = silhouette(i % 3 === 0 ? PATHS.cheer : PATHS.coat, 5.4 + (i % 3) * 0.3, { color: 0x06070c, rim: 0xffb070 });
+      p.add(body);
+      if (i % 2) {
+        const fork = silhouette(PATHS.fork, 6.6, { color: 0x1a120a, rim: null });
+        fork.position.set(-1.1, 0, 0.1);
+        p.add(fork);
+      } else {
+        const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 2.4), new THREE.MeshStandardMaterial({ color: 0x2a1a0a }));
+        stick.position.set(1.1, 3.8, 0.2);
+        stick.rotation.z = -0.25;
+        p.add(stick);
+        flame(p, v3(1.4, 5.2, 0.2), { size: 1.1, light: 30, range: 22 });
+      }
+      p.userData.base = v3(-70 - (i % 3) * 6 - i * 2, 0, -14 - (i % 3) * 4);
+      p.userData.phase = i * 0.7;
+      p.rotation.y = 0.25;
+      scene.add(p);
+      crowd.push(p);
+    }
+    const embers = particles(scene, { count: 220, area: [80, 16, 30], center: v3(-30, 1, -18), color: 0xffa040, size: 0.45, speed: [1.2, 1.2, 0] });
+    mistLayers(scene, { y: 1, count: 16, radius: 150, color: '#c8b0a0' });
+    const cam = cameraPath(camera, [
+      [0, v3(-84, 4, 14), v3(-70, 5, -20)],
+      [5, v3(-44, 5, 22), v3(-14, 6, -22)],
+      [8, v3(-26, 8, 26), v3(24, 10, -30)],
+      [11, v3(-30, 12, 40), v3(10, 16, -120)],
+      [16, v3(-16, 16, 54), v3(10, 24, -140)],
+    ]);
+    let hit = false;
+    let cheered = false;
+    return (t) => {
+      cam(t);
+      const dawn = span(t, 3, 12);
+      s.uniforms.top.value.setRGB(lerp(0.01, 0.22, dawn), lerp(0.03, 0.34, dawn), lerp(0.07, 0.62, dawn));
+      s.uniforms.mid.value.setRGB(lerp(0.05, 0.8, dawn), lerp(0.14, 0.42, dawn), lerp(0.35, 0.36, dawn));
+      s.uniforms.bottom.value.setRGB(lerp(0.15, 1, dawn), lerp(0.31, 0.7, dawn), lerp(0.56, 0.36, dawn));
+      s.starMat.opacity = 0.85 * (1 - dawn);
+      scene.fog.color.setRGB(lerp(0.04, 0.42, dawn), lerp(0.08, 0.3, dawn), lerp(0.2, 0.3, dawn));
+      scene.fog.density = lerp(0.006, 0.0032, dawn);
+      sun.position.set(90, lerp(-60, 70, span(t, 4, 13, ease.out)), -330);
+      sunLight.intensity = dawn * 2.4;
+      amb.intensity = 0.5 + dawn * 0.5;
+      gr.material.color.setRGB(lerp(0.1, 0.45, dawn), lerp(0.14, 0.42, dawn), lerp(0.25, 0.3, dawn));
+      // 행진
+      const walk = span(t, 0, 8.5, (x) => x);
+      crowd.forEach((p, i) => {
+        const b = p.userData.base;
+        p.position.set(b.x + walk * 80, Math.abs(Math.sin(t * 6 + p.userData.phase)) * 0.35, b.z);
+        if (t > 9.4) {
+          p.rotation.y = lerp(p.rotation.y, 0.1, 0.05);
+          p.position.y = Math.abs(Math.sin(t * 7 + i)) * 1.2;
+        }
+      });
+      // 늑대인간이 쓰러진다
+      const fall = span(t, 8.2, 9.6, ease.in);
+      if (t > 8.2 && !hit) { hit = true; ctx.sound('hit'); }
+      if (t > 9.4 && !cheered) { cheered = true; ctx.sound('cheer'); }
+      wolf.rotation.z = -fall * 1.7;
+      wolf.position.set(42 + fall * 6, c.topY - fall * c.topY * 1.1, -34 + fall * 3);
+      embers.material.opacity = 1 - dawn * 0.6;
+      bloomPass.strength = 0.9 + span(t, 9, 12) * 0.5;
+    };
   },
 
-  tanner: {
-    title: '무두장이의 승리',
-    css: `
-      .ghost { opacity: 0; transform: translateY(120px); animation: rise 3s ease-out 1.6s forwards; }
-      @keyframes rise { to { opacity: .92; transform: none; } }
-      .float { animation: float 1.4s ease-in-out infinite alternate; }
-      @keyframes float { to { transform: translateY(-16px); } }
-      .rain line { animation: rain .7s linear infinite; }
-      @keyframes rain { from { transform: translateY(-120px); } to { transform: translateY(120px); } }
-      .crowd { opacity: 0; animation: fadeIn 1s .4s forwards; }
-      .shock { opacity: 0; animation: fadeIn .2s 3.6s forwards; }
-      @keyframes fadeIn { to { opacity: 1; } }
-    `,
-    svg: () => {
-      let rain = '';
-      for (let i = 0; i < 80; i++) rain += `<line x1="${(i * 97) % W}" y1="${(i * 53) % H}" x2="${(i * 97) % W - 8}" y2="${(i * 53) % H + 30}" style="animation-delay:-${(i % 7) / 10}s"/>`;
-      return `
-      <rect width="${W}" height="${H}" fill="#3a4250"/>
-      <g fill="#2a303a">${forest(700, 22, 140, 90, 5)}</g>
-      <path d="M0 ${H}V740C500 720 1100 720 ${W} 740V${H}Z" fill="#1a1e24"/>
-      <path d="M720 760h160v-140c0 -60 -160 -60 -160 0Z" fill="#4a505a" stroke="#1a1e24" stroke-width="6"/>
-      <text x="800" y="690" text-anchor="middle" font-size="32" font-family="Georgia, serif" fill="#1a1e24">R.I.P.</text>
-      <path d="M760 720h80M800 700v40" stroke="#1a1e24" stroke-width="6"/>
-      <g class="crowd">${person(300, 800, 2, '', '#12151a')}${person(430, 800, 1.9, '', '#12151a')}${person(1170, 800, 2, '', '#12151a')}${person(1300, 800, 2.1, '', '#12151a')}
-        <g class="shock" fill="#fff" font-size="60" font-family="Georgia"><text x="280" y="560">!</text><text x="420" y="570">?</text><text x="1150" y="560">!</text><text x="1290" y="550">!?</text></g></g>
-      <g class="ghost"><g class="float">
-        <path d="M740 520C740 380 860 380 860 520V600L840 580L820 600L800 580L780 600L760 580L740 600Z" fill="#eef4ff"/>
-        <circle cx="780" cy="470" r="9" fill="#1a1e24"/><circle cx="820" cy="470" r="9" fill="#1a1e24"/>
-        <path d="M770 500Q800 530 830 500" stroke="#1a1e24" stroke-width="6" fill="none" stroke-linecap="round"/>
-        <path d="M740 520C700 500 690 470 700 450M860 520C900 500 910 470 900 450" stroke="#eef4ff" stroke-width="14" stroke-linecap="round" fill="none"/>
-      </g></g>
-      <g class="rain" stroke="#9aa4b8" stroke-width="2" opacity=".5">${rain}</g>`;
-    },
+  /* 무두장이 승리: 비 내리는 무덤가, 무두장이 유령이 웃으며 떠오른다 */
+  tanner(ctx) {
+    const { scene, camera, bloomPass } = ctx;
+    scene.fog = new THREE.FogExp2(0x3a4250, 0.012);
+    const s = sky(scene, { top: '#20242c', mid: '#3a4250', bottom: '#5a6270', stars: 0 });
+    const amb = new THREE.HemisphereLight(0x8a94a8, 0x1a1e24, 0.9);
+    const dl = new THREE.DirectionalLight(0xc8d0e0, 0.8);
+    dl.position.set(-30, 50, 20);
+    dl.castShadow = true;
+    scene.add(amb, dl);
+    ground(scene, { color: 0x3a4030 });
+    forest(scene, { count: 300, inner: 40, outer: 260, color: 0x1a1e24 });
+    village(scene, VILLAGE_SPOTS.map(([x, z, r, sc]) => [x, z - 30, r, sc]));
+    const stoneMat = new THREE.MeshStandardMaterial({ color: 0x6a707a, roughness: 1 });
+    const stones = [[-8, -6], [8, -8], [-16, -14], [14, -16], [0, -18], [-22, -4], [22, -4]];
+    for (const [x, z] of stones) {
+      const g = new THREE.Group();
+      const b = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.6, 0.5), stoneMat);
+      b.position.y = 1.3;
+      const tp = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 0.5, 16, 1, false, 0, Math.PI), stoneMat);
+      tp.rotation.set(Math.PI / 2, 0, Math.PI / 2);
+      tp.position.y = 2.6;
+      g.add(b, tp);
+      g.position.set(x, 0, z);
+      g.rotation.set((Math.random() - 0.5) * 0.2, (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.15);
+      g.traverse((o) => { o.castShadow = true; });
+      scene.add(g);
+    }
+    // 새 무덤
+    const mound = new THREE.Mesh(new THREE.SphereGeometry(3, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x3a2a1a, roughness: 1 }));
+    mound.scale.set(1, 0.35, 1.8);
+    scene.add(mound);
+    const cross = new THREE.Group();
+    const wood = new THREE.MeshStandardMaterial({ color: 0x4a3420 });
+    const v = new THREE.Mesh(new THREE.BoxGeometry(0.4, 4, 0.3), wood);
+    v.position.y = 2;
+    const hbar = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.4, 0.3), wood);
+    hbar.position.y = 3;
+    cross.add(v, hbar);
+    cross.position.set(0, 0, -5.6);
+    scene.add(cross);
+    // 둘러선 조문객
+    [[-9, 3, 0.6], [-6, 7, 0.3], [7, 6, -0.4], [10, 1, -0.7], [-3, 9, 0.1]].forEach(([x, z, r]) => {
+      const p = silhouette(PATHS.coat, 5.6, { color: 0x14161c, rim: 0x8a94a8 });
+      p.position.set(x, 0, z);
+      p.rotation.y = r + Math.PI;
+      p.rotation.x = 0.06;
+      scene.add(p);
+    });
+    // 유령
+    const ghost = silhouette(PATHS.ghost, 7, { color: 0xdfe8f8, emissive: 0x8aa0c8, emissiveIntensity: 0.45, rim: 0xc8d8ff, depth: 20 });
+    ghost.material.transparent = true;
+    ghost.material.opacity = 0;
+    scene.add(ghost);
+    const face = new THREE.Group();
+    const dark = new THREE.MeshBasicMaterial({ color: 0x1a1e24 });
+    for (const x of [-0.65, 0.65]) {
+      const eye = new THREE.Mesh(new THREE.CircleGeometry(0.3, 16), dark);
+      eye.position.set(x, 3.7, 0.95);
+      face.add(eye);
+    }
+    const smile = new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.1, 8, 20, Math.PI), dark);
+    smile.rotation.z = Math.PI;
+    smile.position.set(0, 3.1, 0.95);
+    face.add(smile);
+    ghost.add(face);
+    const ghostLight = new THREE.PointLight(0xc8d8ff, 0, 30, 1.5);
+    ghost.add(ghostLight);
+    ghostLight.position.y = 4;
+    const rain = particles(scene, { count: 1600, area: [120, 60, 120], center: v3(0, 0, -10), color: 0xaab4c8, size: 0.18, speed: [-2, -38, 0], additive: false, streak: true });
+    rain.material.map = null;
+    const flash = new THREE.PointLight(0xdfe8ff, 0, 600, 0.6);
+    flash.position.set(-40, 80, -60);
+    scene.add(flash);
+    mistLayers(scene, { y: 0.5, count: 18, radius: 80, color: '#aab4c8', opacity: 0.22 });
+    const cam = cameraPath(camera, [
+      [0, v3(0, 30, 50), v3(0, 0, -6)],
+      [5, v3(0, 10, 26), v3(0, 2, -4)],
+      [9, v3(8, 8, 18), v3(0, 8, 0)],
+      [16, v3(-6, 14, 22), v3(0, 14, 0)],
+    ]);
+    let boom = false;
+    let rose = false;
+    return (t) => {
+      cam(t);
+      const f = (t > 3 && t < 3.5) || (t > 3.7 && t < 3.9) ? 1 : 0;
+      if (t > 3 && !boom) { boom = true; ctx.sound('thunder'); }
+      flash.intensity = f * 90000;
+      const up = span(t, 5, 10);
+      if (t > 5 && !rose) { rose = true; ctx.sound('ghost'); }
+      ghost.position.set(Math.sin(t * 1.4) * 0.6 * up, -6 + up * 12 + Math.sin(t * 2) * 0.4, 0);
+      ghost.material.opacity = up * 0.8;
+      ghostLight.intensity = up * 260;
+      ghost.rotation.z = Math.sin(t * 1.8) * 0.08;
+      s.uniforms.mid.value.setRGB(0.23 + f * 0.5, 0.26 + f * 0.5, 0.31 + f * 0.5);
+      bloomPass.strength = 0.8 + up * 0.6;
+    };
   },
 
-  none: {
-    title: '아무도 이기지 못했다',
-    css: `
-      .fog { animation: fog 7s linear infinite; }
-      @keyframes fog { to { transform: translateX(-400px); } }
-      .crow { animation: crow 5s linear forwards; }
-      @keyframes crow { from { transform: translate(-200px, 0); } to { transform: translate(1900px, -200px); } }
-    `,
-    svg: () => `
-      <rect width="${W}" height="${H}" fill="#1a2030"/>
-      <g fill="#10141e">${forest(720, 24, 150, 100, 3)}</g>
-      <path d="M0 ${H}V760C500 740 1100 740 ${W} 760V${H}Z" fill="#080a10"/>
-      ${village(770, false)}
-      <g class="fog" fill="#8a94a8" opacity=".25"><ellipse cx="400" cy="720" rx="600" ry="60"/><ellipse cx="1500" cy="700" rx="700" ry="70"/><ellipse cx="2300" cy="730" rx="600" ry="60"/></g>
-      <g class="crow" fill="#000"><path d="M200 300c-20 -20 -50 -20 -70 0c20 -6 40 0 70 14c30 -14 50 -20 70 -14c-20 -20 -50 -20 -70 0Z"/><path d="M260 360c-12 -12 -30 -12 -42 0c12 -4 24 0 42 8c18 -8 30 -12 42 -8c-12 -12 -30 -12 -42 0Z"/></g>`,
+  /* 모두 패배: 짙은 안개 속 텅 빈 마을, 까마귀 떼 */
+  none(ctx) {
+    const { scene, camera } = ctx;
+    scene.fog = new THREE.FogExp2(0x1a2030, 0.018);
+    sky(scene, { top: '#0a0e18', mid: '#1a2030', bottom: '#2a3040', stars: 200 });
+    scene.add(new THREE.HemisphereLight(0x6a7490, 0x0a0c10, 0.7));
+    ground(scene, { color: 0x20242c });
+    const vil = village(scene, VILLAGE_SPOTS.map(([x, z, r, sc]) => [x, z + 30, r, sc]));
+    vil.windows.forEach((w) => w.mat.color.setRGB(0.05, 0.05, 0.07));
+    forest(scene, { count: 300, inner: 60, outer: 260, color: 0x10141e });
+    mistLayers(scene, { y: 1, count: 30, radius: 100, color: '#8a94a8', opacity: 0.3 });
+    const crows = [];
+    for (let i = 0; i < 14; i++) {
+      const c = silhouette(PATHS.crow, 1.4, { color: 0x000000, rim: null, depth: 2 });
+      c.userData.o = v3(-80 - Math.random() * 60, 12 + Math.random() * 12, -30 + Math.random() * 30);
+      c.userData.s = 8 + Math.random() * 6;
+      scene.add(c);
+      crows.push(c);
+    }
+    const cam = cameraPath(camera, [
+      [0, v3(-30, 6, 40), v3(0, 4, -20)],
+      [16, v3(30, 10, 36), v3(0, 6, -20)],
+    ]);
+    return (t) => {
+      cam(t);
+      crows.forEach((c, i) => {
+        c.position.set(c.userData.o.x + t * c.userData.s, c.userData.o.y + Math.sin(t * 3 + i) * 0.8, c.userData.o.z);
+        c.scale.y = 0.6 + Math.abs(Math.sin(t * 9 + i)) * 0.8;
+      });
+    };
   },
 };
 
+const TITLES = {
+  wolf: '늑대인간의 승리',
+  village: '마을의 승리',
+  tanner: '무두장이의 승리',
+  none: '아무도 이기지 못했다',
+};
+
+/** 초승달처럼 가운데가 두껍고 끝이 뾰족한 할퀸 자국 */
+function clawPath(x0, y0, x1, y1, w) {
+  const mx = (x0 + x1) / 2;
+  const my = (y0 + y1) / 2;
+  const len = Math.hypot(x1 - x0, y1 - y0);
+  const nx = -(y1 - y0) / len;
+  const ny = (x1 - x0) / len;
+  const bend = len * 0.08;
+  const c1 = [mx + nx * bend, my + ny * bend];
+  const c2 = [mx + nx * (bend + w), my + ny * (bend + w)];
+  return `M${x0} ${y0}Q${c1[0]} ${c1[1]} ${x1} ${y1}Q${c2[0]} ${c2[1]} ${x0} ${y0}Z`;
+}
+const CLAW = `<svg class="cs-claw" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+  <defs><linearGradient id="cg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff7a50"/><stop offset=".5" stop-color="#e01a10"/><stop offset="1" stop-color="#5a0000"/></linearGradient>
+  <filter id="cblur"><feGaussianBlur stdDeviation="10"/></filter></defs>
+  ${[0, 1, 2, 3].map((i) => `<g class="cl c${i}"><path d="${clawPath(420 + i * 190, 40 + i * 30, 980 + i * 170, 860 - i * 20, 70 - Math.abs(i - 1.5) * 12)}" fill="#ff2a10" opacity=".55" filter="url(#cblur)"/><path d="${clawPath(420 + i * 190, 40 + i * 30, 980 + i * 170, 860 - i * 20, 56 - Math.abs(i - 1.5) * 10)}" fill="url(#cg)"/><path d="${clawPath(430 + i * 190, 60 + i * 30, 970 + i * 170, 840 - i * 20, 18)}" fill="#2a0000" opacity=".6"/></g>`).join('')}
+</svg>`;
+
 /**
- * 결말 영상을 보여준다. 끝나거나 [건너뛰기]를 누르면 resolve.
+ * 결말 영상을 재생한다. 끝나거나 [건너뛰기]를 누르면 resolve.
  * @param {HTMLElement} host
  * @param {'wolf'|'village'|'tanner'|'none'} kind
- * @param {{sub?:string, sound?:Function}} opts
+ * @param {{sub?:string, sound?:(name:string)=>void}} opts
  */
-export function playCutscene(host, kind, { sub = '', sound } = {}) {
-  const sc = SCENES[kind] || SCENES.none;
+export function playCutscene(host, kind, { sub = '', sound = () => {}, at = null } = {}) {
+  const build = SCENES[kind] || SCENES.none;
   return new Promise((resolve) => {
-    host.innerHTML = `<style>${sc.css}</style>
+    host.innerHTML = `<div class="cs-stage"></div>
       <div class="cs-bars"></div>
-      <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice">${sc.svg()}</svg>
-      <div class="cs-title">${sc.title}${sub ? `<small>${sub}</small>` : ''}</div>
+      <div class="cs-fx"></div>
+      <div class="cs-title" style="--d:${kind === 'wolf' ? 11 : kind === 'village' ? 10.5 : kind === 'tanner' ? 10 : 5}s">${TITLES[kind] || TITLES.none}${sub ? `<small>${sub}</small>` : ''}</div>
       <button class="btn btn-sm cs-skip">건너뛰기 ▸</button>`;
     host.hidden = false;
-    if (sound) sound(kind);
+    let world;
+    try {
+      world = makeRenderer(host.querySelector('.cs-stage'), { bloom: 0.9, threshold: 0.92, radius: 0.45 });
+    } catch (e) {
+      console.warn('3D를 켤 수 없어 결말 영상을 건너뜁니다', e);
+      host.hidden = true;
+      host.innerHTML = '';
+      resolve();
+      return;
+    }
+    const fx = host.querySelector('.cs-fx');
+    const ctx = {
+      ...world,
+      sound,
+      overlay: (name) => {
+        if (name === 'claw') {
+          fx.innerHTML = CLAW;
+          fx.classList.add('go');
+        }
+      },
+    };
+    const update = build(ctx);
+    world.resetClock();
+    world.tickers.add((t) => update(at != null ? at : Math.min(t, LENGTH)));
+    sound(`start:${kind}`);
     let done = false;
     const end = () => {
       if (done) return;
       done = true;
+      world.dispose();
       host.hidden = true;
       host.innerHTML = '';
       resolve();
     };
     host.querySelector('.cs-skip').addEventListener('click', end);
-    setTimeout(end, 7800);
+    if (at == null) setTimeout(end, LENGTH * 1000 + 400);
   });
 }

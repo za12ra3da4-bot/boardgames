@@ -383,6 +383,8 @@ function seatPos(i, n, myIdx) {
 }
 
 function renderTable() {
+  if (S.t3d) { render3d(); return; }
+  ensure3d();
   const g = S.g;
   const n = g.players.length;
   const myIdx = Math.max(0, g.players.findIndex((p) => p.pid === S.me));
@@ -478,48 +480,143 @@ function drawArrows() {
 }
 window.addEventListener('resize', () => { if (S.g && S.g.over) drawArrows(); });
 
-/* 카드 고르기 */
-$('#table').addEventListener('click', async (e) => {
+/* 카드 고르기: key 는 사람 pid 또는 가운데 'c0'~'c2' */
+async function pickKey(key) {
   const g = S.g;
-  if (!g) return;
-  const mode = pickMode();
-  if (!mode) return;
-  const seat = e.target.closest('.seat.pick');
-  const cc = e.target.closest('.ccard.pick');
-  if (seat) {
-    const pid = seat.dataset.pid;
-    SFX.click();
+  if (!g || !pickMode()) return;
+  SFX.click();
+  const me = S.me;
+  const fx = (a, b) => { if (S.t3d) S.t3d.swap(a, b); };
+  if (!key.startsWith('c')) {
+    const pid = key;
+    if (pid === me) return;
     if (g.phase === 'vote') { await act({ type: 'vote', target: pid }); return; }
     if (g.needs === 'seer') { S.sel = []; await act({ type: 'seer', target: pid }); return; }
-    if (g.needs === 'robber') { await act({ type: 'rob', target: pid }); return; }
+    if (g.needs === 'robber') { const r = await act({ type: 'rob', target: pid }); if (r.ok) fx(me, pid); return; }
     if (g.needs === 'troublemaker') {
       S.sel = S.sel.includes(pid) ? S.sel.filter((x) => x !== pid) : [...S.sel.filter((x) => !x.startsWith('c')), pid];
       if (S.sel.length === 2) {
         const [a, b] = S.sel;
         S.sel = [];
-        await act({ type: 'swap', a, b });
+        const r = await act({ type: 'swap', a, b });
+        if (r.ok) fx(a, b);
       }
       render();
     }
     return;
   }
-  if (cc) {
-    const i = Number(cc.dataset.center);
-    SFX.click();
-    if (g.needs === 'werewolf') { await act({ type: 'peek', center: i }); return; }
-    if (g.needs === 'drunk') { await act({ type: 'drunk', center: i }); return; }
-    if (g.needs === 'seer') {
-      const key = `c${i}`;
-      S.sel = S.sel.includes(key) ? S.sel.filter((x) => x !== key) : [...S.sel.filter((x) => x.startsWith('c')), key];
-      if (S.sel.length === 2) {
-        const centers = S.sel.map((x) => Number(x.slice(1)));
-        S.sel = [];
-        await act({ type: 'seer', centers });
-      }
-      render();
+  const i = Number(key.slice(1));
+  if (g.needs === 'werewolf') { await act({ type: 'peek', center: i }); return; }
+  if (g.needs === 'drunk') { const r = await act({ type: 'drunk', center: i }); if (r.ok) fx(me, key); return; }
+  if (g.needs === 'seer') {
+    S.sel = S.sel.includes(key) ? S.sel.filter((x) => x !== key) : [...S.sel.filter((x) => x.startsWith('c')), key];
+    if (S.sel.length === 2) {
+      const centers = S.sel.map((x) => Number(x.slice(1)));
+      S.sel = [];
+      await act({ type: 'seer', centers });
     }
+    render();
   }
+}
+
+$('#table').addEventListener('click', (e) => {
+  const seat = e.target.closest('.seat.pick');
+  const cc = e.target.closest('.ccard.pick');
+  if (seat) pickKey(seat.dataset.pid);
+  else if (cc) pickKey(`c${cc.dataset.center}`);
 });
+
+/* ── 3D 테이블 */
+let t3dLoading = false;
+async function ensure3d() {
+  if (S.t3d || t3dLoading || S.no3d) return;
+  t3dLoading = true;
+  try {
+    const { createTable } = await import('./table3d.js');
+    const host = document.createElement('div');
+    host.className = 't3d';
+    $('#tableWrap').prepend(host);
+    S.t3d = createTable(host, { onPick: (k) => pickKey(k) });
+    $('#tableWrap').classList.add('has3d');
+    S.seenNotes = S.g && S.g.me ? S.g.me.notes.length : 0;
+    render();
+  } catch (e) {
+    console.warn('3D 테이블을 켤 수 없어 평면 테이블을 씁니다', e);
+    S.no3d = true;
+  } finally {
+    t3dLoading = false;
+  }
+}
+
+function render3d() {
+  const g = S.g;
+  const know = knowledge();
+  const mode = pickMode();
+  const over = g.over;
+  const teamOf = (r) => (r ? ROLES[r].team : '');
+  const players = g.players.map((p) => {
+    const me = p.pid === S.me;
+    const k = know.who[p.pid];
+    let label = '';
+    let labelTeam = '';
+    if (!over) {
+      if (me && g.me) {
+        const drunkNow = g.me.role === 'drunk' && g.me.notes.some((x) => x.text.includes('모릅니다'));
+        const r = k || (drunkNow ? null : g.me.role);
+        label = r ? `나: ${ROLES[r].name}` : '나: ?';
+        labelTeam = teamOf(r);
+      } else if (k) {
+        label = `${ROLES[k].name} (봤음)`;
+        labelTeam = teamOf(k);
+      }
+    }
+    let state = '';
+    if (g.phase === 'day' && p.ready) state = '투표 준비 완료';
+    if (g.phase === 'vote') state = p.voted ? '투표함' : '고민 중…';
+    if (over && over.original[p.pid] !== over.final[p.pid]) state = `처음: ${ROLES[over.original[p.pid]].name}`;
+    return {
+      pid: p.pid, seat: p.seat, isMe: me, online: p.online,
+      nameHtml: `${esc(p.name)}${p.isBot ? ' 🤖'.replace('🤖', '<small>AI</small>') : ''}`,
+      label, labelTeam, state,
+      pick: mode && mode.players && !me,
+      picked: S.sel.includes(p.pid) || (g.phase === 'vote' && g.me && g.me.vote === p.pid),
+      dead: over && over.dead.includes(p.pid),
+      win: over && over.winners.includes(p.pid),
+      votes: over ? over.count[p.pid] || 0 : 0,
+    };
+  });
+  const center = [0, 1, 2].map((i) => {
+    const k = know.center[i];
+    return {
+      label: over ? '' : k ? (k === 'drunk' ? '내 술꾼 카드' : `${ROLES[k].name} (봤음)`) : '',
+      labelTeam: teamOf(k),
+      pick: mode && mode.center > 0,
+      picked: S.sel.includes(`c${i}`),
+    };
+  });
+  let faces = null;
+  if (over) {
+    faces = { ...over.final };
+    over.center.forEach((r, i) => { faces[`c${i}`] = r; });
+  } else if (g.phase === 'look' && g.me) {
+    faces = { [S.me]: g.me.role };
+  }
+  S.t3d.update({
+    players, center, faces,
+    night: ['look', 'night'].includes(g.phase),
+    over: !!over,
+    arrows: over ? Object.entries(over.votes) : [],
+  });
+  // 새로 본 카드는 들어서 보여 준다
+  if (g.me) {
+    const notes = g.me.notes;
+    if (S.seenNotes == null || S.seenNotes > notes.length) S.seenNotes = notes.length;
+    for (const n of notes.slice(S.seenNotes)) {
+      n.cards.forEach((c, j) => setTimeout(() => S.t3d && S.t3d.peek(c.who || `c${c.center}`, c.role), j * 500));
+    }
+    S.seenNotes = notes.length;
+  }
+}
 
 /* ═════════════════════════ 내 정보 · 행동 줄 ═════════════════════════ */
 
@@ -670,10 +767,19 @@ function runCutscene() {
   return playCutscene($('#cutscene'), kind, {
     sub,
     sound: (k) => {
-      if (k === 'wolf') { SFX.drone(); setTimeout(() => SFX.howl(), 3600); }
-      else if (k === 'village') { SFX.rooster(); setTimeout(() => SFX.birds(), 1200); setTimeout(() => SFX.hit(), 3400); setTimeout(() => SFX.win(), 4300); }
-      else if (k === 'tanner') { SFX.death(); setTimeout(() => SFX.ghost(), 1600); }
-      else { SFX.lose(); }
+      const S2 = {
+        'start:wolf': () => { SFX.drone(); setTimeout(() => SFX.drone(), 2200); setTimeout(() => SFX.drone(), 4400); },
+        howl: () => SFX.howl(),
+        slash: () => { SFX.boom(); SFX.hit(); },
+        'start:village': () => { SFX.drone(); setTimeout(() => SFX.rooster(), 4000); setTimeout(() => SFX.birds(), 5200); },
+        hit: () => { SFX.hit(); SFX.death(); },
+        cheer: () => { SFX.win(); setTimeout(() => SFX.bell(), 600); },
+        'start:tanner': () => SFX.drone(),
+        thunder: () => SFX.boom(),
+        ghost: () => { SFX.ghost(); setTimeout(() => SFX.ghost(), 2600); },
+        'start:none': () => { SFX.drone(); setTimeout(() => SFX.lose(), 3000); },
+      };
+      if (S2[k]) S2[k]();
     },
   });
 }
@@ -691,7 +797,7 @@ function playEvents() {
     if (e.type === 'step') {
       if (g.me && g.me.role === e.role) { SFX.turn(); toast(`${ic('eye')} 당신의 차례! 눈을 뜨세요`, 'gold'); }
     }
-    if (e.type === 'swap') SFX.flip();
+    if (e.type === 'swap') { SFX.flip(); if (S.t3d && !(g.me && g.me.role === g.step)) S.t3d.shuffleAll(); }
     if (e.type === 'day') { SFX.rooster(); setTimeout(() => SFX.birds(), 900); }
     if (e.type === 'vote') { SFX.bell(); }
     if (e.type === 'over') SFX.boom();
@@ -718,6 +824,7 @@ function render() {
     S.overPlayed = false;
     S.flipDone = false;
     S.sel = [];
+    S.seenNotes = 0;
     closeModal();
   }
   if (!g.needs && g.phase !== 'vote') S.sel = [];
