@@ -153,6 +153,59 @@ function humanDef(color = '#0a0c14', tool = null) {
   };
 }
 
+/** 카우보이: 넓은 챙 모자, 긴 코트 자락, 조끼 별, 권총집, 장화 */
+function cowboyDef({ color = '#0a0c14', hat = 'wide', coat = true, poncho = false, star = false, bandana = null } = {}) {
+  const c = color;
+  const armDef = (s) => ({
+    name: `${s}Upper`, x: s === 'f' ? 8 : -4, y: -60, shapes: [{ d: limb(48, 18, 13, 3), fill: c }],
+    children: [{
+      name: `${s}Fore`, x: 0, y: 46, shapes: [{ d: limb(44, 13, 10, 1), fill: c }, { d: 'M-7 44a7 7 0 1 0 14 0a7 7 0 1 0 -14 0Z', fill: c }],
+      children: [{ name: `${s}Gun`, x: 0, y: 46, shapes: s === 'f' ? GUN : GUN_B }],
+    }],
+  });
+  const legDef = (s) => ({
+    name: `${s}Thigh`, x: s === 'f' ? 6 : -6, y: -92, shapes: [{ d: limb(50, 21, 15, 2), fill: c }],
+    children: [{ name: `${s}Shin`, x: 0, y: 48, shapes: [{ d: limb(46, 16, 13, 1), fill: c }, { d: 'M-8 36h16l2 10h14l2 6h-34Z', fill: c }, { d: 'M8 50l6 -2', stroke: '#8a8a90', sw: 2 }] }],
+  });
+  const hats = {
+    wide: [{ d: 'M-38 -24Q0 -18 40 -26Q34 -18 22 -18Q18 -44 0 -44Q-18 -44 -20 -18Q-32 -18 -38 -24Z', fill: c }],
+    sheriff: [{ d: 'M-40 -22Q-20 -14 0 -16Q22 -14 42 -24Q36 -14 22 -16Q20 -46 6 -42Q0 -38 -6 -42Q-20 -46 -22 -16Q-34 -14 -40 -22Z', fill: c }],
+    sombrero: [{ d: 'M-56 -18Q0 -6 58 -18Q50 -8 20 -12Q14 -50 0 -52Q-14 -50 -20 -12Q-50 -8 -56 -18Z', fill: c }],
+  };
+  const bodyShapes = [{ d: 'M-17 4C-22 -20 -24 -50 -17 -66C-10 -72 10 -72 17 -66C24 -50 22 -20 17 4Z', fill: c }];
+  if (coat) bodyShapes.push({ d: 'M-18 -10L-26 56L-10 50L-6 -2Z M16 -10L24 52L10 48L6 -2Z', fill: c, cls: 'coat' });
+  if (poncho) bodyShapes.push({ d: 'M-26 -64L-34 -10L0 4L34 -10L26 -64Z', fill: c }, { d: 'M-30 -30L30 -30M-32 -18L32 -18', stroke: '#8a3a1a', sw: 3, op: 0.8 });
+  bodyShapes.push({ d: 'M-18 -6h36v7h-36Z', fill: c }, { d: 'M10 -4h10v22h-10Z', fill: c });
+  if (star) bodyShapes.push({ d: 'M8 -52l2.4 5 5.4.6-4 3.8 1 5.4-4.8-2.6-4.8 2.6 1-5.4-4-3.8 5.4-.6Z', fill: '#f0c848', cls: 'star' });
+  const headShapes = [{ d: 'M-4 0v-6a14 15 0 1 1 8 0v6Z', fill: c }];
+  if (bandana) headShapes.push({ d: 'M-12 -10Q2 -2 14 -12L14 -4Q2 6 -12 -2Z', fill: bandana });
+  return {
+    name: 'root', x: 0, y: 0,
+    children: [
+      legDef('b'),
+      {
+        name: 'body', x: 0, y: -92,
+        children: [
+          armDef('b'),
+          { name: 'bodySkin', x: 0, y: 0, shapes: bodyShapes },
+          { name: 'head', x: 0, y: -70, shapes: headShapes, children: [{ name: 'hat', x: 0, y: 0, shapes: hats[hat] }] },
+          armDef('f'),
+        ],
+      },
+      legDef('f'),
+    ],
+  };
+}
+/** 권총 (손에서 +y 방향으로 총열) */
+const GUN = [
+  { d: 'M-5 -8h9l2 10h-8Z', fill: '#1a1410' },
+  { d: 'M-4 0h8v10h-8Z', fill: '#3a3a40' },
+  { d: 'M-2 8h4v30h-4Z', fill: '#4a4a52' },
+  { d: 'M-1 10v26', stroke: '#9aa0aa', sw: 1 },
+  { d: 'M0 38a0 0 0 0 0 0 0', cls: 'muzzle' },
+];
+const GUN_B = [];
+
 export const TOOLS = {
   torch: [
     { d: 'M-3 -60H3V16H-3Z', fill: '#2a1a0a' },
@@ -211,12 +264,14 @@ export class Rig {
     };
     build(def, this.root);
     this.extra = {};   // 매 프레임 더하는 흔들림
+    this.off = {};     // 관절 위치 옮김 ('hat.x', 'hat.y')
     this.apply();
   }
 
   set(p) {
     for (const [k, v] of Object.entries(p)) {
-      if (k in this.pose) this.pose[k] = v;
+      if (k.endsWith('.x') || k.endsWith('.y')) this.off[k] = v;
+      else if (k in this.pose) this.pose[k] = v;
       else if (k in this.world) this.world[k] = v;
     }
     this.apply();
@@ -226,7 +281,7 @@ export class Rig {
     for (const [name, g] of Object.entries(this.nodes)) {
       const [bx, by] = this.base[name];
       const a = (this.pose[name] || 0) + (this.extra[name] || 0);
-      g.setAttribute('transform', `translate(${bx} ${by}) rotate(${a.toFixed(2)})`);
+      g.setAttribute('transform', `translate(${bx + (this.off[`${name}.x`] || 0)} ${by + (this.off[`${name}.y`] || 0)}) rotate(${a.toFixed(2)})`);
     }
     const w = this.world;
     this.svg.style.transform = `translate(${w.x - 300}px, ${w.y - 520}px) rotate(${w.rot}deg) scale(${w.flip ? -w.scale : w.scale}, ${w.scale})`;
@@ -255,7 +310,7 @@ export function motion(rig, keys) {
   keys.forEach(([, p]) => Object.keys(p).forEach((k) => names.add(k)));
   const tracks = {};
   for (const n of names) {
-    let last = n in rig.pose ? rig.pose[n] : rig.world[n];
+    let last = n in rig.pose ? rig.pose[n] : n in rig.world ? rig.world[n] : rig.off[n] || 0;
     tracks[n] = keys.map(([t, p, e]) => {
       if (p[n] != null) last = p[n];
       return [t, last, EASE[e || 'inOut']];
@@ -290,6 +345,17 @@ export function clock(fn) {
 
 export const makeWolf = (parent, opts) => new Rig(parent, wolfDef(), opts);
 export const makeHuman = (parent, { color, tool, ...opts } = {}) => new Rig(parent, humanDef(color, tool ? TOOLS[tool] : null), { rim: '#ffb070', ...opts });
+export const makeCowboy = (parent, { look = {}, ...opts } = {}) => new Rig(parent, cowboyDef(look), { rim: '#ffd8a0', ...opts });
+
+export const COWBOY_POSE = {
+  ready: { fUpper: 14, fFore: -30, fGun: 180, bUpper: -8, bFore: -10, body: 0, head: 0, fThigh: -10, fShin: 10, bThigh: 12, bShin: 4 },
+  aim: { fUpper: -86, fFore: -4, fGun: 0, bUpper: -8, bFore: -10, body: 4, head: 2, fThigh: -12, fShin: 12, bThigh: 14, bShin: 4 },
+  recoil: { fUpper: -110, fFore: -14, fGun: 0, body: -6, head: -6 },
+  hit: { fUpper: -30, fFore: -120, bUpper: 40, bFore: -60, body: -24, head: -30, fThigh: -30, fShin: 50, bThigh: 20, bShin: 30 },
+  down: { fUpper: -160, fFore: -20, bUpper: 150, bFore: -20, body: -10, head: 20, fThigh: -20, fShin: 10, bThigh: -10, bShin: 10 },
+  holster: { fUpper: 10, fFore: -10, fGun: 180, bUpper: -8, bFore: -10, body: 0, head: 0, fThigh: -4, fShin: 4, bThigh: 4, bShin: 2 },
+  blow: { fUpper: -40, fFore: -130, fGun: -10, bUpper: 10, bFore: -30, body: 0, head: 10 },
+};
 
 /* ═════════ 자주 쓰는 자세 ═════════ */
 

@@ -81,3 +81,19 @@ svg.rig { position: absolute; left: 0; top: 0; transform-origin: 300px 520px; ov
 @keyframes anSub { from { opacity: 0; } }
 .with-title .an-sub { bottom: auto; top: 13%; }
 .an-ghost-face { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+/* 서부극 소품 */
+.tumble-wrap { position: absolute; left: 0; bottom: 14%; width: 12vh; height: 12vh; z-index: 3; }
+.tumble { width: 100%; height: 100%; animation: tumbleHop .5s ease-in-out infinite alternate; }
+@keyframes tumbleHop { to { transform: translateY(-30%); } }
+.dust { position: absolute; left: -10%; right: -10%; bottom: 0; height: 40%; z-index: 3; pointer-events: none;
+  background: radial-gradient(ellipse at 20% 90%, rgba(230, 200, 150, .35), transparent 50%), radial-gradient(ellipse at 70% 100%, rgba(230, 200, 150, .3), transparent 55%);
+  animation: dustDrift 3s linear infinite alternate; }
+.dust.thick { height: 60%; background: radial-gradient(ellipse at 30% 80%, rgba(200, 120, 80, .45), transparent 55%), radial-gradient(ellipse at 80% 90%, rgba(200, 120, 80, .4), transparent 55%); }
+@keyframes dustDrift { to { transform: translateX(8%); } }
+.muzzle { position: absolute; width: 180px; height: 180px; z-index: 5; filter: drop-shadow(0 0 30px #ffd070); }
+.muzzle svg { width: 100%; height: 100%; }
+.smoke { position: absolute; width: 90px; height: 90px; border-radius: 50%; z-index: 4; pointer-events: none;
+  background: radial-gradient(circle, rgba(230, 230, 230, .8), rgba(200, 200, 200, 0) 70%); }
+.glint { position: absolute; width: 60px; height: 60px; z-index: 5; opacity: 0;
+  background: radial-gradient(circle, #fff 0 12%, transparent 14%), conic-gradient(transparent 0 40deg, #fff 40deg 50deg, transparent 50deg 130deg, #fff 130deg 140deg, transparent 140deg 220deg, #fff 220deg 230deg, transparent 230deg 310deg, #fff 310deg 320deg, transparent 320deg); }

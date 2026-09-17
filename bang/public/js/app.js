@@ -1,6 +1,7 @@
 // 황야의 뱅 - 브라우저 쪽 전체 화면과 조작
 import { rulesPanelHtml, rulesModalHtml } from './rules.js';
 import { cardHtml, zoomCardHtml, chCardHtml, boardHtml, esc, ic } from './cards.js';
+import { playEnding } from './ending.js';
 
 const B = window.BANG;
 const SFX = window.SFX;
@@ -657,7 +658,7 @@ function renderActionBar() {
 
   if (g.phase === 'over') {
     bar.innerHTML = `<div class="ab-text">${ic('star')}게임이 끝났습니다.</div>
-      <div class="ab-btns"><button class="btn btn-gold" data-act="result">결과 다시 보기</button></div>`;
+      <div class="ab-btns"><button class="btn btn-gold" data-act="result">결과 다시 보기</button><button class="btn" data-act="replay">결말 영상 다시 보기</button></div>`;
     return;
   }
   if (!pr) {
@@ -774,6 +775,7 @@ $('#actionBar').addEventListener('click', async (e) => {
   const act = b.dataset.act;
   const pr = myPrompt();
   if (act === 'result') return showOver();
+  if (act === 'replay') return playEndingFilm();
   if (!pr) return;
   switch (act) {
     case 'cancel': S.pick = null; renderHand(); paintTargets(); renderActionBar(); break;
@@ -1093,6 +1095,33 @@ function showIntro() {
       </div>
     </div>`, { close: '시작하기' });
   SFX.bell();
+}
+
+/** 결말 영상 → 결과 창 */
+async function playEndingFilm() {
+  const g = S.g;
+  if (!g || !g.over) return;
+  const me = g.players && g.players.find((p) => p.pid === S.me);
+  const myRole = me && (me.role || (g.me && g.me.role));
+  const iWon = myRole && g.over.winners.includes(myRole);
+  const SND = {
+    'start:duel': () => SFX.bell(),
+    tension: () => SFX.tick(),
+    tick: () => SFX.tick(),
+    gun: () => SFX.gun(),
+    gun2: () => setTimeout(() => SFX.gun(), 40),
+    hit: () => SFX.hit(),
+    thud: () => SFX.death(),
+    laugh: () => SFX.lose(),
+    bell: () => SFX.win(),
+    wind: () => SFX.flip(),
+  };
+  try {
+    await playEnding($('#ending'), g.over.winners, { sub: myRole ? (iWon ? '당신의 승리입니다' : '당신은 패배했습니다') : '', sound: (k) => SND[k] && SND[k]() });
+  } catch (e) {
+    console.warn('결말 영상 오류', e);
+  }
+  if (S.g && S.g.over) showOver();
 }
 
 function showOver() {
@@ -1662,7 +1691,7 @@ function render() {
 
   if (g.phase === 'over' && !S.toastedOver) {
     S.toastedOver = true;
-    setTimeout(showOver, 700);
+    setTimeout(playEndingFilm, 900);
   }
 }
 
