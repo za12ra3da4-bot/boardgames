@@ -340,61 +340,98 @@ const icon = (r) => svg(34, 34, ICON[r]);
 
 function boxArt() {
   const r = rng(131);
-  const BW = 400;
-  const BH = 400;
-  let s = `<rect width="${BW}" height="${BH}" fill="url(#bsky)"/>`;
-  s += `<circle cx="200" cy="228" r="96" fill="url(#bsun)"/>`;
-  s += `<path d="${blob(120, 196, 90, 7, r)}" fill="#e8783a" opacity=".6"/>`;
-  s += `<path d="${blob(290, 180, 80, 6, r)}" fill="#e8783a" opacity=".5"/>`;
-  // 먼 산
-  s += `<path d="M0 262L40 232L80 250L130 206L170 238L200 250L250 214L300 244L340 222L400 254V400H0Z" fill="#c8805a" opacity=".85"/>`;
-  s += `<path d="M130 206L148 222L140 226Z M250 214L266 228L258 232Z" fill="#f4e0c8" opacity=".7"/>`;
-  // 들판
-  s += `<path d="${ridge(0, BW, 266, 8, r, { bottom: BH, steps: 6 })}" fill="#9aa84e"/>`;
-  s += `<path d="${ridge(0, BW, 290, 10, r, { bottom: BH, steps: 6 })}" fill="#86a044"/>`;
-  // 오른쪽 숲
-  for (let i = 0; i < 14; i++) {
-    const x = 290 + i * 8 + r() * 6;
-    const y = 270 + r() * 8;
-    s += `<path d="${blob(x, y, 9, 11, r, { n: 8, jag: 0.2 })}" fill="${pick(r, ['#3e6a2a', '#4e7a30', '#355e24'])}" stroke="${INK}" stroke-width=".6" stroke-opacity=".5"/>`;
+  const BW = 600;
+  const BH = 600;
+  // ── 풍경 (붓 필터를 가볍게)
+  let land = `<rect width="${BW}" height="${BH}" fill="url(#bsky)"/>`;
+  // 구름 띠
+  for (const [y, w, o] of [[120, 260, 0.35], [168, 320, 0.3], [212, 220, 0.25]]) {
+    land += `<path d="${blob(150 + r() * 300, y, w, 9, r, { n: 12, jag: 0.15 })}" fill="#ffb070" opacity="${o}"/>`;
   }
-  // 언덕 위 마을
-  s += `<path d="M150 282C170 262 230 262 250 282Z" fill="#a8b060"/>`;
-  const houses = [[176, 268, 12], [192, 262, 14], [210, 266, 12], [226, 270, 10], [200, 272, 10], [168, 274, 9]];
+  // 먼 산 (보랏빛 안개)
+  land += `<path d="${ridge(0, BW, 318, 26, r, { steps: 9, bottom: BH })}" fill="#b0706a" opacity=".75"/>`;
+  land += `<path d="M60 330L130 272L170 300L230 250L290 312L340 300L400 262L460 300L520 276L600 318V600H0V340Z" fill="#9a6258" opacity=".85"/>`;
+  land += `<path d="M230 250L246 266L236 268Z M400 262L416 276L406 278Z" fill="#f6dcc8" opacity=".6"/>`;
+  // 언덕들
+  land += `<path d="${ridge(0, BW, 360, 12, r, { steps: 7, bottom: BH })}" fill="#9aa04e"/>`;
+  land += `<path d="M180 392C230 350 370 350 420 392Z" fill="#a8aa56"/>`;
+  // 언덕 위 마을 (창문 불빛)
+  const houses = [[250, 368, 18], [276, 360, 22], [304, 356, 26], [334, 362, 20], [358, 370, 16], [292, 374, 16], [320, 376, 14]];
   for (const [x, y, w] of houses) {
-    s += `<path d="M${x - w / 2} ${y + 6}V${y}H${x + w / 2}V${y + 6}Z" fill="#efe0c0" stroke="${INK}" stroke-width=".7"/>`;
-    s += `<path d="M${x - w / 2 - 2} ${y + 1}L${x} ${y - w * 0.55}L${x + w / 2 + 2} ${y + 1}Z" fill="#b8402a" stroke="${INK}" stroke-width=".7"/>`;
+    land += `<path d="M${x - w / 2} ${y + 8}V${y}H${x + w / 2}V${y + 8}Z" fill="#e6cfa8" stroke="#3a2210" stroke-width="1"/>`;
+    land += `<path d="M${x - w / 2 - 3} ${y + 1}L${x} ${y - w * 0.5}L${x + w / 2 + 3} ${y + 1}Z" fill="#b8402a" stroke="#3a2210" stroke-width="1"/>`;
+    land += `<rect x="${x - 2}" y="${y + 2}" width="4" height="4" fill="#ffd060"/>`;
   }
-  s += `<path d="M198 250V238M198 238h8v4h-8" stroke="${INK}" stroke-width="1" fill="#c8342a"/>`;
-  // 오른쪽 아래 밀밭
-  s += `<path d="M230 300C280 292 340 292 400 300V400H200C210 360 216 330 230 300Z" fill="#e0b048"/>`;
-  s += strokes(r, 160, [220, 300, 400, 400], { len: 9, color: '#9a6a1c', op: 0.5 });
-  s += strokes(r, 60, [220, 300, 400, 400], { len: 5, color: '#fff0b0', op: 0.6 });
-  // 굽은 길
-  s += `<path d="M200 284C204 300 186 314 170 330C150 350 150 376 168 400H230C214 376 210 356 226 336C240 318 214 300 206 284Z" fill="#d8b888" stroke="${INK}" stroke-width="1" stroke-opacity=".6"/>`;
-  s += strokes(r, 40, [160, 300, 230, 400], { len: 5, ang: 0, color: '#8a6a4a', op: 0.4 });
-  // 왼쪽 아래 풀밭과 양
-  s += strokes(r, 120, [0, 300, 170, 400], { len: 8, color: '#4e7a28', op: 0.45 });
-  for (const [x, y] of [[60, 318], [96, 330], [40, 342]]) {
-    s += `<path d="${blob(x, y, 9, 6, r, { n: 9, jag: 0.12 })}" fill="#f4efe2" stroke="${INK}" stroke-width=".6"/><circle cx="${x + 9}" cy="${y - 1}" r="2.8" fill="#3a302a"/>`;
+  land += `<path d="M304 330V306" stroke="#3a2210" stroke-width="1.6"/><path d="M305 306q10 -2 16 3q-8 4 -16 2Z" fill="#c8342a"/>`;
+  // 오른쪽 숲
+  for (let i = 0; i < 18; i++) {
+    const x = 440 + i * 9 + r() * 6;
+    land += `<path d="${blob(x, 372 + r() * 8, 12, 15, r, { n: 8, jag: 0.2 })}" fill="${pick(r, ['#4a6e2c', '#557a32', '#3e602a'])}"/>`;
   }
-  // 길 위의 개척자 세 사람 (실루엣)
-  const walker = (x, y, h, c, pack) => {
-    let o = shadow(x + 4, y + 2, h * 0.28, h * 0.06, 0.35);
-    o += `<path d="M${x - h * 0.08} ${y}L${x - h * 0.04} ${y - h * 0.42}M${x + h * 0.08} ${y}L${x + h * 0.04} ${y - h * 0.42}" stroke="#3a2a1a" stroke-width="${h * 0.07}" stroke-linecap="round"/>`;
-    o += `<path d="M${x - h * 0.16} ${y - h * 0.4}C${x - h * 0.18} ${y - h * 0.7} ${x + h * 0.18} ${y - h * 0.7} ${x + h * 0.16} ${y - h * 0.4}Z" fill="${c}" stroke="${INK}" stroke-width=".8"/>`;
-    o += `<circle cx="${x}" cy="${y - h * 0.8}" r="${h * 0.11}" fill="#e8b890" stroke="${INK}" stroke-width=".8"/>`;
-    if (pack) o += `<path d="${blob(x - h * 0.2, y - h * 0.6, h * 0.14, h * 0.18, r)}" fill="#c8b890" stroke="${INK}" stroke-width=".8"/>`;
+  // 앞쪽 들판: 왼쪽 풀밭, 오른쪽 밀밭
+  land += `<path d="${ridge(0, BW, 404, 10, r, { steps: 6, bottom: BH })}" fill="#8aa244"/>`;
+  land += `<path d="M330 420C400 404 500 402 600 412V600H280C300 540 310 470 330 420Z" fill="url(#bwheat)"/>`;
+  land += strokes(r, 420, [300, 420, 600, 600], { len: 12, ang: -75, jitter: 20, color: '#9a6a1c', op: 0.5 });
+  land += strokes(r, 160, [300, 420, 600, 600], { len: 8, ang: -80, color: '#fff0b0', op: 0.55 });
+  land += strokes(r, 260, [0, 410, 280, 600], { len: 10, color: '#4e6e22', op: 0.45 });
+  // 굽은 흙길
+  land += `<path d="M298 400C306 424 280 446 258 470C228 504 224 552 250 600H370C340 552 336 518 358 486C380 456 330 428 312 400Z" fill="url(#broad)"/>`;
+  land += strokes(r, 60, [240, 440, 370, 600], { len: 7, ang: 0, color: '#6a4a2a', op: 0.35 });
+  // 양 떼
+  for (const [x, y] of [[70, 452], [110, 468], [52, 486], [140, 446]]) {
+    land += `<path d="${blob(x, y, 13, 8, r, { n: 10, jag: 0.12 })}" fill="#f4efe2" stroke="#3a2210" stroke-width=".8"/><circle cx="${x + 13}" cy="${y - 2}" r="3.6" fill="#3a302a"/>`;
+  }
+
+  // ── 해 (필터 없이 매끈하게, 빛 번짐)
+  const sun = `<circle cx="300" cy="330" r="190" fill="url(#bglow)"/><circle cx="300" cy="332" r="118" fill="url(#bsun)"/>`;
+
+  // ── 역광 실루엣 개척자들 (필터 없이 또렷하게, 가장자리에 노을빛)
+  const person = (x, y, h, kind) => {
+    const k = h / 100;
+    const P = (d) => `<path d="${d}" transform="translate(${x} ${y}) scale(${k})" fill="#24140c"/>`;
+    const RIM = (d) => `<path d="${d}" transform="translate(${x} ${y}) scale(${k})" fill="none" stroke="#ff9a4a" stroke-width="${1.6 / k}" stroke-linecap="round" opacity=".9"/>`;
+    let o = `<ellipse cx="${x + 8 * k}" cy="${y + 2}" rx="${26 * k}" ry="${5 * k}" fill="#1a0a04" opacity=".35"/>`;
+    // 공통 몸 (0,0 = 발 아래, 키 100)
+    const body = 'M-9 0L-8 -38L-12 -40C-14 -58 -12 -70 -4 -74C2 -76 8 -74 12 -70C16 -62 16 -50 12 -40L9 -38L10 0H3L1 -30L-1 -30L-3 0Z';
+    const head = 'M-6 -80C-6 -88 6 -88 6 -80C6 -73 -6 -73 -6 -80Z';
+    if (kind === 'staff') {
+      o += P(body) + P(head) + P('M-14 -86C-10 -92 10 -92 14 -86C8 -84 -8 -84 -14 -86Z');
+      o += P('M16 2L22 -96L25 -96L19 2Z');
+      o += P('M-16 -66C-26 -60 -26 -44 -18 -40L-12 -42C-16 -48 -14 -58 -10 -62Z');
+      o += RIM('M-4 -74C2 -76 8 -74 12 -70C16 -62 16 -50 12 -40') + RIM('M23 -96L20 -40');
+    } else if (kind === 'basket') {
+      o += P('M-11 0C-14 -20 -14 -40 -8 -60C-4 -72 6 -72 10 -60C16 -40 16 -20 12 0Z') + P(head);
+      o += P('M-5 -86C-2 -92 6 -92 8 -84C4 -80 -2 -80 -5 -86Z');
+      o += P('M10 -58C22 -58 30 -52 30 -44C30 -36 22 -34 12 -36Z');
+      o += P('M14 -60C18 -74 24 -76 26 -60Z');
+      o += RIM('M-8 -60C-4 -72 6 -72 10 -60C16 -40 16 -20 12 0') + RIM('M14 -60C18 -74 24 -76 26 -60');
+    } else {
+      // 아이와 양
+      o += P('M-6 0L-5 -24L-8 -26C-9 -38 -7 -46 -2 -48C3 -49 7 -47 9 -44C11 -38 10 -30 7 -26L5 -24L6 0H2L1 -18L-1 -18L-2 0Z');
+      o += P('M-4 -52C-4 -58 4 -58 4 -52C4 -47 -4 -47 -4 -52Z');
+      o += P('M14 -4C12 -16 18 -22 30 -22C40 -22 46 -16 44 -6C42 -2 38 0 34 -2L34 4H31L30 -2H22L21 4H18L18 -2C16 -2 14 -2 14 -4Z');
+      o += P('M42 -18C46 -24 52 -22 52 -16C52 -12 48 -10 44 -12Z');
+      o += RIM('M-2 -48C3 -49 7 -47 9 -44C11 -38 10 -30 7 -26') + RIM('M14 -4C12 -16 18 -22 30 -22C40 -22 46 -16 44 -6');
+    }
     return o;
   };
-  s += walker(176, 378, 58, '#8a3a2a', true);
-  s += walker(200, 372, 52, '#3a6a8a', false);
-  s += walker(222, 380, 56, '#5a6a2a', false);
-  s += `<path d="M232 378L240 318" stroke="#6a4a2a" stroke-width="2.4"/>`;
-  return svg(BW, BH, `<g filter="url(#paint)">${s}</g><rect width="${BW}" height="${BH}" filter="url(#grain)" opacity=".35"/>`, {
-    defs: `${paintFilter('paint', { seed: 29, bend: 7, ink: 2 })}${paperGrain('grain', 17)}
-      ${lin('bsky', [[0, '#8a1a12'], [0.35, '#c83a1c'], [0.62, '#f08a3a'], [1, '#f8c068']])}
-      ${rad('bsun', [[0, '#fff6c8'], [0.6, '#ffe488'], [1, '#f8b048', 0]], 0.5, 0.5, 0.5)}`,
+  const people = person(236, 548, 118, 'basket') + person(292, 560, 132, 'staff') + person(350, 552, 86, 'child');
+
+  return svg(BW, BH, `
+    <g filter="url(#paint)">${land}</g>
+    ${sun}
+    <g filter="url(#softpaint)"><rect width="${BW}" height="${BH}" fill="none"/></g>
+    ${people}
+    <rect width="${BW}" height="${BH}" filter="url(#grain)" opacity=".28"/>
+    <rect width="${BW}" height="${BH}" fill="url(#bvig)"/>`, {
+    defs: `${paintFilter('paint', { seed: 29, bend: 4, ink: 1.3, soft: 0.7 })}${paperGrain('grain', 17)}
+      ${lin('bsky', [[0, '#6e1008'], [0.3, '#b82a14'], [0.52, '#e8662a'], [0.66, '#f8a848'], [0.75, '#ffd888']])}
+      ${rad('bsun', [[0, '#fffbe8'], [0.7, '#fff2b0'], [0.9, '#ffe07a'], [1, '#ffd060', 0.9]], 0.5, 0.5, 0.5)}
+      ${rad('bglow', [[0, '#fff0a0', 0.75], [0.45, '#ffc060', 0.35], [1, '#ff8030', 0]], 0.5, 0.5, 0.5)}
+      ${lin('bwheat', [[0, '#f0c050'], [1, '#c8902a']])}
+      ${lin('broad', [[0, '#e8c898'], [1, '#b89060']])}
+      ${rad('bvig', [[0.55, '#000', 0], [1, '#200800', 0.45]], 0.5, 0.45, 0.75)}
+      <filter id="softpaint"><feGaussianBlur stdDeviation="0"/></filter>`,
   });
 }
 

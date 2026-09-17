@@ -42,26 +42,29 @@ const FRONT = {
       <div class="bf-star"><span>4~7명<br>온라인</span></div>
       <div class="bf-foot">보안관 · 부관 · 무법자 · 배신자</div>
     </div>`,
-  // 짙은 초록 띠 + 가운데 인물 그림 + 아래 문구 띠
+  // 짙은 남색 상자 · 벽난로 응접실에 모인 용의자들 · 둥근 흰 제목
   clue: () => `
     <div class="cf">
-      <div class="cf-band">
-        <div class="cf-badge">한판 추리</div>
-        <div class="cf-small">MANSION MYSTERY GAME</div>
-        <div class="cf-title">밤의 저택</div>
-      </div>
-      <div class="cf-art">
-        <img class="cf-room" src="/clue/assets/room/library.svg" alt="">
-        ${['kang', 'seo', 'baek', 'han', 'yoon', 'oh'].map((id, i) => `<img class="cf-face" style="--i:${i}" src="/clue/assets/char/${id}.svg" alt="">`).join('')}
-      </div>
-      <div class="cf-tag">저택에 숨은 진실을 밝혀라!</div>
+      <img class="cf-room" src="/clue/assets/room/lounge.svg" alt="">
+      <div class="cf-fire"></div>
+      <img class="cf-ch c2" src="/clue/assets/char/han.svg" alt="">
+      <img class="cf-ch c3" src="/clue/assets/char/kang.svg" alt="">
+      <img class="cf-ch c5" src="/clue/assets/char/oh.svg" alt="">
+      <img class="cf-ch c1" src="/clue/assets/char/seo.svg" alt="">
+      <img class="cf-ch c4" src="/clue/assets/char/baek.svg" alt="">
+      <div class="cf-shade"></div>
+      <div class="cf-title">밤의 저택<small>MANSION MYSTERY</small></div>
+      <div class="cf-tag"><small>모두가 용의자, 진실은 단 하나</small>폭풍우 치는 밤, 저택의 살인 사건</div>
+      <div class="cf-age">10+</div>
     </div>`,
 };
 
 FRONT.isle = () => `
     <div class="if">
       <img class="if-art" src="/isle/assets/box.svg" alt="">
-      <div class="if-title">바람섬<b>개척기</b></div>
+      <div class="if-small">개척과 교역의 보드게임</div>
+      <div class="if-title">바람섬</div>
+      <div class="if-rule"></div>
       <div class="if-en">ISLE OF WINDS</div>
       <div class="if-band"><span>3~4명</span><span>45~75분</span><span>10세 이상</span></div>
     </div>`;
