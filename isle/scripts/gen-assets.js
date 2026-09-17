@@ -21,6 +21,7 @@ write('sea.svg', tiles.sea());
 for (const [id, fn] of Object.entries(cards.RES_ART)) write(`res/${id}.svg`, fn());
 for (const [id, fn] of Object.entries(cards.DEV_ART)) write(`dev/${id}.svg`, fn());
 write('card-back.svg', cards.cardBack());
+write('box.svg', cards.boxArt());
 for (const r of ['wood', 'brick', 'sheep', 'wheat', 'ore']) write(`icon/${r}.svg`, cards.icon(r));
 // 로고: 작은 섬 (육각 7칸)
 {

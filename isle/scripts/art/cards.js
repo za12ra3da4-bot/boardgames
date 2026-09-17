@@ -335,4 +335,67 @@ const ICON = {
 };
 const icon = (r) => svg(34, 34, ICON[r]);
 
-module.exports = { RES_ART, DEV_ART, cardBack, icon };
+
+/* ───────── 게임 상자 앞면 그림 (노을 · 큰 해 · 언덕 위 마을 · 굽은 길) ───────── */
+
+function boxArt() {
+  const r = rng(131);
+  const BW = 400;
+  const BH = 400;
+  let s = `<rect width="${BW}" height="${BH}" fill="url(#bsky)"/>`;
+  s += `<circle cx="200" cy="228" r="96" fill="url(#bsun)"/>`;
+  s += `<path d="${blob(120, 196, 90, 7, r)}" fill="#e8783a" opacity=".6"/>`;
+  s += `<path d="${blob(290, 180, 80, 6, r)}" fill="#e8783a" opacity=".5"/>`;
+  // 먼 산
+  s += `<path d="M0 262L40 232L80 250L130 206L170 238L200 250L250 214L300 244L340 222L400 254V400H0Z" fill="#c8805a" opacity=".85"/>`;
+  s += `<path d="M130 206L148 222L140 226Z M250 214L266 228L258 232Z" fill="#f4e0c8" opacity=".7"/>`;
+  // 들판
+  s += `<path d="${ridge(0, BW, 266, 8, r, { bottom: BH, steps: 6 })}" fill="#9aa84e"/>`;
+  s += `<path d="${ridge(0, BW, 290, 10, r, { bottom: BH, steps: 6 })}" fill="#86a044"/>`;
+  // 오른쪽 숲
+  for (let i = 0; i < 14; i++) {
+    const x = 290 + i * 8 + r() * 6;
+    const y = 270 + r() * 8;
+    s += `<path d="${blob(x, y, 9, 11, r, { n: 8, jag: 0.2 })}" fill="${pick(r, ['#3e6a2a', '#4e7a30', '#355e24'])}" stroke="${INK}" stroke-width=".6" stroke-opacity=".5"/>`;
+  }
+  // 언덕 위 마을
+  s += `<path d="M150 282C170 262 230 262 250 282Z" fill="#a8b060"/>`;
+  const houses = [[176, 268, 12], [192, 262, 14], [210, 266, 12], [226, 270, 10], [200, 272, 10], [168, 274, 9]];
+  for (const [x, y, w] of houses) {
+    s += `<path d="M${x - w / 2} ${y + 6}V${y}H${x + w / 2}V${y + 6}Z" fill="#efe0c0" stroke="${INK}" stroke-width=".7"/>`;
+    s += `<path d="M${x - w / 2 - 2} ${y + 1}L${x} ${y - w * 0.55}L${x + w / 2 + 2} ${y + 1}Z" fill="#b8402a" stroke="${INK}" stroke-width=".7"/>`;
+  }
+  s += `<path d="M198 250V238M198 238h8v4h-8" stroke="${INK}" stroke-width="1" fill="#c8342a"/>`;
+  // 오른쪽 아래 밀밭
+  s += `<path d="M230 300C280 292 340 292 400 300V400H200C210 360 216 330 230 300Z" fill="#e0b048"/>`;
+  s += strokes(r, 160, [220, 300, 400, 400], { len: 9, color: '#9a6a1c', op: 0.5 });
+  s += strokes(r, 60, [220, 300, 400, 400], { len: 5, color: '#fff0b0', op: 0.6 });
+  // 굽은 길
+  s += `<path d="M200 284C204 300 186 314 170 330C150 350 150 376 168 400H230C214 376 210 356 226 336C240 318 214 300 206 284Z" fill="#d8b888" stroke="${INK}" stroke-width="1" stroke-opacity=".6"/>`;
+  s += strokes(r, 40, [160, 300, 230, 400], { len: 5, ang: 0, color: '#8a6a4a', op: 0.4 });
+  // 왼쪽 아래 풀밭과 양
+  s += strokes(r, 120, [0, 300, 170, 400], { len: 8, color: '#4e7a28', op: 0.45 });
+  for (const [x, y] of [[60, 318], [96, 330], [40, 342]]) {
+    s += `<path d="${blob(x, y, 9, 6, r, { n: 9, jag: 0.12 })}" fill="#f4efe2" stroke="${INK}" stroke-width=".6"/><circle cx="${x + 9}" cy="${y - 1}" r="2.8" fill="#3a302a"/>`;
+  }
+  // 길 위의 개척자 세 사람 (실루엣)
+  const walker = (x, y, h, c, pack) => {
+    let o = shadow(x + 4, y + 2, h * 0.28, h * 0.06, 0.35);
+    o += `<path d="M${x - h * 0.08} ${y}L${x - h * 0.04} ${y - h * 0.42}M${x + h * 0.08} ${y}L${x + h * 0.04} ${y - h * 0.42}" stroke="#3a2a1a" stroke-width="${h * 0.07}" stroke-linecap="round"/>`;
+    o += `<path d="M${x - h * 0.16} ${y - h * 0.4}C${x - h * 0.18} ${y - h * 0.7} ${x + h * 0.18} ${y - h * 0.7} ${x + h * 0.16} ${y - h * 0.4}Z" fill="${c}" stroke="${INK}" stroke-width=".8"/>`;
+    o += `<circle cx="${x}" cy="${y - h * 0.8}" r="${h * 0.11}" fill="#e8b890" stroke="${INK}" stroke-width=".8"/>`;
+    if (pack) o += `<path d="${blob(x - h * 0.2, y - h * 0.6, h * 0.14, h * 0.18, r)}" fill="#c8b890" stroke="${INK}" stroke-width=".8"/>`;
+    return o;
+  };
+  s += walker(176, 378, 58, '#8a3a2a', true);
+  s += walker(200, 372, 52, '#3a6a8a', false);
+  s += walker(222, 380, 56, '#5a6a2a', false);
+  s += `<path d="M232 378L240 318" stroke="#6a4a2a" stroke-width="2.4"/>`;
+  return svg(BW, BH, `<g filter="url(#paint)">${s}</g><rect width="${BW}" height="${BH}" filter="url(#grain)" opacity=".35"/>`, {
+    defs: `${paintFilter('paint', { seed: 29, bend: 7, ink: 2 })}${paperGrain('grain', 17)}
+      ${lin('bsky', [[0, '#8a1a12'], [0.35, '#c83a1c'], [0.62, '#f08a3a'], [1, '#f8c068']])}
+      ${rad('bsun', [[0, '#fff6c8'], [0.6, '#ffe488'], [1, '#f8b048', 0]], 0.5, 0.5, 0.5)}`,
+  });
+}
+
+module.exports = { RES_ART, DEV_ART, cardBack, icon, boxArt };
