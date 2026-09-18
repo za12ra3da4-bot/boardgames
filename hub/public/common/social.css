@@ -2,6 +2,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
 
 .av { display: block; overflow: visible; }
+.av.av-crop { overflow: hidden; }
 .av .av-all, .av .av-upper, .av .av-hm, .av .av-armL, .av .av-armR, .av .av-legL, .av .av-legR,
 .av .av-shadow, .av [class^="av-fx"], .av .av-tears { transform-box: view-box; }
 .av .av-all { transform-origin: 100px 245px; }
@@ -169,7 +170,8 @@
   border-radius: 12px; border: 2px solid #2a1d14; background: #fffaf0; cursor: pointer; color: #2a1d14;
   font: 13px/1.1 'Jua', sans-serif; box-shadow: 0 3px 0 #2a1d14; transition: transform .1s;
 }
-.emo-btn .av { width: 48px; height: 58px; flex: none; }
+.emo-btn .av { width: 50px; height: 54px; flex: none; }
+.emo-btn span { position: relative; z-index: 1; }
 .emo-btn span { display: block; position: static; font: 13px/1.15 'Jua', sans-serif; white-space: nowrap; }
 .emo-btn:hover { transform: translateY(-2px); background: #fff3d0; }
 .emo-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #2a1d14; }

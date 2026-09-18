@@ -291,7 +291,7 @@ export function avatarSvg(av, o = {}) {
   const back = o.bg ? `<rect x="-20" y="-40" width="240" height="320" fill="${bg.fill}"/>`
     + `<g opacity=".35" stroke="${bg.ink}" stroke-width="1.6" fill="none">${Array.from({ length: 14 }, (_, i) => `<path d="M${-30 + i * 20} 270 l70 -70"/>`).join('')}</g>` : '';
   const shadow = o.crop === 'head' ? '' : `<ellipse class="av-shadow" cx="100" cy="247" rx="40" ry="6" fill="#000" opacity=".2"/>`;
-  return `<svg class="av ${emote ? `emo-${emote}` : ''} ${o.cls || ''}" viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  return `<svg class="av ${o.crop === 'head' ? 'av-crop' : ''} ${emote ? `emo-${emote}` : ''} ${o.cls || ''}" viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
 <defs><filter id="${uid}" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".045" numOctaves="2" seed="${(uidSeq * 7) % 97}"/><feDisplacementMap in="SourceGraphic" scale="2.6"/></filter></defs>
 ${back}${shadow}<g filter="url(#${uid})"><g class="av-all">${legs(av, cloth)}<g class="av-upper">`
     + `<g class="av-hm">${av.outfit === 'cloak' ? F('M72 142 L38 214 Q100 228 162 214 L128 142Z', cloth.shade) : ''}${hairBack(av.hair, hc)}</g>`
