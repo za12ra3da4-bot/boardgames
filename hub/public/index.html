@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;700;900&family=Rye&family=Jua&family=Nanum+Myeongjo:wght@800&family=Cinzel:wght@700;900&family=Fredoka:wght@600;700&family=Hahmlet:wght@700;900&family=Song+Myung&family=Gowun+Batang:wght@700&family=Special+Elite&family=Playfair+Display+SC:wght@700;900&display=swap">
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="/anim/anim.css">
+<link rel="stylesheet" href="/common/social.css">
 </head>
 <body>
 
@@ -26,6 +27,7 @@
     <code id="addr-url">—</code>
     <button type="button" id="copy" class="btn">복사</button>
   </div>
+  <a id="accBtn" class="acc-top" href="profile.html" title="내 캐릭터 꾸미기"><span>로그인 · 캐릭터 꾸미기</span></a>
   <a id="artBtn" class="btn admin-btn" href="art.html" hidden>그림 넣기</a>
   <button type="button" id="filmBtn" class="btn admin-btn" hidden>결말 영상 보기</button>
   <button type="button" id="adminBtn" class="btn admin-btn">관리자</button>
@@ -65,5 +67,14 @@
 </main>
 
 <script src="js/hub.js"></script>
+<script type="module">
+import { getMe } from '/common/me.js';
+import { avatarSvg, PARTS } from '/common/avatar.js';
+const a = document.getElementById('accBtn');
+const u = await getMe();
+const face = avatarSvg(u ? u.profile.avatar : PARTS.DEFAULT, { crop: 'head', bg: true });
+a.innerHTML = face + (u ? '<span><small></small><b></b></span>' : '<span><small>로그인하고</small><b>캐릭터 꾸미기</b></span>');
+if (u) { a.querySelector('small').textContent = u.profile.title; a.querySelector('b').textContent = u.profile.nickname; }
+</script>
 </body>
 </html>

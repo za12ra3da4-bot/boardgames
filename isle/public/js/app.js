@@ -1,3 +1,5 @@
+import { bindName } from '/common/me.js';
+import { mountEmotes } from '/common/emote.js';
 // 바람섬 개척기 - 브라우저 쪽 전체 화면과 조작
 const I = window.ISLE;
 const SFX = window.SFX;
@@ -149,6 +151,9 @@ $('#lobbyCost').innerHTML = costCardHtml();
 const nameInput = $('#nameInput');
 const codeInput = $('#codeInput');
 nameInput.value = remembered('isle.name');
+// 로그인했으면 프로필 닉네임으로 채운다 (이름 안 쳐도 됨) · 이모트 버튼
+bindName(nameInput);
+mountEmotes({ socket, myPid: () => S.me, active: () => !!S.room });
 const inv = /[?&#]room=([A-Za-z]{4})/.exec(location.href);
 if (inv) codeInput.value = inv[1].toUpperCase();
 
@@ -495,7 +500,7 @@ function renderPlayers() {
     if (g.awards.road && g.awards.road.pid === p.pid) badges.push(`<span class="award">${ic('road')}최장 교역로 +2</span>`);
     if (g.awards.army && g.awards.army.pid === p.pid) badges.push(`<span class="award">${ic('knight')}최강 기사단 +2</span>`);
     const thinking = needs.some((n) => n.pid === p.pid) && p.pid !== S.me;
-    return `<div class="pcard ${p.pid === cur ? 'cur' : ''}" style="--c:${c.fill}">
+    return `<div class="pcard ${p.pid === cur ? 'cur' : ''}" data-pid="${p.pid}" style="--c:${c.fill}">
       <div class="pc-top">${pawn(p.color)}<b>${esc(p.name)}${p.pid === S.me ? ' (나)' : ''}</b>${p.isBot ? ic('bot') : ''}
         <span class="pc-vp">${ic('star')}${p.vp}</span></div>
       <div class="pc-stats">

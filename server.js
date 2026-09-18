@@ -246,6 +246,9 @@ app.post('/api/links', express.json({ limit: '8kb' }), (req, res) => {
   res.json({ ok: true, links: list });
 });
 
+// 계정 · 프로필 (로그인하면 게임에 이름을 안 쳐도 된다)
+require('./hub/accounts').mount(app);
+
 app.get('/healthz', (_req, res) => res.send('ok'));
 app.use(express.static(path.join(__dirname, 'hub', 'public')));
 

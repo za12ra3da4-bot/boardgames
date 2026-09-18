@@ -1,9 +1,0 @@
-<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/common/social.css">
-<body style="background:#6a5a4a;margin:0;padding:10px;display:flex;flex-wrap:wrap;gap:6px">
-<script type="module">
-import { avatarSvg, PARTS, EMOTES } from '/common/avatar.js';
-const mk = (av, o) => { const d = document.createElement('div'); d.style.cssText = 'width:150px;background:#efe0bd;border:2px solid #000'; d.innerHTML = avatarSvg(av, o); document.body.appendChild(d); };
-const H = PARTS.hair.map(h=>h.id), HAT = PARTS.hat.map(h=>h.id), O = PARTS.outfit.map(h=>h.id), A = PARTS.acc.map(h=>h.id), E = PARTS.eyes.map(h=>h.id), M = PARTS.mouth.map(h=>h.id);
-EMOTES.forEach((e,i) => mk({ hair: H[i%H.length], hat: HAT[i%HAT.length], outfit: O[i%O.length], acc: A[i%A.length], eyes: E[i%E.length], mouth: M[i%M.length], cloth: PARTS.cloth[i].id, hairColor: PARTS.hairColor[i].id, skin: PARTS.skin[i%6].id }, { emote: e.id }));
-H.forEach((h,i)=> mk({ hair: h, hat: 'none', hairColor: PARTS.hairColor[i].id, outfit: O[(i+2)%O.length], eyes: E[i%5] }, {}));
-</script>

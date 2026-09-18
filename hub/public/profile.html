@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>내 캐릭터 꾸미기 · 보드게임 밤</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Jua&family=Noto+Sans+KR:wght@400;700;900&display=swap">
+<link rel="stylesheet" href="/common/social.css">
+<style>
+  :root { --ink: #2a1d14; --paper: #f6ecd4; --paper2: #efe0bd; --wood: #5a3a22; --accent: #c8453a; --muted: #7a6450; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; color: var(--ink); font-family: 'Noto Sans KR', sans-serif;
+    background: #3a2618 radial-gradient(ellipse at 50% 0%, #6a4428 0%, #3a2618 60%, #24160c 100%) fixed;
+  }
+  a { color: inherit; }
+  .top { display: flex; align-items: center; gap: 14px; padding: 14px 20px; color: #f6ecd4; }
+  .top a.back { text-decoration: none; padding: 6px 12px; border-radius: 10px; border: 2px solid rgba(246, 236, 212, .35); font-size: 14px; }
+  .top a.back:hover { background: rgba(255, 255, 255, .08); }
+  .top h1 { margin: 0; font: 30px 'Black Han Sans', sans-serif; letter-spacing: 1px; text-shadow: 0 3px 0 rgba(0, 0, 0, .4); }
+  .top .who { margin-left: auto; font-size: 13px; opacity: .85; display: flex; gap: 10px; align-items: center; }
+  .top .who button { background: none; border: 1px solid rgba(246, 236, 212, .4); color: inherit; border-radius: 8px; padding: 4px 10px; cursor: pointer; }
+
+  .room { display: grid; grid-template-columns: minmax(300px, 400px) 1fr; gap: 22px; max-width: 1180px; margin: 0 auto; padding: 4px 20px 40px; }
+  @media (max-width: 860px) { .room { grid-template-columns: 1fr; } }
+
+  /* 왼쪽: 무대 (거울) */
+  .stage { position: sticky; top: 14px; align-self: start; }
+  .mirror {
+    position: relative; border-radius: 180px 180px 22px 22px; border: 4px solid var(--ink); overflow: hidden;
+    box-shadow: 0 0 0 8px #8a5a32, 0 0 0 11px var(--ink), 0 22px 40px rgba(0, 0, 0, .55); aspect-ratio: 5 / 6; background: var(--paper2);
+  }
+  .mirror .av { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .mirror .fig { position: absolute; left: 14%; right: 14%; bottom: 13%; top: 4%; }
+  .mirror .fig .av { position: static; width: 100%; height: 100%; }
+  .plate {
+    position: relative; margin: -30px auto 0; width: 84%; padding: 10px 14px 12px; text-align: center; z-index: 2;
+    background: linear-gradient(#f8efd8, #e8d6ae); border: 3px solid var(--ink); border-radius: 12px; box-shadow: 0 5px 0 var(--ink);
+  }
+  .plate .t { font: 13px 'Jua', sans-serif; color: var(--accent); }
+  .plate .n { font: 28px/1.1 'Black Han Sans', sans-serif; }
+  .plate .b { font-size: 12.5px; color: var(--muted); min-height: 1em; margin-top: 3px; }
+  .tryrow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 16px; }
+  .tryrow button {
+    font: 13px 'Jua', sans-serif; padding: 7px 2px; border-radius: 10px; border: 2px solid var(--ink); background: var(--paper); cursor: pointer; box-shadow: 0 3px 0 var(--ink);
+  }
+  .tryrow button:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
+  .tryhint { color: #e8d6ae; font-size: 12px; text-align: center; margin-top: 8px; opacity: .8; }
+
+  /* 오른쪽: 옷장 */
+  .wardrobe { background: var(--paper); border: 4px solid var(--ink); border-radius: 18px; box-shadow: 0 8px 0 var(--ink), 0 24px 40px rgba(0, 0, 0, .45); overflow: hidden; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 10px 10px 0; background: #8a5a32; border-bottom: 4px solid var(--ink); }
+  .tabs button {
+    font: 16px 'Jua', sans-serif; padding: 8px 14px 7px; border: 3px solid var(--ink); border-bottom: 0; border-radius: 12px 12px 0 0;
+    background: #d8c296; color: var(--ink); cursor: pointer; margin-bottom: -4px;
+  }
+  .tabs button.on { background: var(--paper); padding-bottom: 11px; }
+  .shelf { padding: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; min-height: 280px; align-content: start; }
+  .item {
+    position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px 7px;
+    border: 3px solid var(--ink); border-radius: 14px; background: #fffaf0; cursor: pointer; font: 14px 'Jua', sans-serif; color: var(--ink);
+    box-shadow: 0 4px 0 var(--ink); transition: transform .1s;
+  }
+  .item:hover { transform: translateY(-3px) rotate(-1deg); }
+  .item.on { background: #ffe9a8; box-shadow: 0 4px 0 var(--ink), 0 0 0 4px #f2c230; }
+  .item.on::after {
+    content: ''; position: absolute; top: -9px; right: -9px; width: 24px; height: 24px; border-radius: 50%;
+    background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 12.5l4 4 8-9' fill='none' stroke='%23fff' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 18px no-repeat;
+    border: 2px solid var(--ink);
+  }
+  .item .av { width: 84px; height: 96px; }
+  .item.full .av { height: 118px; }
+  .item .sw { width: 64px; height: 64px; margin: 6px 0 4px; border-radius: 50%; border: 3px solid var(--ink); box-shadow: inset -8px -8px 0 rgba(0, 0, 0, .15), inset 6px 6px 0 rgba(255, 255, 255, .25); }
+
+  .me-form { border-top: 3px dashed #c8b48a; padding: 16px; display: grid; gap: 12px; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .row > label { width: 64px; font: 16px 'Jua', sans-serif; }
+  .in { flex: 1; min-width: 160px; font: 16px 'Noto Sans KR', sans-serif; padding: 9px 12px; border: 3px solid var(--ink); border-radius: 10px; background: #fffaf0; }
+  .titles { flex: 1; display: flex; flex-wrap: wrap; gap: 6px; }
+  .titles button { font: 13px 'Jua', sans-serif; padding: 5px 10px; border-radius: 999px; border: 2px solid var(--ink); background: #fffaf0; cursor: pointer; }
+  .titles button.on { background: var(--accent); color: #fff; }
+  .btn {
+    font: 18px 'Jua', sans-serif; padding: 10px 22px; border: 3px solid var(--ink); border-radius: 12px; cursor: pointer;
+    background: var(--accent); color: #fff; box-shadow: 0 4px 0 var(--ink);
+  }
+  .btn.ghost { background: #fffaf0; color: var(--ink); }
+  .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .save { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .msg { font-size: 14px; }
+  .msg.err { color: var(--accent); font-weight: 700; }
+  .msg.ok { color: #3a7a3a; font-weight: 700; }
+
+  /* 로그인 · 가입 */
+  .auth { border-top: 3px dashed #c8b48a; padding: 16px; background: #f1e3c0; }
+  .auth h3 { margin: 0 0 4px; font: 22px 'Black Han Sans', sans-serif; }
+  .auth p { margin: 0 0 12px; font-size: 13px; color: var(--muted); }
+  .auth .sw2 { display: flex; gap: 6px; margin-bottom: 10px; }
+  .auth .sw2 button { font: 15px 'Jua', sans-serif; padding: 6px 14px; border-radius: 10px; border: 2px solid var(--ink); background: #fffaf0; cursor: pointer; }
+  .auth .sw2 button.on { background: var(--ink); color: #fff; }
+  .auth form { display: grid; gap: 8px; max-width: 420px; }
+  .gbox { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-height: 44px; margin-bottom: 12px; }
+  .gbox .gnone { font-size: 13px; color: var(--muted); padding: 8px 12px; border: 2px dashed #c8b48a; border-radius: 10px; }
+  .idlogin summary { cursor: pointer; font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+  .pw { margin-top: 6px; font-size: 13px; }
+  .pw summary { cursor: pointer; color: var(--muted); }
+  .pw form { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .pw .in { min-width: 120px; font-size: 14px; padding: 6px 10px; }
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="back" href="/">← 게임 고르기</a>
+  <h1>내 캐릭터 꾸미기</h1>
+  <div class="who" id="who"></div>
+</header>
+
+<main class="room">
+  <section class="stage">
+    <div class="mirror" id="mirror"></div>
+    <div class="plate"><div class="t" id="pTitle"></div><div class="n" id="pName"></div><div class="b" id="pBio"></div></div>
+    <div class="tryrow" id="tryRow"></div>
+    <div class="tryhint">누르면 게임에서 이모트 쓸 때처럼 움직여요</div>
+  </section>
+
+  <section class="wardrobe">
+    <nav class="tabs" id="tabs"></nav>
+    <div class="shelf" id="shelf"></div>
+
+    <div class="me-form">
+      <div class="row"><label for="nick">닉네임</label><input id="nick" class="in" maxlength="10" placeholder="게임에서 쓰는 이름 (10자까지)" autocomplete="off"><button type="button" class="btn ghost" id="dice">무작위로 입히기</button></div>
+      <div class="row"><label>칭호</label><div class="titles" id="titles"></div></div>
+      <div class="row"><label for="bio">한마디</label><input id="bio" class="in" maxlength="60" placeholder="프로필에 보이는 한 줄 (60자까지)" autocomplete="off"></div>
+      <div class="save" id="saveRow">
+        <button type="button" class="btn" id="saveBtn">저장하기</button>
+        <span class="msg" id="saveMsg"></span>
+      </div>
+      <details class="pw" id="pwBox" hidden>
+        <summary>비밀번호 바꾸기</summary>
+        <form id="pwForm">
+          <input class="in" type="password" name="old" placeholder="지금 비밀번호" autocomplete="current-password" required>
+          <input class="in" type="password" name="password" placeholder="새 비밀번호 (4자 이상)" autocomplete="new-password" required>
+          <button class="btn ghost" type="submit">바꾸기</button>
+        </form>
+      </details>
+    </div>
+
+    <div class="auth" id="auth" hidden>
+      <h3>로그인하고 저장하기</h3>
+      <p>로그인하면 이 캐릭터가 모든 게임에서 이모트로 나오고, 게임 들어갈 때 이름을 안 쳐도 돼요.</p>
+      <div class="gbox" id="gBox">
+        <div id="gBtn"></div>
+        <span class="msg" id="gMsg"></span>
+      </div>
+      <details class="idlogin" id="idLogin">
+      <summary>구글 말고 아이디 · 비밀번호로 할래요</summary>
+      <div class="sw2"><button type="button" data-mode="signup" class="on">처음이에요 (가입)</button><button type="button" data-mode="login">아이디 있어요 (로그인)</button></div>
+      <form id="authForm">
+        <input class="in" name="username" placeholder="아이디 (영어 소문자 · 숫자 3~16자)" autocomplete="username" required>
+        <input class="in" name="password" type="password" placeholder="비밀번호 (4자 이상)" autocomplete="new-password" required>
+        <button class="btn" type="submit" id="authBtn">가입하고 저장</button>
+        <span class="msg" id="authMsg"></span>
+      </form>
+      </details>
+    </div>
+  </section>
+</main>
+
+<script type="module" src="js/profile.js"></script>
+</body>
+</html>

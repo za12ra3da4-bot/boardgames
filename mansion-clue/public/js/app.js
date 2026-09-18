@@ -1,5 +1,7 @@
 import { Board } from './board3d.js';
 import { rulesPanelHtml, rulesModalHtml, currentStep } from './rules.js';
+import { bindName } from '/common/me.js';
+import { mountEmotes } from '/common/emote.js';
 
 const C = window.CLUE;
 const $ = (s, r = document) => r.querySelector(s);
@@ -336,6 +338,9 @@ socket.on('room', (r) => {
 const nameInput = $('#nameInput');
 const codeInput = $('#codeInput');
 nameInput.value = LS.get('clue.name') || '';
+// 로그인했으면 프로필 닉네임으로 채운다 (이름 안 쳐도 됨) · 이모트 버튼
+bindName(nameInput);
+mountEmotes({ socket, myPid: () => S.pid, active: () => !!S.room });
 const urlRoom = new URLSearchParams(location.search).get('room');
 if (urlRoom) codeInput.value = urlRoom.toUpperCase().slice(0, 4);
 codeInput.addEventListener('input', () => { codeInput.value = codeInput.value.toUpperCase().replace(/[^A-Z]/g, ''); });
@@ -588,7 +593,7 @@ function renderPlayers(g) {
       : p.out ? '<span class="pl-tag red">탈락</span>'
       : !p.online ? '<span class="pl-tag">끊김</span>'
       : p.pid === S.pid ? '<span class="pl-tag me">나</span>' : '';
-    return `<div class="pl ${cur ? 'cur' : ''} ${p.out ? 'out' : ''} ${!p.online || p.left ? 'off' : ''}" style="--c:${s.color}">
+    return `<div class="pl ${cur ? 'cur' : ''} ${p.out ? 'out' : ''} ${!p.online || p.left ? 'off' : ''}" data-pid="${p.pid}" style="--c:${s.color}">
       <div class="pl-face"><img src="${charImg(p.char)}" alt=""></div>
       <div class="pl-txt"><div class="pl-name">${p.isBot ? ic('bot') + ' ' : ''}${esc(p.name)}</div><div class="pl-sub">${s.name} · 카드 ${p.handCount}</div></div>${tag}</div>`;
   }).join(''));

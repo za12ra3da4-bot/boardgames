@@ -2,6 +2,8 @@
 import { rulesPanelHtml, rulesModalHtml } from './rules.js';
 import { cardHtml, zoomCardHtml, chCardHtml, boardHtml, esc, ic } from './cards.js';
 import { playEnding } from './ending.js';
+import { bindName } from '/common/me.js';
+import { mountEmotes } from '/common/emote.js';
 
 const B = window.BANG;
 const SFX = window.SFX;
@@ -149,6 +151,9 @@ const hpHtml = (hp, maxHp) => {
 const nameInput = $('#nameInput');
 const codeInput = $('#codeInput');
 nameInput.value = remembered('bang.name');
+// 로그인했으면 프로필 닉네임으로 채운다 (이름 안 쳐도 됨) · 이모트 버튼
+bindName(nameInput);
+mountEmotes({ socket, myPid: () => S.me, active: () => !!S.room, anchor: (pid) => (pid === S.me ? document.getElementById('meInfo') : null) });
 
 function inviteCode() {
   const m = /[?&#]room=([A-Za-z0-9]{4})/.exec(location.href);

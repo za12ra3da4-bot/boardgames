@@ -194,7 +194,7 @@ function accessory(id, hc) {
 }
 
 /* ───────── 몸 ───────── */
-const PANTS = { tee: '#4a5670', hoodie: '#3e4a60', suit: null, vest: '#5a4630', cloak: '#3a3430', apron: '#6a5a44' };
+const PANTS = { tee: '#4a5670', hoodie: '#3e4a60', suit: null, vest: '#5a4630', cloak: '#3a3430', apron: '#6a5a44', dress: '#f4ecde', overalls: null };
 const TORSO = 'M74 144 C64 152 62 180 66 204 L134 204 C138 180 136 152 126 144 C116 140 84 140 74 144Z';
 function torso(av, cloth) {
   const shade = T('M120 146 C132 156 134 184 132 204 L118 204 C124 184 124 162 120 146Z', '#000', 0.16)
@@ -215,11 +215,19 @@ function torso(av, cloth) {
       + F('M94 146 a6 6 0 1 1 12 0 a6 6 0 1 1 -12 0Z', '#e8b830', 2.2);
     case 'apron': return F(TORSO, cream) + shade + F('M84 146 L116 146 L118 164 L82 164Z', cloth.fill, 2.4) + F('M80 162 L120 162 L128 204 L72 204Z', cloth.fill)
       + L('M84 146 L78 140M116 146 L122 140', 2) + F('M88 176 L112 176 L110 192 L90 192Z', cloth.shade, 2) + L('M90 143 Q100 150 110 143', 2);
+    case 'dress': return F('M74 144 C66 152 66 168 72 176 L128 176 C134 168 134 152 126 144 C116 140 84 140 74 144Z', cloth.fill)
+      + F('M72 172 L128 172 L150 228 Q100 240 50 228Z', cloth.fill) + T('M118 174 L128 172 L150 228 Q140 232 132 233Z', '#000', 0.16)
+      + L('M86 180 Q82 206 74 230M100 180 L100 236M114 180 Q118 206 126 232', 1.6, cloth.shade)
+      + F('M52 226 Q100 238 148 226 L150 232 Q100 244 50 232Z', '#fffaf0', 2.2) + F('M70 170 Q100 180 130 170 L130 178 Q100 188 70 178Z', '#fffaf0', 2.2)
+      + F('M92 172 q8 -8 8 2 q0 -10 8 -2 q-8 8 -8 2 q0 6 -8 -2Z', '#fffaf0', 1.8) + L('M88 143 Q100 152 112 143', 2.4);
+    case 'overalls': return F(TORSO, '#efe2c2') + F('M80 160 L120 160 L124 204 L76 204Z', cloth.fill) + F('M86 144 L92 144 L92 162 L86 162Z', cloth.fill, 2) + F('M108 144 L114 144 L114 162 L108 162Z', cloth.fill, 2)
+      + '<circle cx="89" cy="164" r="2.6" fill="#e8b830" stroke="#2a1d14" stroke-width="1.4"/><circle cx="111" cy="164" r="2.6" fill="#e8b830" stroke="#2a1d14" stroke-width="1.4"/>'
+      + F('M90 174 L110 174 L110 188 L90 188Z', cloth.fill, 2) + T('M116 162 L120 160 L124 204 L116 204Z', '#000', 0.16) + L('M90 143 Q100 150 110 143', 2);
     default: return F(TORSO, cloth.fill) + shade + L('M88 143 Q100 156 112 143', 2.6) + L('M84 156 Q90 162 86 170', 1.4, '#000', ' opacity=".2"');
   }
 }
 function sleeveColor(av, cloth) {
-  if (av.outfit === 'vest' || av.outfit === 'apron') return { fill: '#efe2c2', shade: '#cdbb92' };
+  if (av.outfit === 'vest' || av.outfit === 'apron' || av.outfit === 'overalls') return { fill: '#efe2c2', shade: '#cdbb92' };
   if (av.outfit === 'cloak') return { fill: '#44403c', shade: '#2a2724' };
   return cloth;
 }
@@ -241,7 +249,7 @@ function arms(av, skin, cloth, emote) {
   return { armL, armR };
 }
 function legs(av, cloth) {
-  const pants = PANTS[av.outfit] || cloth.shade;
+  const pants = av.outfit === 'overalls' ? cloth.fill : PANTS[av.outfit] || cloth.shade;
   const shoe = '#3a2418';
   return `<g class="av-legL">${F('M78 200 L80 232 L96 232 L98 200Z', pants)}${F('M76 232 Q74 245 88 245 L100 245 Q101 235 96 232Z', shoe, 2.6)}</g>`
     + `<g class="av-legR">${F('M102 200 L104 232 L120 232 L122 200Z', pants)}${T('M114 202 L116 232 L120 232 L122 202Z', '#000', 0.18)}${F('M104 232 Q99 235 100 245 L112 245 Q126 245 124 232Z', shoe, 2.6)}</g>`;

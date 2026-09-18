@@ -19,99 +19,99 @@
 
 /* ───── 빨리 해! : 손목시계를 톡톡, 발을 동동 */
 .emo-hurry .av-armL { transform: rotate(-72deg); }
-.emo-hurry .av-armR { animation: hurry-tap .32s ease-in-out infinite; }
-.emo-hurry .av-legR { animation: hurry-foot .32s ease-in-out infinite; }
-.emo-hurry .av-hm { animation: hurry-head .64s ease-in-out infinite; }
-.emo-hurry .av-fx-tap { animation: blink .32s steps(1) infinite; }
-@keyframes hurry-tap { 0%, 100% { transform: rotate(28deg); } 50% { transform: rotate(44deg); } }
-@keyframes hurry-foot { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-16deg) translateY(-3px); } }
-@keyframes hurry-head { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(5deg); } }
+.emo-hurry .av-armR { animation: av-hurry-tap .32s ease-in-out infinite; }
+.emo-hurry .av-legR { animation: av-hurry-foot .32s ease-in-out infinite; }
+.emo-hurry .av-hm { animation: av-hurry-head .64s ease-in-out infinite; }
+.emo-hurry .av-fx-tap { animation: av-blink .32s steps(1) infinite; }
+@keyframes av-hurry-tap { 0%, 100% { transform: rotate(28deg); } 50% { transform: rotate(44deg); } }
+@keyframes av-hurry-foot { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-16deg) translateY(-3px); } }
+@keyframes av-hurry-head { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(5deg); } }
 
 /* ───── ㅈㄴ 못하네 : 손가락질하며 배 잡고 들썩 */
-.emo-mock .av-armR { animation: mock-point .5s ease-in-out infinite; }
+.emo-mock .av-armR { animation: av-mock-point .5s ease-in-out infinite; }
 .emo-mock .av-armL { transform: rotate(-38deg); }
-.emo-mock .av-upper { animation: mock-lean .5s ease-in-out infinite; }
-.emo-mock .av-hm { animation: mock-head .25s ease-in-out infinite; }
-.emo-mock .av-all { animation: hop .25s ease-in-out infinite; }
-.emo-mock .av-legL { animation: kickL .5s ease-in-out infinite; }
-.emo-mock [class^="av-fx"] { animation: blink .25s steps(1) infinite; }
-@keyframes mock-point { 0%, 100% { transform: rotate(-96deg); } 50% { transform: rotate(-108deg); } }
-@keyframes mock-lean { 0%, 100% { transform: rotate(-7deg); } 50% { transform: rotate(3deg); } }
-@keyframes mock-head { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(-2deg) translateY(2px); } }
+.emo-mock .av-upper { animation: av-mock-lean .5s ease-in-out infinite; }
+.emo-mock .av-hm { animation: av-mock-head .25s ease-in-out infinite; }
+.emo-mock .av-all { animation: av-hop .25s ease-in-out infinite; }
+.emo-mock .av-legL { animation: av-kickL .5s ease-in-out infinite; }
+.emo-mock [class^="av-fx"] { animation: av-blink .25s steps(1) infinite; }
+@keyframes av-mock-point { 0%, 100% { transform: rotate(-96deg); } 50% { transform: rotate(-108deg); } }
+@keyframes av-mock-lean { 0%, 100% { transform: rotate(-7deg); } 50% { transform: rotate(3deg); } }
+@keyframes av-mock-head { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(-2deg) translateY(2px); } }
 
 /* ───── ㅋㅋㅋ : 배 잡고 데굴데굴 */
 .emo-lol .av-armL { transform: rotate(-44deg); }
 .emo-lol .av-armR { transform: rotate(44deg); }
-.emo-lol .av-upper { animation: lol-shake .16s linear infinite; }
-.emo-lol .av-all { animation: lol-bend 1s ease-in-out infinite; }
-.emo-lol .av-tears { animation: tears .5s ease-out infinite; }
-.emo-lol [class^="av-fx"] { animation: blink .3s steps(1) infinite; }
-@keyframes lol-shake { 0%, 100% { transform: translateX(-2px) rotate(-2deg); } 50% { transform: translateX(2px) rotate(2deg); } }
-@keyframes lol-bend { 0%, 100% { transform: rotate(0); } 40% { transform: rotate(9deg) translateY(4px); } 70% { transform: rotate(-5deg); } }
-@keyframes tears { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(12px); opacity: 0; } }
+.emo-lol .av-upper { animation: av-lol-shake .16s linear infinite; }
+.emo-lol .av-all { animation: av-lol-bend 1s ease-in-out infinite; }
+.emo-lol .av-tears { animation: av-tears .5s ease-out infinite; }
+.emo-lol [class^="av-fx"] { animation: av-blink .3s steps(1) infinite; }
+@keyframes av-lol-shake { 0%, 100% { transform: translateX(-2px) rotate(-2deg); } 50% { transform: translateX(2px) rotate(2deg); } }
+@keyframes av-lol-bend { 0%, 100% { transform: rotate(0); } 40% { transform: rotate(9deg) translateY(4px); } 70% { transform: rotate(-5deg); } }
+@keyframes av-tears { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(12px); opacity: 0; } }
 
 /* ───── 메롱~ : 양팔 흔들며 엉덩이 춤 */
-.emo-tease .av-armL { animation: tease-armL .4s ease-in-out infinite; }
-.emo-tease .av-armR { animation: tease-armR .4s ease-in-out infinite; }
-.emo-tease .av-upper { animation: tease-sway .8s ease-in-out infinite; }
-.emo-tease .av-all { animation: tease-hip .8s ease-in-out infinite; }
-.emo-tease .av-legL { animation: kickL .8s ease-in-out infinite; }
-.emo-tease .av-legR { animation: kickR .8s ease-in-out infinite; }
-.emo-tease .av-hm { animation: tease-head .4s ease-in-out infinite; }
-.emo-tease .av-fx-notes { animation: notes 1.6s ease-in-out infinite; }
-@keyframes tease-armL { 0%, 100% { transform: rotate(150deg); } 50% { transform: rotate(118deg); } }
-@keyframes tease-armR { 0%, 100% { transform: rotate(-118deg); } 50% { transform: rotate(-150deg); } }
-@keyframes tease-sway { 0%, 100% { transform: rotate(-10deg); } 50% { transform: rotate(10deg); } }
-@keyframes tease-hip { 0%, 100% { transform: translateX(-5px); } 50% { transform: translateX(5px) translateY(-4px); } }
-@keyframes tease-head { 0%, 100% { transform: rotate(8deg); } 50% { transform: rotate(-8deg); } }
-@keyframes notes { 0% { transform: translateY(6px); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateY(-14px); opacity: 0; } }
+.emo-tease .av-armL { animation: av-tease-armL .4s ease-in-out infinite; }
+.emo-tease .av-armR { animation: av-tease-armR .4s ease-in-out infinite; }
+.emo-tease .av-upper { animation: av-tease-sway .8s ease-in-out infinite; }
+.emo-tease .av-all { animation: av-tease-hip .8s ease-in-out infinite; }
+.emo-tease .av-legL { animation: av-kickL .8s ease-in-out infinite; }
+.emo-tease .av-legR { animation: av-kickR .8s ease-in-out infinite; }
+.emo-tease .av-hm { animation: av-tease-head .4s ease-in-out infinite; }
+.emo-tease .av-fx-notes { animation: av-notes 1.6s ease-in-out infinite; }
+@keyframes av-tease-armL { 0%, 100% { transform: rotate(150deg); } 50% { transform: rotate(118deg); } }
+@keyframes av-tease-armR { 0%, 100% { transform: rotate(-118deg); } 50% { transform: rotate(-150deg); } }
+@keyframes av-tease-sway { 0%, 100% { transform: rotate(-10deg); } 50% { transform: rotate(10deg); } }
+@keyframes av-tease-hip { 0%, 100% { transform: translateX(-5px); } 50% { transform: translateX(5px) translateY(-4px); } }
+@keyframes av-tease-head { 0%, 100% { transform: rotate(8deg); } 50% { transform: rotate(-8deg); } }
+@keyframes av-notes { 0% { transform: translateY(6px); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateY(-14px); opacity: 0; } }
 
 /* ───── 잘했어! : 엄지 척, 폴짝 */
-.emo-nice .av-armR { animation: nice-thumb .6s ease-in-out infinite; }
+.emo-nice .av-armR { animation: av-nice-thumb .6s ease-in-out infinite; }
 .emo-nice .av-armL { transform: rotate(-10deg); }
-.emo-nice .av-all { animation: hop-big .6s ease-in-out infinite; }
-.emo-nice .av-shadow { animation: shadow .6s ease-in-out infinite; }
-.emo-nice .av-fx-spark { animation: spark .6s ease-in-out infinite; }
-@keyframes nice-thumb { 0%, 100% { transform: rotate(-150deg); } 50% { transform: rotate(-138deg); } }
-@keyframes spark { 0%, 100% { opacity: .2; transform: scale(.9); } 50% { opacity: 1; transform: scale(1.05); } }
+.emo-nice .av-all { animation: av-hop-big .6s ease-in-out infinite; }
+.emo-nice .av-shadow { animation: av-shadow .6s ease-in-out infinite; }
+.emo-nice .av-fx-spark { animation: av-spark .6s ease-in-out infinite; }
+@keyframes av-nice-thumb { 0%, 100% { transform: rotate(-150deg); } 50% { transform: rotate(-138deg); } }
+@keyframes av-spark { 0%, 100% { opacity: .2; transform: scale(.9); } 50% { opacity: 1; transform: scale(1.05); } }
 
 /* ───── 아깝다… : 볼 감싸고 절레절레 */
 .emo-close .av-armL { transform: rotate(168deg); }
 .emo-close .av-armR { transform: rotate(-168deg); }
-.emo-close .av-hm { animation: close-shake 1s ease-in-out infinite; }
+.emo-close .av-hm { animation: av-close-shake 1s ease-in-out infinite; }
 .emo-close .av-upper { transform: rotate(3deg) translateY(2px); }
-.emo-close .av-fx-sweat { animation: tears 1s ease-in infinite; }
-@keyframes close-shake { 0%, 100% { transform: rotate(-7deg); } 50% { transform: rotate(7deg); } }
+.emo-close .av-fx-sweat { animation: av-tears 1s ease-in infinite; }
+@keyframes av-close-shake { 0%, 100% { transform: rotate(-7deg); } 50% { transform: rotate(7deg); } }
 
 /* ───── 아오 진짜! : 발 쿵쿵, 머리에서 김 */
-.emo-angry .av-armL { animation: angry-armL .2s linear infinite; }
-.emo-angry .av-armR { animation: angry-armR .2s linear infinite; }
-.emo-angry .av-legL { animation: stomp .4s ease-in infinite; }
-.emo-angry .av-legR { animation: stomp .4s ease-in .2s infinite; }
-.emo-angry .av-all { animation: angry-shake .1s linear infinite; }
-.emo-angry .av-fx-steam { animation: steam .8s ease-out infinite; }
-@keyframes angry-armL { 0%, 100% { transform: rotate(24deg); } 50% { transform: rotate(32deg); } }
-@keyframes angry-armR { 0%, 100% { transform: rotate(-24deg); } 50% { transform: rotate(-32deg); } }
-@keyframes stomp { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-10px); } }
-@keyframes angry-shake { 0%, 100% { transform: translateX(-1.5px); } 50% { transform: translateX(1.5px); } }
-@keyframes steam { 0% { transform: translateY(8px) scale(.7); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateY(-10px) scale(1.1); opacity: 0; } }
+.emo-angry .av-armL { animation: av-angry-armL .2s linear infinite; }
+.emo-angry .av-armR { animation: av-angry-armR .2s linear infinite; }
+.emo-angry .av-legL { animation: av-stomp .4s ease-in infinite; }
+.emo-angry .av-legR { animation: av-stomp .4s ease-in .2s infinite; }
+.emo-angry .av-all { animation: av-angry-shake .1s linear infinite; }
+.emo-angry .av-fx-steam { animation: av-steam .8s ease-out infinite; }
+@keyframes av-angry-armL { 0%, 100% { transform: rotate(24deg); } 50% { transform: rotate(32deg); } }
+@keyframes av-angry-armR { 0%, 100% { transform: rotate(-24deg); } 50% { transform: rotate(-32deg); } }
+@keyframes av-stomp { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-10px); } }
+@keyframes av-angry-shake { 0%, 100% { transform: translateX(-1.5px); } 50% { transform: translateX(1.5px); } }
+@keyframes av-steam { 0% { transform: translateY(8px) scale(.7); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateY(-10px) scale(1.1); opacity: 0; } }
 
 /* ───── GG : 손 흔들고 꾸벅 */
-.emo-gg .av-armR { animation: gg-wave .5s ease-in-out infinite; }
+.emo-gg .av-armR { animation: av-gg-wave .5s ease-in-out infinite; }
 .emo-gg .av-armL { transform: rotate(-30deg); }
-.emo-gg .av-hm { animation: gg-bow 1.5s ease-in-out infinite; }
-.emo-gg .av-upper { animation: gg-body 1.5s ease-in-out infinite; }
-@keyframes gg-wave { 0%, 100% { transform: rotate(-150deg); } 50% { transform: rotate(-120deg); } }
-@keyframes gg-bow { 0%, 60%, 100% { transform: none; } 75% { transform: translateY(8px) rotate(-6deg); } }
-@keyframes gg-body { 0%, 60%, 100% { transform: none; } 75% { transform: translateY(3px) scaleY(.95); } }
+.emo-gg .av-hm { animation: av-gg-bow 1.5s ease-in-out infinite; }
+.emo-gg .av-upper { animation: av-gg-body 1.5s ease-in-out infinite; }
+@keyframes av-gg-wave { 0%, 100% { transform: rotate(-150deg); } 50% { transform: rotate(-120deg); } }
+@keyframes av-gg-bow { 0%, 60%, 100% { transform: none; } 75% { transform: translateY(8px) rotate(-6deg); } }
+@keyframes av-gg-body { 0%, 60%, 100% { transform: none; } 75% { transform: translateY(3px) scaleY(.95); } }
 
 /* 공통 */
-@keyframes hop { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
-@keyframes hop-big { 0%, 100% { transform: translateY(0); } 45% { transform: translateY(-16px); } }
-@keyframes shadow { 0%, 100% { transform: scale(1); } 45% { transform: scale(.7); opacity: .1; } }
-@keyframes kickL { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(16deg); } }
-@keyframes kickR { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-16deg); } }
-@keyframes blink { 50% { opacity: 0; } }
+@keyframes av-hop { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes av-hop-big { 0%, 100% { transform: translateY(0); } 45% { transform: translateY(-16px); } }
+@keyframes av-shadow { 0%, 100% { transform: scale(1); } 45% { transform: scale(.7); opacity: .1; } }
+@keyframes av-kickL { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(16deg); } }
+@keyframes av-kickR { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-16deg); } }
+@keyframes av-blink { 50% { opacity: 0; } }
 
 @media (prefers-reduced-motion: reduce) {
   .av * { animation-duration: 2s !important; }
@@ -121,16 +121,16 @@
 .emo-pop {
   position: fixed; z-index: 9000; width: 118px; pointer-events: none;
   display: flex; flex-direction: column; align-items: center;
-  animation: emo-in .42s cubic-bezier(.2, 1.6, .4, 1) both;
+  animation: av-emo-in .42s cubic-bezier(.2, 1.6, .4, 1) both;
   filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .35));
 }
-.emo-pop.out { animation: emo-out .38s ease-in both; }
+.emo-pop.out { animation: av-emo-out .38s ease-in both; }
 .emo-pop .av { width: 118px; height: auto; }
 .emo-bubble {
   position: relative; margin-bottom: -6px; padding: 6px 12px 7px; max-width: 170px; white-space: nowrap;
   background: #fffaf0; color: #2a1d14; font: 20px/1.1 'Jua', 'Black Han Sans', sans-serif; letter-spacing: .5px;
   border: 3px solid #2a1d14; border-radius: 255px 18px 225px 18px / 18px 225px 18px 255px;
-  animation: bubble-in .5s .12s cubic-bezier(.2, 1.8, .4, 1) both;
+  animation: av-bubble-in .5s .12s cubic-bezier(.2, 1.8, .4, 1) both;
 }
 .emo-bubble::after {
   content: ''; position: absolute; left: 50%; bottom: -13px; width: 16px; height: 14px; margin-left: -8px;
@@ -138,13 +138,13 @@
   transform: skewX(-24deg) rotate(38deg); border-radius: 0 0 6px 0;
 }
 .emo-pop .emo-name { margin-top: -6px; padding: 1px 8px; border-radius: 8px; background: rgba(20, 14, 10, .78); color: #fff; font: 11px/1.4 'Noto Sans KR', sans-serif; }
-@keyframes emo-in { 0% { transform: translateY(40px) scale(.2); opacity: 0; } 100% { transform: none; opacity: 1; } }
-@keyframes emo-out { to { transform: translateY(24px) scale(.4); opacity: 0; } }
-@keyframes bubble-in { 0% { transform: scale(0) rotate(-10deg); } 100% { transform: none; } }
+@keyframes av-emo-in { 0% { transform: translateY(40px) scale(.2); opacity: 0; } 100% { transform: none; opacity: 1; } }
+@keyframes av-emo-out { to { transform: translateY(24px) scale(.4); opacity: 0; } }
+@keyframes av-bubble-in { 0% { transform: scale(0) rotate(-10deg); } 100% { transform: none; } }
 
 /* ───────── 이모트 고르기 버튼 · 판 */
 .emo-fab {
-  position: fixed; left: 14px; bottom: 14px; z-index: 8000; width: 58px; height: 58px; padding: 0; border-radius: 50%;
+  position: fixed; left: 14px; bottom: 64px; z-index: 8000; width: 54px; height: 54px; padding: 0; border-radius: 50%;
   border: 3px solid #2a1d14; background: #efe0bd; cursor: pointer; overflow: hidden;
   box-shadow: 0 4px 0 #2a1d14, 0 8px 18px rgba(0, 0, 0, .35); transition: transform .12s;
 }
@@ -153,30 +153,31 @@
 .emo-fab .av { width: 100%; height: 100%; }
 .emo-fab[hidden] { display: none; }
 .emo-panel {
-  position: fixed; left: 14px; bottom: 84px; z-index: 8001; width: min(372px, calc(100vw - 28px));
+  position: fixed; left: 14px; bottom: 128px; z-index: 8001; width: min(372px, calc(100vw - 28px));
   padding: 12px; border-radius: 16px; border: 3px solid #2a1d14; background: #f6ecd4;
   box-shadow: 0 5px 0 #2a1d14, 0 16px 34px rgba(0, 0, 0, .4);
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
-  transform-origin: 20px 100%; animation: emo-panel .22s cubic-bezier(.2, 1.4, .4, 1);
+  transform-origin: 20px 100%; animation: av-emo-panel .22s cubic-bezier(.2, 1.4, .4, 1);
 }
 .emo-panel[hidden] { display: none; }
 .emo-panel .emo-head { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: baseline; font: 18px 'Jua', sans-serif; color: #2a1d14; }
 .emo-panel .emo-head small { font: 11px 'Noto Sans KR', sans-serif; opacity: .65; }
 .emo-panel .emo-head a { color: #8a4a1a; }
-@keyframes emo-panel { from { transform: scale(.6); opacity: 0; } }
+@keyframes av-emo-panel { from { transform: scale(.6); opacity: 0; } }
 .emo-btn {
   display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px 5px;
   border-radius: 12px; border: 2px solid #2a1d14; background: #fffaf0; cursor: pointer; color: #2a1d14;
   font: 13px/1.1 'Jua', sans-serif; box-shadow: 0 3px 0 #2a1d14; transition: transform .1s;
 }
-.emo-btn .av { width: 48px; height: 58px; }
+.emo-btn .av { width: 48px; height: 58px; flex: none; }
+.emo-btn span { display: block; position: static; font: 13px/1.15 'Jua', sans-serif; white-space: nowrap; }
 .emo-btn:hover { transform: translateY(-2px); background: #fff3d0; }
 .emo-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #2a1d14; }
 .emo-panel.cool .emo-btn { opacity: .45; pointer-events: none; }
 
 /* ───────── 로그인 표시 (이름 칸 옆) */
 .acc-chip {
-  display: inline-flex; align-items: center; gap: 8px; margin: 6px 0 2px; padding: 3px 12px 3px 3px; border-radius: 999px;
+  display: inline-flex; align-items: center; gap: 8px; margin: 6px 0 10px; padding: 3px 12px 3px 3px; border-radius: 999px;
   background: rgba(255, 250, 240, .92); border: 2px solid #2a1d14; color: #2a1d14; text-decoration: none; font: 13px 'Noto Sans KR', sans-serif;
 }
 .acc-chip .av { width: 34px; height: 34px; border-radius: 50%; background: #efe0bd; border: 2px solid #2a1d14; }

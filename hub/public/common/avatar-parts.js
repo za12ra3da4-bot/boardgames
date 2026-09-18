@@ -52,6 +52,8 @@
     { id: 'vest', name: '카우보이 조끼' },
     { id: 'cloak', name: '망토' },
     { id: 'apron', name: '앞치마' },
+    { id: 'dress', name: '드레스' },
+    { id: 'overalls', name: '멜빵바지' },
   ];
   const CLOTH = [
     { id: 'red', name: '빨강', fill: '#c8453a', shade: '#8e2a22' },

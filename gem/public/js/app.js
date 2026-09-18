@@ -1,3 +1,5 @@
+import { bindName } from '/common/me.js';
+import { mountEmotes } from '/common/emote.js';
 // 찬란한 보석상 - 브라우저 쪽 화면과 조작
 const G = window.GEM;
 const SFX = window.SFX;
@@ -56,6 +58,9 @@ const screenName = () => (!S.room ? 'home' : S.g ? 'game' : 'lobby');
 const nameInput = $('#nameInput');
 const codeInput = $('#codeInput');
 nameInput.value = remembered('gem.name');
+// 로그인했으면 프로필 닉네임으로 채운다 (이름 안 쳐도 됨) · 이모트 버튼
+bindName(nameInput);
+mountEmotes({ socket, myPid: () => S.me, active: () => !!S.room, anchor: (pid) => (pid === S.me ? document.getElementById('me') : null) });
 const inv = /[?&#]room=([A-Za-z]{4})/.exec(location.href);
 if (inv) codeInput.value = inv[1].toUpperCase();
 const needName = () => { const n = nameInput.value.trim(); if (!n) { toast('닉네임을 입력하세요', 'err'); return null; } remember('gem.name', n); return n; };
@@ -163,7 +168,7 @@ function gemsHtml(p, big = false) {
 
 function renderPlayers() {
   const g = S.g;
-  $('#opponents').innerHTML = g.players.filter((p) => p.pid !== S.me).map((p) => `<div class="pl ${g.turn === p.pid ? 'cur' : ''}">
+  $('#opponents').innerHTML = g.players.filter((p) => p.pid !== S.me).map((p) => `<div class="pl ${g.turn === p.pid ? 'cur' : ''}" data-pid="${p.pid}">
     <div class="pl-top">${avatar(p.name, p.seat)}<b>${esc(p.name)}${p.isBot ? ' <small>AI</small>' : ''}${p.online ? '' : ' <small>(자리비움)</small>'}</b><span class="pts">${p.points}</span></div>
     ${gemsHtml(p)}
     <div class="mini-row">${p.nobles.map((id) => `<img src="assets/noble/${id}.svg" alt="">`).join('')}${p.reserved.map((x) => (x.hidden ? `<span class="res" style="background-image:url(assets/back/${x.tier}.svg)"></span>` : `<img src="assets/card/${x}.svg" alt="">`)).join('')}</div>

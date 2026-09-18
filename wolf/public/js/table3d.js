@@ -471,6 +471,7 @@ export function createTable(host, { onPick }) {
         f.dead = !!p.dead;
       }
       const pl = plate(p.pid);
+      pl.el.dataset.pid = p.pid;
       pl.anchor.set(Math.cos(a) * (p.isMe ? SEAT_R + 1.4 : TABLE_R + 1.6), p.isMe ? 0.05 : 2.2, Math.sin(a) * (p.isMe ? SEAT_R + 1.4 : TABLE_R + 1.6));
       const html = `<div class="tp-name ${p.isMe ? 'me' : ''} ${p.win ? 'win' : ''} ${p.online ? '' : 'off'}"><span class="tp-dot" style="background:${AV_COLORS[p.seat % AV_COLORS.length]}"></span>${p.nameHtml}</div>
         ${p.label ? `<div class="tp-known ${p.labelTeam || ''}">${p.label}</div>` : ''}

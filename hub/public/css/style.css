@@ -294,3 +294,12 @@ a { color: inherit; text-decoration: none; }
 .has-art > .box-art { display: block !important; }
 .has-art > .art-title { display: block !important; position: absolute; left: 0; right: 0; top: 18px; text-align: center; font-family: 'Rye', serif; font-size: 36px; color: #f4e2b0; text-shadow: 0 3px 0 #2a1406, 0 0 14px rgba(0, 0, 0, .8); }
 .has-art > .art-title b { color: #e84a2a; }
+
+/* ───── 내 계정 버튼 (캐릭터 얼굴) */
+.acc-top { display: inline-flex; align-items: center; gap: 8px; padding: 3px 14px 3px 3px; border-radius: 999px; text-decoration: none;
+  background: #f6ecd4; color: #2a1d14; border: 2px solid #2a1d14; box-shadow: 0 3px 0 #2a1d14; transition: transform .12s; }
+.acc-top:hover { transform: translateY(-2px); }
+.acc-top .av { width: 40px; height: 40px; border-radius: 50%; border: 2px solid #2a1d14; overflow: hidden; background: #efe0bd; }
+.acc-top span { display: flex; flex-direction: column; line-height: 1.15; }
+.acc-top small { font-size: 10.5px; color: #c8453a; font-family: 'Jua', sans-serif; }
+.acc-top b { font-family: 'Jua', sans-serif; font-weight: 400; font-size: 15px; }

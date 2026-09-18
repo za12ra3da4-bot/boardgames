@@ -115,9 +115,14 @@ export async function mountEmotes(o) {
       + EMOTES.map((e) => `<button type="button" class="emo-btn" data-emo="${e.id}">${avatarSvg(myAvatar(), { expr: e.expr, crop: 'head' })}<span>${e.text}</span></button>`).join('');
   };
 
-  const findAnchor = (pid) => (o.anchor && o.anchor(pid))
-    || document.querySelector(`[data-pid="${CSS.escape(pid)}"]`)
-    || document.querySelector(`[data-seat="${CSS.escape(pid)}"]`);
+  // 화면에 보이는 자리 요소를 고른다 (3D/평면처럼 같은 사람 요소가 여러 개일 수 있다)
+  const visible = (el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; };
+  const findAnchor = (pid) => {
+    const own = o.anchor && o.anchor(pid);
+    if (own && visible(own)) return own;
+    const q = CSS.escape(pid);
+    return [...document.querySelectorAll(`[data-pid="${q}"], [data-seat="${q}"]`)].find(visible) || null;
+  };
 
   let last = 0;
   panel.addEventListener('click', (ev) => {
