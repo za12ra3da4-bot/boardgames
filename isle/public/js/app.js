@@ -1,7 +1,23 @@
 // 바람섬 개척기 - 브라우저 쪽 전체 화면과 조작
 const I = window.ISLE;
 const SFX = window.SFX;
-const { RES, VERTS, EDGES, HEXES } = I;
+const { RES } = I;
+// 지금 보고 있는 판의 맵 좌표 (게임이 바뀌면 useMap 으로 갈아 끼운다)
+let VERTS = I.VERTS;
+let EDGES = I.EDGES;
+let HEXES = I.HEXES;
+let MAP = I.map('random');
+function useMap(id) {
+  if (MAP.id === id) return;
+  MAP = I.map(id);
+  ({ VERTS, EDGES, HEXES } = MAP);
+  const xs = VERTS.map((v) => v.x);
+  const ys = VERTS.map((v) => v.y);
+  const pad = 70;
+  const x0 = Math.min(...xs) - pad;
+  const y0 = Math.min(...ys) - pad;
+  document.getElementById('board').setAttribute('viewBox', `${Math.round(x0)} ${Math.round(y0)} ${Math.round(Math.max(...xs) - x0 + pad)} ${Math.round(Math.max(...ys) - y0 + pad)}`);
+}
 
 /* ═════════════════════════ 작은 도구 ═════════════════════════ */
 
@@ -212,14 +228,42 @@ $('#tabs').addEventListener('click', (e) => {
 
 /* ═════════════════════════ 대기실 ═════════════════════════ */
 
+/** 맵 모양 미리보기 (작은 육각 그림) */
+const MAP_TINT = ['#3f7a34', '#b8583a', '#8cbf4a', '#e0b840', '#8a8a92', '#d8c48a'];
+function mapThumb(id) {
+  const M = I.map(id);
+  const xs = M.HEXES.map((h) => h.x);
+  const ys = M.HEXES.map((h) => h.y);
+  const x0 = Math.min(...xs) - R;
+  const y0 = Math.min(...ys) - R;
+  const w = Math.max(...xs) + R - x0;
+  const h = Math.max(...ys) + R - y0;
+  const poly = (hx) => Array.from({ length: 6 }, (_, i) => { const a = (Math.PI / 180) * (60 * i - 90); return `${(hx.x + R * 0.94 * Math.cos(a)).toFixed(0)},${(hx.y + R * 0.94 * Math.sin(a)).toFixed(0)}`; }).join(' ');
+  return `<svg viewBox="${x0.toFixed(0)} ${y0.toFixed(0)} ${w.toFixed(0)} ${h.toFixed(0)}">${M.HEXES.map((hx) => `<polygon points="${poly(hx)}" fill="${hx.lake ? '#4a9ad0' : MAP_TINT[(hx.id * 7 + hx.col) % 6]}" stroke="#1f3a20" stroke-width="6"/>`).join('')}</svg>`;
+}
+function renderMaps() {
+  const host = S.room.hostPid === S.me;
+  const cur = (S.room.config && S.room.config.map) || 'random';
+  const n = S.room.members.filter((m) => m.seated).length;
+  $('#mapPick').innerHTML = `<div class="mp-head">맵 <small>${host ? '방장이 고를 수 있어요' : '방장이 고릅니다'}</small></div>
+    <div class="mp-row">${I.MAP_IDS.map((id) => {
+    const M = I.map(id);
+    const tooMany = n > M.maxPlayers;
+    return `<button class="mp ${id === cur ? 'on' : ''} ${tooMany ? 'warn' : ''}" data-map="${id}" ${host ? '' : 'disabled'} title="${esc(M.desc)}">
+      <div class="mp-art">${mapThumb(id)}</div><b>${esc(M.name)}</b><small>${esc(M.desc)} · ${M.minPlayers}~${M.maxPlayers}명</small></button>`;
+  }).join('')}</div>`;
+}
+
 function renderLobby() {
   const room = S.room;
   const host = room.hostPid === S.me;
   $('#lobbyCode').textContent = room.code;
+  renderMaps();
   mountChat($('#lobbyChatMount'));
   const seated = room.members.filter((m) => m.seated);
   const slots = [];
-  for (let i = 0; i < I.MAX_PLAYERS; i++) {
+  const maxSeats = I.map((room.config && room.config.map) || 'random').maxPlayers;
+  for (let i = 0; i < Math.max(maxSeats, seated.length); i++) {
     const m = seated[i];
     if (!m) { slots.push('<div class="slot empty">빈 자리</div>'); continue; }
     const tags = [];
@@ -247,6 +291,10 @@ function renderLobby() {
     : `방장이 시작하기를 기다리는 중… (${seated.length}명)`;
 }
 $('#seatGrid').addEventListener('click', (e) => { const k = e.target.closest('[data-kick]'); if (k) call('room:kick', { pid: k.dataset.kick }); });
+$('#mapPick').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-map]');
+  if (b && !b.disabled) { SFX.click(); call('room:config', { map: b.dataset.map }); }
+});
 $('#addBotBtn').addEventListener('click', () => { SFX.click(); call('room:addBot'); });
 $('#seatBtn').addEventListener('click', () => { const m = S.room.members.find((x) => x.pid === S.me); call('room:seat', { seated: !(m && m.seated) }); });
 $('#startBtn').addEventListener('click', () => { SFX.unlock(); SFX.bell(); call('room:start'); });
@@ -304,6 +352,15 @@ function boardTargets() {
 /* ═════════════════════════ 보드 그리기 ═════════════════════════ */
 
 const R = I.R;
+/** 호수 칸: 물결 치는 푸른 물 + 갈대 */
+function lakeSvg(h) {
+  const pts = Array.from({ length: 6 }, (_, i) => { const a = (Math.PI / 180) * (60 * i - 90); return `${(h.x + R * 0.98 * Math.cos(a)).toFixed(1)},${(h.y + R * 0.98 * Math.sin(a)).toFixed(1)}`; }).join(' ');
+  let s = `<polygon points="${pts}" fill="#3a86b8" stroke="#1f5a86" stroke-width="3"/>`;
+  s += `<ellipse cx="${h.x}" cy="${h.y}" rx="${R * 0.62}" ry="${R * 0.5}" fill="#5aa8d8" opacity=".6"/>`;
+  for (let i = 0; i < 4; i++) s += `<path d="M${h.x - 26 + (i % 2) * 10} ${h.y - 18 + i * 12}q8 -5 16 0t16 0" stroke="#d8f0ff" stroke-width="2" fill="none" opacity=".75"/>`;
+  s += `<path d="M${h.x + 26} ${h.y + 30}v-18M${h.x + 30} ${h.y + 30}v-24M${h.x + 34} ${h.y + 30}v-14" stroke="#4a6a2a" stroke-width="2.4" stroke-linecap="round"/>`;
+  return s;
+}
 const HW = R * I.SQ3;          // 육각 너비
 const hexPts = (h, k = 1) => Array.from({ length: 6 }, (_, i) => { const c = I.corner({ x: 0, y: 0 }, i); return `${f1(h.x + c.x * k)},${f1(h.y + c.y * k)}`; }).join(' ');
 
@@ -383,7 +440,7 @@ function renderBoard(fresh = {}) {
   const g = S.g;
   const b = g.board;
   const t = boardTargets();
-  let s = `<image href="assets/sea.svg" x="-1000" y="-620" width="2000" height="1240" preserveAspectRatio="xMidYMid slice"/>`;
+  let s = `<image href="assets/sea.svg" x="-1600" y="-1000" width="3200" height="2000" preserveAspectRatio="xMidYMid slice"/>`;
   // 모래 해안
   s += `<g opacity=".95">${HEXES.map((h) => `<polygon points="${hexPts(h, 1.2)}" fill="#e6cf98"/>`).join('')}</g>`;
   s += `<g opacity=".5">${HEXES.map((h) => `<polygon points="${hexPts(h, 1.28)}" fill="#f4e6c0"/>`).join('')}</g>`;
@@ -392,6 +449,7 @@ function renderBoard(fresh = {}) {
   s += HEXES.map((h) => {
     const tile = b.hexes[h.id];
     const v = (h.id % 3) + 1;
+    if (tile.terrain === 'lake') return lakeSvg(h);
     return `<image href="assets/tile/${tile.terrain}-${v}.svg" x="${f1(h.x - HW / 2)}" y="${f1(h.y - R)}" width="${f1(HW)}" height="${2 * R}" class="${fresh.hexes && fresh.hexes.includes(h.id) ? 'hex-hot' : ''}"/>`;
   }).join('');
   s += HEXES.map((h) => (b.hexes[h.id].number ? tokenSvg(h, b.hexes[h.id].number, [6, 8].includes(b.hexes[h.id].number)) : '')).join('');
@@ -1017,6 +1075,7 @@ function render() {
   if (name === 'lobby') { S.gameId = null; S.seenSeq = 0; renderLobby(); return; }
 
   const g = S.g;
+  useMap(g.map || 'random');
   mountChat($('#tab-chat'));
   $('#gameCode').textContent = S.room.code;
   $('#hostLobbyBtn').hidden = !(S.room.hostPid === S.me && g.phase === 'over');

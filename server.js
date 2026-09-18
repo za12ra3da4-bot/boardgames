@@ -82,7 +82,7 @@ process.on('unhandledRejection', (e) => console.error('[오류 - 서버는 계�
 // 슬래시 없는 /bang 은 express.static 이 알아서 /bang/ 으로 넘겨준다.
 // ── 손그림 파일로 바꿔 끼우기: <게임>/art/<경로>.png 가 있으면 /<게임>/assets/<경로>.svg 대신 그 파일을 보낸다.
 //    (예: bang/art/card/bang.png → /bang/assets/card/bang.svg 자리에 나온다. 코드는 고칠 필요 없음)
-const ART_EXT = ['.png', '.webp', '.jpg', '.jpeg'];
+const ART_EXT = ['.png', '.webp', '.jpg', '.jpeg', '.svg'];
 function findArt(dir, rel) {
   if (!/^[a-z0-9_\-/]+$/i.test(rel) || rel.includes('..')) return null;
   for (const ext of ART_EXT) {

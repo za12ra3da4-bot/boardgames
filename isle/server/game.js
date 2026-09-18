@@ -4,7 +4,7 @@
 const crypto = require('crypto');
 const I = require('../public/shared/isle');
 
-const { RES, VERTS, EDGES, HEXES, COST, PIECES } = I;
+const { RES, COST, PIECES } = I;
 
 const T = { setup: 60_000, roll: 25_000, discard: 45_000, robber: 30_000, steal: 20_000, roads: 40_000, main: 150_000 };
 const T_OFFLINE = 6_000;
@@ -24,20 +24,29 @@ const err = (error) => ({ ok: false, error });
 const resName = (r) => I.RES_INFO[r].name;
 const fmtRes = (m) => RES.filter((r) => m[r]).map((r) => `{x:${r}}×${m[r]}`).join(' ');
 
-/** 판 만들기: 지형·숫자를 섞되 6과 8이 서로 붙지 않게 */
-function makeBoard() {
-  const terr = shuffle(Object.entries(I.TERRAIN).flatMap(([t, info]) => Array(info.count).fill(t)));
+/** 판 만들기: 맵의 지형·숫자를 놓되 (무작위 맵은) 6과 8이 서로 붙지 않게 */
+function makeBoard(M) {
+  const landIds = M.HEXES.filter((h) => !h.lake).map((h) => h.id);
+  let terr;
   let numbers;
-  for (let tries = 0; tries < 500; tries++) {
-    const pool = shuffle([...I.NUMBERS]);
-    numbers = terr.map((t) => (t === 'desert' ? 0 : pool.pop()));
-    const hot = (i) => numbers[i] === 6 || numbers[i] === 8;
-    const bad = HEXES.some((h) => hot(h.id) && h.nbrs.some(hot));
-    if (!bad) break;
+  if (M.fixed) {
+    terr = M.fixed.terrain.slice();
+    numbers = M.fixed.numbers.slice();
+  } else {
+    terr = shuffle(M.terrainList.slice());
+    for (let tries = 0; tries < 800; tries++) {
+      const pool = shuffle([...M.numbers]);
+      numbers = terr.map((t) => (t === 'desert' ? 0 : pool.pop()));
+      const hot = (k) => numbers[k] === 6 || numbers[k] === 8;
+      const idx = new Map(landIds.map((id, k) => [id, k]));
+      const bad = landIds.some((id, k) => hot(k) && M.HEXES[id].nbrs.some((n) => idx.has(n) && hot(idx.get(n))));
+      if (!bad) break;
+    }
   }
-  const hexes = HEXES.map((h, i) => ({ terrain: terr[i], number: numbers[i] }));
-  const types = shuffle([...I.HARBOR_TYPES]);
-  const harbors = I.HARBOR_SPOTS.map((e, i) => ({ edge: e, type: types[i], verts: [EDGES[e].a, EDGES[e].b] }));
+  const hexes = M.HEXES.map((h) => ({ terrain: 'lake', number: 0 }));
+  landIds.forEach((id, k) => { hexes[id] = { terrain: terr[k], number: numbers[k] }; });
+  const types = M.fixed ? [...M.HARBOR_TYPES] : shuffle([...M.HARBOR_TYPES]);
+  const harbors = M.HARBOR_SPOTS.map((e, i) => ({ edge: e, type: types[i], verts: [M.EDGES[e].a, M.EDGES[e].b] }));
   return { hexes, harbors };
 }
 
@@ -46,8 +55,10 @@ class Game {
    * seats: [{ pid, name, isBot }] (3~4명)
    * hooks: { changed(), isOnline(pid) }
    */
-  constructor(seats, hooks) {
+  constructor(seats, hooks, opts = {}) {
     this.hooks = hooks;
+    this.M = I.map(opts.map || 'random');
+    this.mapId = this.M.id;
     this.id = crypto.randomBytes(6).toString('hex');
     const order = shuffle(seats.map((s, i) => i));
     this.players = order.map((i, k) => ({
@@ -56,13 +67,15 @@ class Game {
       res: I.emptyRes(), dev: [], knights: 0,
       left: { ...PIECES },
     }));
-    const b = makeBoard();
+    const b = makeBoard(this.M);
     this.hexes = b.hexes;
     this.harbors = b.harbors;
     this.robber = this.hexes.findIndex((h) => h.terrain === 'desert');
+    if (this.robber < 0) this.robber = this.hexes.findIndex((h) => h.terrain === 'lake');
+    if (this.robber < 0) this.robber = 0;
     this.buildings = {};   // 꼭짓점 id → { pid, type }
     this.roads = {};       // 변 id → pid
-    this.bank = Object.fromEntries(RES.map((r) => [r, I.BANK_EACH]));
+    this.bank = Object.fromEntries(RES.map((r) => [r, this.M.BANK_EACH]));
     this.devDeck = shuffle(Object.entries(I.DEV).flatMap(([type, d]) => Array(d.count).fill(type)))
       .map((type, i) => ({ id: `d${i}`, type }));
     this.awards = { road: null, army: null };
@@ -139,23 +152,23 @@ class Game {
   /** 거리 규칙: 그 꼭짓점과 이웃 꼭짓점에 건물이 없어야 한다 */
   vertexFree(v) {
     if (this.buildings[v]) return false;
-    return !VERTS[v].adj.some((u) => this.buildings[u]);
+    return !this.M.VERTS[v].adj.some((u) => this.buildings[u]);
   }
   canSettle(p, v, setup = false) {
-    if (v == null || !VERTS[v] || !this.vertexFree(v)) return false;
+    if (v == null || !this.M.VERTS[v] || !this.vertexFree(v)) return false;
     if (setup) return true;
-    return VERTS[v].edges.some((e) => this.roads[e] === p.pid);
+    return this.M.VERTS[v].edges.some((e) => this.roads[e] === p.pid);
   }
   /** 도로는 내 건물이나 내 도로에 이어져야 한다 (남의 건물을 건너서는 안 됨) */
   canRoad(p, e, near = null) {
-    if (e == null || !EDGES[e] || this.roads[e] != null) return false;
-    const ends = [EDGES[e].a, EDGES[e].b];
+    if (e == null || !this.M.EDGES[e] || this.roads[e] != null) return false;
+    const ends = [this.M.EDGES[e].a, this.M.EDGES[e].b];
     if (near != null) return ends.includes(near);
     return ends.some((v) => {
       const b = this.buildings[v];
       if (b && b.pid === p.pid) return true;
       if (b && b.pid !== p.pid) return false;
-      return VERTS[v].edges.some((o) => o !== e && this.roads[o] === p.pid);
+      return this.M.VERTS[v].edges.some((o) => o !== e && this.roads[o] === p.pid);
     });
   }
   canCity(p, v) {
@@ -163,16 +176,16 @@ class Game {
     return !!(b && b.pid === p.pid && b.type === 'settlement');
   }
   spots(p, kind) {
-    if (kind === 'road') return EDGES.map((e) => e.id).filter((e) => this.canRoad(p, e));
-    if (kind === 'settlement') return VERTS.map((v) => v.id).filter((v) => this.canSettle(p, v));
-    if (kind === 'city') return VERTS.map((v) => v.id).filter((v) => this.canCity(p, v));
+    if (kind === 'road') return this.M.EDGES.map((e) => e.id).filter((e) => this.canRoad(p, e));
+    if (kind === 'settlement') return this.M.VERTS.map((v) => v.id).filter((v) => this.canSettle(p, v));
+    if (kind === 'city') return this.M.VERTS.map((v) => v.id).filter((v) => this.canCity(p, v));
     return [];
   }
 
   // ───────────────────────── 최장 교역로 · 최강 기사단
 
   longestRoad(p) {
-    const mine = EDGES.filter((e) => this.roads[e.id] === p.pid);
+    const mine = this.M.EDGES.filter((e) => this.roads[e.id] === p.pid);
     if (!mine.length) return 0;
     const blocked = (v) => this.buildings[v] && this.buildings[v].pid !== p.pid;
     let best = 0;
@@ -180,10 +193,10 @@ class Game {
     const walk = (v, len) => {
       if (len > best) best = len;
       if (len > 0 && blocked(v)) return;
-      for (const eid of VERTS[v].edges) {
+      for (const eid of this.M.VERTS[v].edges) {
         if (used.has(eid) || this.roads[eid] !== p.pid) continue;
         used.add(eid);
-        const e = EDGES[eid];
+        const e = this.M.EDGES[eid];
         walk(e.a === v ? e.b : e.a, len + 1);
         used.delete(eid);
       }
@@ -390,7 +403,7 @@ class Game {
     const second = this.setup.i >= this.players.length;
     if (second) {
       const got = I.emptyRes();
-      for (const h of VERTS[v].hexes) {
+      for (const h of this.M.VERTS[v].hexes) {
         const r = I.TERRAIN[this.hexes[h].terrain].res;
         if (r && this.bank[r] > 0) { got[r]++; p.res[r]++; this.bank[r]--; }
       }
@@ -458,7 +471,7 @@ class Game {
 
   produce(n) {
     const want = {};          // res → pid → 수량
-    for (const h of HEXES) {
+    for (const h of this.M.HEXES) {
       const tile = this.hexes[h.id];
       if (tile.number !== n || h.id === this.robber) continue;
       const r = I.TERRAIN[tile.terrain].res;
@@ -508,12 +521,12 @@ class Game {
 
   moveRobber(p, hex) {
     hex = Number(hex);
-    if (!Number.isInteger(hex) || !HEXES[hex]) return err('칸을 고르세요');
+    if (!Number.isInteger(hex) || !this.M.HEXES[hex]) return err('칸을 고르세요');
     if (hex === this.robber) return err('도적은 다른 칸으로 옮겨야 해요');
     this.robber = hex;
     this.event({ type: 'robber', pid: p.pid, hex });
     this.addLog('bad', `{p:${p.pid}} 도적을 {h:${hex}}(으)로 옮겼습니다`);
-    const victims = [...new Set(HEXES[hex].verts.map((v) => this.buildings[v]).filter(Boolean).map((b) => b.pid))]
+    const victims = [...new Set(this.M.HEXES[hex].verts.map((v) => this.buildings[v]).filter(Boolean).map((b) => b.pid))]
       .filter((pid) => pid !== p.pid && I.total(this.pl(pid).res) > 0);
     if (victims.length === 1) return this.doSteal(p, victims[0]);
     if (victims.length > 1) {
@@ -730,10 +743,10 @@ class Game {
 
   scoreVertex(p, v) {
     const seen = new Set(RES.filter((r) => p && Object.values(this.buildings).some((b) => b.pid === p.pid)
-      && VERTS.some((u) => this.buildings[u.id] && this.buildings[u.id].pid === p.pid && u.hexes.some((h) => I.TERRAIN[this.hexes[h].terrain].res === r))));
+      && this.M.VERTS.some((u) => this.buildings[u.id] && this.buildings[u.id].pid === p.pid && u.hexes.some((h) => I.TERRAIN[this.hexes[h].terrain].res === r))));
     let s = 0;
     const kinds = new Set();
-    for (const h of VERTS[v].hexes) {
+    for (const h of this.M.VERTS[v].hexes) {
       const t = this.hexes[h];
       const r = I.TERRAIN[t.terrain].res;
       if (!r) continue;
@@ -762,11 +775,11 @@ class Game {
     let best = null;
     let bs = -Infinity;
     for (const e of candidates) {
-      const E = EDGES[e];
+      const E = this.M.EDGES[e];
       let s = -1;
       for (const v of [E.a, E.b]) {
         if (this.vertexFree(v)) s = Math.max(s, this.scoreVertex(p, v));
-        for (const u of VERTS[v].adj) if (this.vertexFree(u)) s = Math.max(s, this.scoreVertex(p, u) * 0.7);
+        for (const u of this.M.VERTS[v].adj) if (this.vertexFree(u)) s = Math.max(s, this.scoreVertex(p, u) * 0.7);
       }
       s += Math.random() * 0.5;
       if (s > bs) { bs = s; best = e; }
@@ -793,11 +806,11 @@ class Game {
   botDecide(p, what) {
     switch (what) {
       case 'setupSettlement': {
-        const list = VERTS.map((v) => v.id).filter((v) => this.canSettle(p, v, true));
+        const list = this.M.VERTS.map((v) => v.id).filter((v) => this.canSettle(p, v, true));
         return { type: 'settle', v: this.bestSpot(p, list) };
       }
       case 'setupRoad': {
-        const list = VERTS[this.setup.last].edges.filter((e) => this.canRoad(p, e, this.setup.last));
+        const list = this.M.VERTS[this.setup.last].edges.filter((e) => this.canRoad(p, e, this.setup.last));
         return { type: 'road', e: this.roadTarget(p, list) };
       }
       case 'discard': {
@@ -818,7 +831,7 @@ class Game {
       case 'robber': {
         let best = null;
         let bs = -Infinity;
-        for (const h of HEXES) {
+        for (const h of this.M.HEXES) {
           if (h.id === this.robber) continue;
           const t = this.hexes[h.id];
           let s = 0;
@@ -845,7 +858,7 @@ class Game {
       }
       case 'roll': {
         const knight = p.dev.find((d) => d.type === 'knight' && d.turn !== this.turnNo);
-        const robbed = HEXES[this.robber].verts.some((v) => this.buildings[v] && this.buildings[v].pid === p.pid);
+        const robbed = this.M.HEXES[this.robber].verts.some((v) => this.buildings[v] && this.buildings[v].pid === p.pid);
         if (knight && !this.turn.devPlayed && robbed) return { type: 'playDev', card: knight.id };
         return { type: 'roll' };
       }
@@ -930,7 +943,7 @@ class Game {
       r = this.apply(p, fallback, true);
       if (!r.ok && n.what !== 'main') {
         // 그래도 안 되면 첫 번째로 가능한 선택
-        if (n.what === 'robber') this.apply(p, { type: 'robber', hex: HEXES.find((h) => h.id !== this.robber).id }, true);
+        if (n.what === 'robber') this.apply(p, { type: 'robber', hex: this.M.HEXES.find((h) => h.id !== this.robber).id }, true);
       }
     }
     this.arm();
@@ -965,6 +978,7 @@ class Game {
     const needs = this.needs();
     return {
       id: this.id,
+      map: this.mapId,
       phase: this.phase,
       players: this.players.map((p) => ({
         pid: p.pid, name: p.name, isBot: p.isBot, color: p.color, seat: p.seat,
@@ -998,7 +1012,7 @@ class Game {
   audit() {
     const sum = { ...this.bank };
     for (const p of this.players) for (const r of RES) sum[r] += p.res[r];
-    const bad = RES.filter((r) => sum[r] !== I.BANK_EACH);
+    const bad = RES.filter((r) => sum[r] !== this.M.BANK_EACH);
     const neg = this.players.some((p) => RES.some((r) => p.res[r] < 0)) || RES.some((r) => this.bank[r] < 0);
     const pieces = this.players.every((p) => {
       const s = Object.values(this.buildings).filter((b) => b.pid === p.pid && b.type === 'settlement').length;
