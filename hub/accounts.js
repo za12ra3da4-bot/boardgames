@@ -254,4 +254,22 @@ function cleanEmote(data) {
   return { id, avatar: PARTS.clean(data.avatar) };
 }
 
-module.exports = { mount, userFromCookieHeader, cleanEmote };
+/* ───── 봉인: 서버만 열 수 있게 암호화 (방 저장 사본을 브라우저에 맡길 때) */
+const SEAL_KEY = crypto.createHash('sha256').update(`bg-seal:${SECRET}`).digest();
+function seal(buf) {
+  const iv = crypto.randomBytes(12);
+  const c = crypto.createCipheriv('aes-256-gcm', SEAL_KEY, iv);
+  const body = Buffer.concat([c.update(buf), c.final()]);
+  return Buffer.concat([iv, c.getAuthTag(), body]).toString('base64url');
+}
+function unseal(s) {
+  try {
+    const b = Buffer.from(String(s || ''), 'base64url');
+    if (b.length < 29) return null;
+    const d = crypto.createDecipheriv('aes-256-gcm', SEAL_KEY, b.subarray(0, 12));
+    d.setAuthTag(b.subarray(12, 28));
+    return Buffer.concat([d.update(b.subarray(28)), d.final()]);
+  } catch (_) { return null; }
+}
+
+module.exports = { mount, userFromCookieHeader, cleanEmote, seal, unseal };
