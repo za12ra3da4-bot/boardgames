@@ -1115,6 +1115,7 @@ async function playEndingFilm() {
     laugh: () => SFX.lose(),
     bell: () => SFX.win(),
     wind: () => SFX.flip(),
+    whistle: () => SFX.bell(),
   };
   try {
     await playEnding($('#ending'), g.over.winners, { sub: myRole ? (iWon ? '당신의 승리입니다' : '당신은 패배했습니다') : '', sound: (k) => SND[k] && SND[k]() });

@@ -7,8 +7,9 @@
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;700;900&family=Rye&family=Jua&family=Nanum+Myeongjo:wght@800&family=Cinzel:wght@700;900&family=Fredoka:wght@600;700&family=Hahmlet:wght@700;900&family=Song+Myung&family=Special+Elite&family=Playfair+Display+SC:wght@700;900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;700;900&family=Rye&family=Jua&family=Nanum+Myeongjo:wght@800&family=Cinzel:wght@700;900&family=Fredoka:wght@600;700&family=Hahmlet:wght@700;900&family=Song+Myung&family=Gowun+Batang:wght@700&family=Special+Elite&family=Playfair+Display+SC:wght@700;900&display=swap">
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="/anim/anim.css">
 </head>
 <body>
 
@@ -25,6 +26,7 @@
     <code id="addr-url">—</code>
     <button type="button" id="copy" class="btn">복사</button>
   </div>
+  <button type="button" id="filmBtn" class="btn admin-btn" hidden>결말 영상 보기</button>
   <button type="button" id="adminBtn" class="btn admin-btn">관리자</button>
 </header>
 
@@ -40,6 +42,16 @@
     </div>
   </form>
 </div>
+
+<div class="dialog" id="filmDialog" hidden>
+  <div class="dialog-box film-box">
+    <b>결말 영상 미리 보기</b>
+    <p>게임을 하지 않아도 끝날 때 나오는 영상을 볼 수 있어요. (관리자 전용)</p>
+    <div class="film-list" id="filmList"></div>
+    <div class="dialog-btns"><button type="button" class="btn ghost" id="filmClose">닫기</button></div>
+  </div>
+</div>
+<div id="filmHost" hidden></div>
 
 <main class="wrap">
   <div class="shelf-head">

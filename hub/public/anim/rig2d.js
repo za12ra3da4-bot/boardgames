@@ -119,66 +119,53 @@ function wolfDef() {
   };
 }
 
-function humanDef(color = '#0a0c14', tool = null) {
-  const c = color;
-  const armDef = (s) => ({
-    name: `${s}Upper`, x: s === 'f' ? 8 : -4, y: -60, shapes: [{ d: limb(48, 16, 12, 2), fill: c }],
-    children: [{
-      name: `${s}Fore`, x: 0, y: 46, shapes: [{ d: limb(44, 12, 10, 1), fill: c }, { d: 'M-6 44a7 7 0 1 0 12 0a7 7 0 1 0 -12 0Z', fill: c }],
-      children: s === 'f' && tool ? [{ name: 'tool', x: 0, y: 48, shapes: tool }] : [],
-    }],
-  });
-  const legDef = (s) => ({
-    name: `${s}Thigh`, x: s === 'f' ? 6 : -6, y: -92, shapes: [{ d: limb(50, 20, 15, 2), fill: c }],
-    children: [{ name: `${s}Shin`, x: 0, y: 48, shapes: [{ d: limb(46, 15, 11, 1), fill: c }, { d: 'M-6 42h24v8h-26Z', fill: c }] }],
-  });
-  return {
-    name: 'root', x: 0, y: 0,
-    children: [
-      legDef('b'),
-      {
-        name: 'body', x: 0, y: -92,
-        children: [
-          armDef('b'),
-          { name: 'bodySkin', x: 0, y: 0, shapes: [{ d: 'M-16 4C-20 -20 -22 -50 -16 -66C-10 -72 10 -72 16 -66C22 -50 20 -20 16 4Z', fill: c }, { d: 'M-18 -8h36v10h-36Z', fill: c }] },
-          {
-            name: 'head', x: 0, y: -70,
-            shapes: [{ d: 'M-4 0v-6a14 15 0 1 1 8 0v6Z', fill: c }, { d: 'M-16 -22Q0 -36 18 -22L22 -18H-20Z', fill: c, cls: 'hat' }],
-          },
-          armDef('f'),
-        ],
-      },
-      legDef('f'),
-    ],
-  };
-}
+/* ═════════ 사람 몸 (실제 비율 · 옆모습 해부학 실루엣) ═════════
+   키 약 180: 발 0 · 골반 -92 · 어깨 -158 · 머리 꼭대기 -185 (머리 7.5등신) */
+const BODY_PARTS = {
+  torso: 'M-12 6C-16 -8 -17 -22 -13 -34C-10 -44 -15 -56 -13 -64C-9 -71 4 -73 12 -69C16 -63 18 -55 16 -47C14 -38 10 -30 11 -20C12 -9 14 -1 12 6C4 9 -6 9 -12 6Z',
+  neck: 'M-5 -66L-4 -77L5 -77L7 -66Z',
+  head: 'M-8 0C-12 -6 -13 -16 -10 -22C-6 -29 5 -30 10 -24C12 -20 12 -17 12 -13L15.5 -8.5L12 -6.5C12 -4 11 -1 7 0.5C3 1.5 -3 2.5 -8 0Z',
+  ear: 'M-3 -15a3 4 0 1 0 0.1 0Z',
+  upper: 'M-6 0C-8 7 -6.5 18 -4.5 30L4.5 30C6 20 8.5 8 6 0C3.5 -4.5 -3.5 -4.5 -6 0Z',
+  fore: 'M-4.6 0C-5.6 9 -4.2 19 -3 28L3 28C4.2 18 5.8 8 4.6 0C3 -3 -3 -3 -4.6 0Z',
+  hand: 'M-3.6 0C-4.4 5 -3.8 10 -1.5 13.5L2.6 13C4.6 9 4.8 4 3.6 0Z M3 2.5C6.5 4 7.5 7 6 9.5L3.5 7Z',
+  thigh: 'M-9 0C-11 12 -9.5 30 -6 46L5.5 46C8.5 31 11 15 9 0C5 -4 -5 -4 -9 0Z',
+  shin: 'M-5.6 0C-9 10 -6.5 26 -4 40L3.5 40C4 28 5.8 12 5 0C2 -3 -3 -3 -5.6 0Z',
+  boot: 'M-5 36L-5.5 45.5L17 45.5C17.5 43 16 41 12 40L4 37.5L3.5 35Z',
+  bootSole: 'M-6 45.5H18V47.5H-6Z',
+};
 
-/** 카우보이: 넓은 챙 모자, 긴 코트 자락, 조끼 별, 권총집, 장화 */
-function cowboyDef({ color = '#0a0c14', hat = 'wide', coat = true, poncho = false, star = false, bandana = null } = {}) {
+function personDef({ color = '#0a0c14', tool = null, hat = null, coat = false, poncho = false, star = false, bandana = null, dual = false, gun = false } = {}) {
   const c = color;
+  const hats = {
+    cap: [{ d: 'M-11 -20C-10 -30 8 -31 11 -22L17 -20L10 -18H-11Z', fill: c }],
+    straw: [{ d: 'M-22 -18Q0 -14 24 -19Q18 -13 10 -14Q9 -31 0 -31Q-10 -31 -11 -14Q-18 -13 -22 -18Z', fill: c }],
+    wide: [{ d: 'M-30 -20Q0 -15 32 -21Q27 -15 17 -15Q14 -35 0 -35Q-14 -35 -16 -15Q-25 -15 -30 -20Z', fill: c }],
+    sheriff: [{ d: 'M-32 -18Q-16 -12 0 -13Q18 -12 34 -20Q29 -12 17 -13Q16 -37 5 -34Q0 -31 -5 -34Q-16 -37 -18 -13Q-27 -12 -32 -18Z', fill: c }],
+    sombrero: [{ d: 'M-44 -15Q0 -5 46 -15Q40 -7 16 -10Q11 -40 0 -42Q-11 -40 -16 -10Q-40 -7 -44 -15Z', fill: c }],
+  };
+  const hand = (s) => ({
+    name: `${s}Hand`, x: 0, y: 28, shapes: [{ d: BODY_PARTS.hand, fill: c }],
+    children: gun && (s === 'f' || dual) ? [{ name: `${s}Gun`, x: 0, y: 7, shapes: GUN }]
+      : gun ? [{ name: `${s}Gun`, x: 0, y: 7, shapes: [] }]
+        : s === 'f' && tool ? [{ name: 'tool', x: 0, y: 7, shapes: tool }] : [],
+  });
   const armDef = (s) => ({
-    name: `${s}Upper`, x: s === 'f' ? 8 : -4, y: -60, shapes: [{ d: limb(48, 18, 13, 3), fill: c }],
-    children: [{
-      name: `${s}Fore`, x: 0, y: 46, shapes: [{ d: limb(44, 13, 10, 1), fill: c }, { d: 'M-7 44a7 7 0 1 0 14 0a7 7 0 1 0 -14 0Z', fill: c }],
-      children: [{ name: `${s}Gun`, x: 0, y: 46, shapes: s === 'f' ? GUN : GUN_B }],
-    }],
+    name: `${s}Upper`, x: s === 'f' ? 3 : -3, y: -64, shapes: [{ d: BODY_PARTS.upper, fill: c }],
+    children: [{ name: `${s}Fore`, x: 0, y: 29, shapes: [{ d: BODY_PARTS.fore, fill: c }], children: [hand(s)] }],
   });
   const legDef = (s) => ({
-    name: `${s}Thigh`, x: s === 'f' ? 6 : -6, y: -92, shapes: [{ d: limb(50, 21, 15, 2), fill: c }],
-    children: [{ name: `${s}Shin`, x: 0, y: 48, shapes: [{ d: limb(46, 16, 13, 1), fill: c }, { d: 'M-8 36h16l2 10h14l2 6h-34Z', fill: c }, { d: 'M8 50l6 -2', stroke: '#8a8a90', sw: 2 }] }],
+    name: `${s}Thigh`, x: s === 'f' ? 3 : -3, y: -92, shapes: [{ d: BODY_PARTS.thigh, fill: c }],
+    children: [{ name: `${s}Shin`, x: 0, y: 45, shapes: [{ d: BODY_PARTS.shin, fill: c }, { d: BODY_PARTS.boot, fill: c }, { d: BODY_PARTS.bootSole, fill: c }].concat(gun ? [{ d: 'M14 44l4 -2', stroke: '#8a8a90', sw: 1.4 }] : []) }],
   });
-  const hats = {
-    wide: [{ d: 'M-38 -24Q0 -18 40 -26Q34 -18 22 -18Q18 -44 0 -44Q-18 -44 -20 -18Q-32 -18 -38 -24Z', fill: c }],
-    sheriff: [{ d: 'M-40 -22Q-20 -14 0 -16Q22 -14 42 -24Q36 -14 22 -16Q20 -46 6 -42Q0 -38 -6 -42Q-20 -46 -22 -16Q-34 -14 -40 -22Z', fill: c }],
-    sombrero: [{ d: 'M-56 -18Q0 -6 58 -18Q50 -8 20 -12Q14 -50 0 -52Q-14 -50 -20 -12Q-50 -8 -56 -18Z', fill: c }],
-  };
-  const bodyShapes = [{ d: 'M-17 4C-22 -20 -24 -50 -17 -66C-10 -72 10 -72 17 -66C24 -50 22 -20 17 4Z', fill: c }];
-  if (coat) bodyShapes.push({ d: 'M-18 -10L-26 56L-10 50L-6 -2Z M16 -10L24 52L10 48L6 -2Z', fill: c, cls: 'coat' });
-  if (poncho) bodyShapes.push({ d: 'M-26 -64L-34 -10L0 4L34 -10L26 -64Z', fill: c }, { d: 'M-30 -30L30 -30M-32 -18L32 -18', stroke: '#8a3a1a', sw: 3, op: 0.8 });
-  bodyShapes.push({ d: 'M-18 -6h36v7h-36Z', fill: c }, { d: 'M10 -4h10v22h-10Z', fill: c });
-  if (star) bodyShapes.push({ d: 'M8 -52l2.4 5 5.4.6-4 3.8 1 5.4-4.8-2.6-4.8 2.6 1-5.4-4-3.8 5.4-.6Z', fill: '#f0c848', cls: 'star' });
-  const headShapes = [{ d: 'M-4 0v-6a14 15 0 1 1 8 0v6Z', fill: c }];
-  if (bandana) headShapes.push({ d: 'M-12 -10Q2 -2 14 -12L14 -4Q2 6 -12 -2Z', fill: bandana });
+  const bodyShapes = [{ d: BODY_PARTS.torso, fill: c }, { d: BODY_PARTS.neck, fill: c }];
+  if (coat) bodyShapes.push({ d: 'M-13 -64C-16 -40 -18 -10 -21 36L-6 32L-1 -2Z M12 -62C16 -40 17 -10 20 34L7 30L4 -4Z', fill: c, cls: 'coat' }, { d: 'M8 -62L2 -30M-2 -64l-4 30', stroke: c, sw: 1.5 });
+  if (gun) bodyShapes.push({ d: 'M-13 -5H15V0H-13Z', fill: c }, { d: 'M9 -2H16V16H9Z', fill: c });
+  else bodyShapes.push({ d: 'M-13 -4H14V0H-13Z', fill: c });
+  if (star) bodyShapes.push({ d: 'M9 -52l1.9 4 4.3.5-3.2 3 .8 4.3-3.8-2.1-3.8 2.1.8-4.3-3.2-3 4.3-.5Z', fill: '#f0c848', cls: 'star' });
+  const headShapes = [{ d: BODY_PARTS.head, fill: c }, { d: BODY_PARTS.ear, fill: c }];
+  if (bandana) headShapes.push({ d: 'M-10 -8Q2 0 13 -9L13 -3Q2 5 -10 -1Z', fill: bandana });
+  const ponchoNode = poncho ? [{ name: 'poncho', x: 0, y: -64, shapes: [{ d: 'M-17 0L-27 44L-14 38L-4 50L6 40L16 50L27 42L17 0Z', fill: c }, { d: 'M-24 26L24 26M-26 36L26 36', stroke: '#8a3a1a', sw: 2.4, op: 0.8 }] }] : [];
   return {
     name: 'root', x: 0, y: 0,
     children: [
@@ -188,7 +175,8 @@ function cowboyDef({ color = '#0a0c14', hat = 'wide', coat = true, poncho = fals
         children: [
           armDef('b'),
           { name: 'bodySkin', x: 0, y: 0, shapes: bodyShapes },
-          { name: 'head', x: 0, y: -70, shapes: headShapes, children: [{ name: 'hat', x: 0, y: 0, shapes: hats[hat] }] },
+          { name: 'head', x: 1, y: -76, shapes: headShapes, children: [{ name: 'hat', x: 0, y: 0, shapes: hat ? hats[hat] : [] }] },
+          ...ponchoNode,
           armDef('f'),
         ],
       },
@@ -196,6 +184,9 @@ function cowboyDef({ color = '#0a0c14', hat = 'wide', coat = true, poncho = fals
     ],
   };
 }
+const humanDef = (color, tool) => personDef({ color, tool, hat: 'cap' });
+const cowboyDef = (look = {}) => personDef({ ...look, gun: true, hat: look.hat || 'wide' });
+
 /** 권총 (손에서 +y 방향으로 총열) */
 const GUN = [
   { d: 'M-5 -8h9l2 10h-8Z', fill: '#1a1410' },
@@ -348,13 +339,18 @@ export const makeHuman = (parent, { color, tool, ...opts } = {}) => new Rig(pare
 export const makeCowboy = (parent, { look = {}, ...opts } = {}) => new Rig(parent, cowboyDef(look), { rim: '#ffd8a0', ...opts });
 
 export const COWBOY_POSE = {
-  ready: { fUpper: 14, fFore: -30, fGun: 180, bUpper: -8, bFore: -10, body: 0, head: 0, fThigh: -10, fShin: 10, bThigh: 12, bShin: 4 },
+  ready: { fUpper: 14, fFore: -30, fGun: 0, bUpper: -8, bFore: -10, body: 0, head: 0, fThigh: -10, fShin: 10, bThigh: 12, bShin: 4 },
   aim: { fUpper: -86, fFore: -4, fGun: 0, bUpper: -8, bFore: -10, body: 4, head: 2, fThigh: -12, fShin: 12, bThigh: 14, bShin: 4 },
   recoil: { fUpper: -110, fFore: -14, fGun: 0, body: -6, head: -6 },
   hit: { fUpper: -30, fFore: -120, bUpper: 40, bFore: -60, body: -24, head: -30, fThigh: -30, fShin: 50, bThigh: 20, bShin: 30 },
   down: { fUpper: -160, fFore: -20, bUpper: 150, bFore: -20, body: -10, head: 20, fThigh: -20, fShin: 10, bThigh: -10, bShin: 10 },
-  holster: { fUpper: 10, fFore: -10, fGun: 180, bUpper: -8, bFore: -10, body: 0, head: 0, fThigh: -4, fShin: 4, bThigh: 4, bShin: 2 },
+  holster: { fUpper: 10, fFore: -10, fGun: 0, bGun: 0, bUpper: -8, bFore: -10, body: 0, head: 0, fThigh: -4, fShin: 4, bThigh: 4, bShin: 2 },
   blow: { fUpper: -40, fFore: -130, fGun: -10, bUpper: 10, bFore: -30, body: 0, head: 10 },
+  lookUp: { fUpper: 14, fFore: -30, fGun: 0, bUpper: -8, bFore: -10, body: -6, head: -34 },
+  tipHat: { fUpper: -150, fFore: -100, fGun: 100, bUpper: -8, bFore: -10, body: 0, head: -6, 'hat.y': -4, hat: -8 },
+  dualAim: { fUpper: -90, fFore: 0, fGun: 0, bUpper: 90, bFore: 0, bGun: 0, body: 0, head: 0 },
+  leap: { fUpper: -150, fFore: -20, bUpper: 150, bFore: 20, body: -10, head: -6, fThigh: -80, fShin: 110, bThigh: 30, bShin: 90, poncho: -20 },
+  kneel: { fUpper: -60, fFore: -40, fGun: 0, bUpper: 60, bFore: 30, bGun: 0, body: 16, head: -4, fThigh: -90, fShin: 100, bThigh: 20, bShin: 120, poncho: 10 },
 };
 
 /* ═════════ 자주 쓰는 자세 ═════════ */

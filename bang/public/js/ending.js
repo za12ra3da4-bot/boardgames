@@ -100,7 +100,7 @@ const LOOKS = {
   sheriff: { hat: 'sheriff', coat: true, star: true },
   deputy: { hat: 'wide', coat: false, star: true },
   outlaw: { hat: 'wide', coat: true, bandana: '#8a1a1a' },
-  renegade: { hat: 'sombrero', coat: false, poncho: true },
+  renegade: { hat: 'sombrero', coat: false, poncho: true, dual: true },
 };
 
 function cowboy(w, role, x, y, scale, { flip = false, rim, color } = {}) {
@@ -225,7 +225,7 @@ function finale(D, kind, at) {
       const sh = cowboy(w, 'sheriff', 700, 780, 1.9, { color: '#0a0606' });
       const dp = cowboy(w, 'deputy', 940, 790, 1.6, { flip: true, color: '#0a0606' });
       sh.set(COWBOY_POSE.aim);
-      const spin = motion(sh, [[0, COWBOY_POSE.aim], [0.6, { ...COWBOY_POSE.ready, fGun: 180 + 720 }, 'out'], [1.2, { ...COWBOY_POSE.holster, fGun: 180 + 720 }], [4, COWBOY_POSE.holster]]);
+      const spin = motion(sh, [[0, COWBOY_POSE.aim], [0.6, { ...COWBOY_POSE.ready, fGun: 720 }, 'out'], [1.2, { ...COWBOY_POSE.holster, fGun: 720 }], [4, COWBOY_POSE.holster]]);
       D.tick((s) => {
         spin(s);
         dp.set({ ...COWBOY_POSE.holster, fUpper: -20 + Math.sin(s * 2) * 4, bUpper: 20 });
@@ -241,39 +241,114 @@ function finale(D, kind, at) {
 const SCENES = {
   outlaw(D) { duel(D, 'outlaw'); finale(D, 'outlaw', 9.4); },
   sheriff(D) { duel(D, 'sheriff'); finale(D, 'sheriff', 9.4); },
-  /* 배신자: 모두 쓰러진 거리에 홀로 남아 석양 속으로 걸어간다 */
+  /* 배신자: 1대1 결투 직전, 드리운 그림자 → 지붕 위 배신자 → 슬로모션 쌍권총 → 착지 → 권총 돌려 넣고 모자 인사 */
   renegade(D) {
+    const standoff = (cls) => {
+      D.cut(`${layer(svg(town('noon')), cls)}<div class="dust"></div>`);
+      const w = D.world();
+      const L = cowboy(w, 'sheriff', 420, 800, 1.5);
+      const R = cowboy(w, 'outlaw', 1180, 800, 1.5, { flip: true });
+      return { w, L, R };
+    };
+    // 1. 마주 선 두 사람
     D.at(0, () => {
       D.sound('start:duel');
-      D.cut(`${layer(svg(town('sunset', { sunY: 520 })), 'street')}<div class="dust thick"></div>`);
-      const w = D.world();
-      const bodies = [[360, 830, 80, 'sheriff'], [620, 850, -84, 'outlaw'], [1020, 840, 86, 'deputy'], [1260, 820, -80, 'outlaw']].map(([x, y, rot, role]) => {
-        const c = cowboy(w, role, x, y, 1.3, { color: '#0a0404', rim: '#ff9060' });
-        c.set({ ...COWBOY_POSE.down, rot });
-        return c;
-      });
-      const hero = cowboy(w, 'renegade', 800, 800, 1.9, { color: '#0a0404', rim: '#ffb060' });
-      hero.set(COWBOY_POSE.aim);
-      const m = motion(hero, [[0, COWBOY_POSE.aim], [1.4, COWBOY_POSE.aim], [2.2, COWBOY_POSE.holster, 'inOut'], [3, COWBOY_POSE.holster]]);
-      D.tick((s) => { m(s); hero.extra = { body: Math.sin(s * 1.4) }; hero.apply(); bodies.forEach((b, i) => { b.extra = { head: i === 1 ? Math.max(0, 1 - s) * 10 : 0 }; b.apply(); }); });
-      D.anim('.street', [{ transform: 'scale(1.2)' }, { transform: 'scale(1.05)' }], { duration: 3000, easing: 'ease-out' });
+      const { L, R } = standoff('street');
+      D.add(`<div class="tumble-wrap">${TUMBLE}</div>`);
+      D.tick((s) => { for (const c of [L, R]) { c.extra = { body: Math.sin(s * 1.5) * 0.8 }; c.apply(); } });
+      D.anim('.street', [{ transform: 'scale(1)' }, { transform: 'scale(1.08)' }], { duration: 2400, easing: 'linear' });
+      D.anim('.tumble-wrap', [{ transform: 'translateX(-20vw) rotate(0)' }, { transform: 'translateX(120vw) rotate(900deg)' }], { duration: 2600, easing: 'linear' });
     });
-    D.at(3.1, () => {
-      D.cut(`<div class="an-zoomer">${eyesShot('renegade')}</div>`);
-      D.anim('.an-zoomer', [{ transform: 'scale(1.3)' }, { transform: 'scale(1.08)' }], { duration: 1600, easing: 'ease-out' });
+    // 2~3. 눈, 눈, 손
+    D.at(2.2, () => { D.sound('tension'); D.cut(`<div class="an-zoomer">${eyesShot('sheriff')}</div>`); D.anim('.an-zoomer', [{ transform: 'scale(1.3)' }, { transform: 'scale(1.1)' }], { duration: 900, easing: 'ease-out' }); });
+    D.at(3.1, () => { D.cut(`<div class="an-zoomer">${eyesShot('outlaw')}</div>`); D.anim('.an-zoomer', [{ transform: 'scale(1.3)' }, { transform: 'scale(1.1)' }], { duration: 900, easing: 'ease-out' }); });
+    D.at(4.0, () => {
+      D.sound('tick');
+      D.cut(`<div class="an-zoomer">${handShot('sheriff')}</div>`);
+      for (let i = 0; i < 4; i++) D.anim(`.f${i}`, [{ transform: 'rotate(0deg)' }, { transform: `rotate(${i % 2 ? 6 : -6}deg)` }], { duration: 110 + i * 20, iterations: 8, direction: 'alternate' });
     });
+    // 4. 거리에 그림자가 스치고, 두 사람이 고개를 든다
     D.at(4.9, () => {
-      D.sound('wind');
-      D.cut(`${layer(svg(town('sunset', { sunY: 560 })), 'walk-bg')}<div class="tumble-wrap">${TUMBLE}</div><div class="dust"></div>`, 'with-title');
+      D.sound('whistle');
+      const { w, L, R } = standoff('street2');
+      w.insertAdjacentHTML('afterbegin', '<div class="ground-shadow"></div>');
+      const up = (c) => motion(c, [[0, COWBOY_POSE.ready], [0.5, COWBOY_POSE.ready], [0.9, COWBOY_POSE.lookUp, 'out'], [1.4, COWBOY_POSE.lookUp]]);
+      const a1 = up(L);
+      const a2 = up(R);
+      D.tick((s) => { a1(s); a2(s); });
+      D.anim('.ground-shadow', [{ transform: 'translateX(-40%) scaleX(1.4)', opacity: 0 }, { opacity: 0.6, offset: 0.3 }, { transform: 'translateX(40%) scaleX(1.4)', opacity: 0.6 }], { duration: 1300, easing: 'ease-in-out' });
+      D.anim('.street2', [{ transform: 'scale(1.08)' }, { transform: 'scale(1.1) translateY(2%)' }], { duration: 1300 });
+    });
+    // 5. 지붕 위 — 해를 등진 배신자, 판초가 바람에 날리고 모자챙을 올린다
+    D.at(6.2, () => {
+      D.cut(`${layer(svg(`${town('noon', { sunY: 250, sunX: 820 })}<path d="M0 900V560H1600V900Z" fill="#3a2414"/><path d="M0 560H1600" stroke="#1a0e06" stroke-width="10"/>`), 'roof')}<div class="an-rays" style="opacity:.7"></div>`);
       const w = D.world();
-      const hero = cowboy(w, 'renegade', 800, 880, 2.6, { color: '#0a0404', rim: '#ffb060' });
-      hero.set(COWBOY_POSE.holster);
+      const ren = cowboy(w, 'renegade', 820, 610, 2.1, { color: '#070303', rim: '#fff4c0' });
+      const m = motion(ren, [[0, COWBOY_POSE.holster], [0.7, COWBOY_POSE.holster], [1.2, COWBOY_POSE.tipHat, 'inOut'], [1.8, COWBOY_POSE.tipHat]]);
       D.tick((s) => {
-        const k = Math.max(0.35, 1 - s * 0.09);
-        hero.set({ ...walkPose(s * 0.9), scale: 2.6 * k, y: 880 - (1 - k) * 220, x: 800 });
+        m(s);
+        ren.extra = { poncho: Math.sin(s * 7) * 8 + 6, body: Math.sin(s * 1.5) * 0.6, bFore: Math.sin(s * 7 + 1) * 3 };
+        ren.apply();
       });
-      D.anim('.tumble-wrap', [{ transform: 'translateX(120vw) rotate(0)' }, { transform: 'translateX(-30vw) rotate(-900deg)' }], { duration: 3500, easing: 'linear', delay: 800 });
-      D.anim('.walk-bg', [{ transform: 'scale(1)' }, { transform: 'scale(1.1)' }], { duration: 7000, easing: 'linear' });
+      D.anim('.roof', [{ transform: 'scale(1.15) translateY(4%)' }, { transform: 'scale(1.02)' }], { duration: 1800, easing: 'ease-out' });
+      D.at(1.25, () => { D.add('<div class="glint" style="left:49%;top:30%"></div>'); D.anim('.glint', [{ opacity: 0, transform: 'scale(0)' }, { opacity: 1, transform: 'scale(1.6) rotate(90deg)' }, { opacity: 0, transform: 'scale(0) rotate(180deg)' }], { duration: 500 }); });
+    });
+    // 6. 슬로모션: 뛰어내리며 쌍권총, 양쪽으로 동시에 쏜다
+    D.at(8.0, () => {
+      D.cut(`${layer(svg(town('noon')), 'street3 slowmo')}${speedLines('#fff4d0', 26)}`, 'slowmo-shot');
+      const w = D.world();
+      const L = cowboy(w, 'sheriff', 330, 820, 1.7);
+      const R = cowboy(w, 'outlaw', 1270, 820, 1.7, { flip: true });
+      L.set(COWBOY_POSE.lookUp);
+      R.set(COWBOY_POSE.lookUp);
+      const ren = cowboy(w, 'renegade', 800, 180, 1.9, { color: '#070303', rim: '#fff4c0' });
+      const mr = motion(ren, [
+        [0, { ...COWBOY_POSE.leap, y: 180, rot: -14 }],
+        [0.8, { ...COWBOY_POSE.dualAim, y: 460, rot: 0, fThigh: -70, fShin: 100, bThigh: 20, bShin: 80, poncho: -30 }, 'out'],
+        [1.2, { ...COWBOY_POSE.dualAim, y: 560, fThigh: -70, fShin: 100, bThigh: 20, bShin: 80, poncho: -34 }],
+        [1.6, { ...COWBOY_POSE.kneel, y: 830 }, 'in'],
+      ]);
+      const hitL = motion(L, [[0, COWBOY_POSE.lookUp], [0.95, { ...COWBOY_POSE.aim, fUpper: -120, head: -20 }], [1.05, COWBOY_POSE.hit, 'snap'], [2.8, { ...COWBOY_POSE.down, rot: -82, y: 870, 'hat.x': -120, 'hat.y': -160, hat: -300 }, 'in']]);
+      const hitR = motion(R, [[0, COWBOY_POSE.lookUp], [0.95, { ...COWBOY_POSE.aim, fUpper: -120, head: -20 }], [1.05, COWBOY_POSE.hit, 'snap'], [2.8, { ...COWBOY_POSE.down, rot: -82, y: 870, 'hat.x': -120, 'hat.y': -160, hat: -300 }, 'in']]);
+      D.tick((s) => { mr(s); hitL(s); hitR(s); });
+      const trail = (x1, x2) => {
+        const tr = document.createElement('div');
+        tr.className = 'bullet-trail';
+        tr.style.left = `${Math.min(x1, x2)}px`;
+        tr.style.width = `${Math.abs(x2 - x1)}px`;
+        tr.style.top = '440px';
+        w.appendChild(tr);
+        tr.animate([{ transform: `scaleX(0)`, transformOrigin: x2 < x1 ? 'right' : 'left', opacity: 1 }, { transform: 'scaleX(1)', opacity: 1, offset: 0.4 }, { opacity: 0 }], { duration: 500, fill: 'forwards' });
+      };
+      const flash = (x) => {
+        const fl = document.createElement('div');
+        fl.className = 'muzzle';
+        fl.innerHTML = FLASH;
+        fl.style.left = `${x - 90}px`;
+        fl.style.top = '350px';
+        w.appendChild(fl);
+        fl.animate([{ transform: 'scale(.2)' }, { transform: 'scale(1.4)', offset: 0.3 }, { transform: 'scale(.5)', opacity: 0 }], { duration: 300, fill: 'forwards' });
+      };
+      D.at(0.85, () => { D.sound('gun'); D.sound('gun2'); D.flash('#fff', 160); D.impact(140); flash(620); flash(980); trail(620, 380); trail(980, 1220); D.shake(22, 500); });
+      D.at(1.0, () => D.sound('hit'));
+      D.at(1.6, () => { D.sound('thud'); D.shake(30, 500); D.add('<div class="dust-ring"></div>'); D.anim('.dust-ring', [{ transform: 'translate(-50%, -50%) scale(.2)', opacity: 0.9 }, { transform: 'translate(-50%, -50%) scale(2.6)', opacity: 0 }], { duration: 1100, easing: 'ease-out' }); });
+      D.anim('.street3', [{ transform: 'scale(1.2) translateY(-4%)' }, { transform: 'scale(1.05)' }], { duration: 3200, easing: 'ease-out' });
+    });
+    // 7. 석양: 일어나 권총을 돌려 넣고, 모자를 살짝 기울인다
+    D.at(11.3, () => {
+      D.sound('wind');
+      D.cut(`${layer(svg(town('sunset', { sunY: 520 })), 'fin')}<div class="dust thick"></div><div class="an-rays" style="opacity:.35"></div>`, 'with-title');
+      const w = D.world();
+      const ren = cowboy(w, 'renegade', 800, 860, 2.7, { color: '#070303', rim: '#ffb060' });
+      const m = motion(ren, [
+        [0, { ...COWBOY_POSE.kneel, fGun: 0, bGun: 0 }],
+        [0.8, { ...COWBOY_POSE.dualAim, fUpper: -40, bUpper: 40, fGun: 0, bGun: 0 }, 'inOut'],
+        [1.6, { ...COWBOY_POSE.holster, fGun: 1080, bGun: -1080, bUpper: -8 }, 'out'],
+        [2.4, { ...COWBOY_POSE.tipHat, fGun: 1080, bGun: -1080 }, 'inOut'],
+        [3.2, { ...COWBOY_POSE.holster, fGun: 1080, bGun: -1080 }, 'inOut'],
+      ]);
+      D.tick((s) => { m(s); ren.extra = { poncho: Math.sin(s * 5) * 7 + 4 }; ren.apply(); });
+      D.anim('.fin', [{ transform: 'scale(1)' }, { transform: 'scale(1.12)' }], { duration: 4600, easing: 'ease-out' });
     });
   },
 };
@@ -281,7 +356,7 @@ const SCENES = {
 const META = {
   outlaw: { title: '무법자의 승리', titleAt: 10.4, length: 15 },
   sheriff: { title: '보안관의 승리', titleAt: 10.4, length: 15 },
-  renegade: { title: '배신자의 승리', titleAt: 6.6, length: 13 },
+  renegade: { title: '배신자의 승리', titleAt: 13.4, length: 16.5 },
 };
 
 /**

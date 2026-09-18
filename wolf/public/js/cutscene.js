@@ -2,7 +2,7 @@
 import { makeWolf, makeHuman, motion, WOLF_POSE, HUMAN_POSE, runPose } from '/anim/rig2d.js';
 import { rnd, f, trees, svg, layer, houses, stars, MOON_DEFS, moonSvg, person, STAND, CHEER, POINT, focusLines, speedLines, sfxText, portrait, runner, playFilm } from '/anim/director.js';
 
-const LENGTH = { wolf: 16, village: 16, tanner: 14, none: 10 };
+const LENGTH = { wolf: 23, village: 16, tanner: 14, none: 10 };
 
 /* ═════════════ 늑대 전용 그림 ═════════════ */
 
@@ -92,14 +92,41 @@ const SCENES = {
       D.anim('.pan-fast', [{ transform: 'translateX(0) scale(1.15)' }, { transform: 'translateX(-18%) scale(1.15)' }], { duration: 3600 });
       D.anim('.win', [{ fill: '#ffc868' }, { fill: '#161c2c' }], { duration: 120, delay: 800, stagger: 120 });
     });
-    // 2. 겁에 질린 마을 사람 클로즈업
+    // 2. 변신: 밤길의 마을 사람이 달을 올려다보고, 가슴을 움켜쥐고, 몸이 꺾이며 늑대로
     D.at(3.4, () => {
       D.sound('whoosh');
-      D.cut(`<div class="an-bg" style="background:#0a1020"></div>${focusLines('#3a4a70')}${portrait('villager')}${sfxText('...!?', 'small', 'left:64%;top:16%')}`);
-      D.anim('.an-portrait', [{ transform: 'translate(-50%,-50%) scale(1.05)' }, { transform: 'translate(-50%,-50%) scale(1.35)' }], { duration: 1700, easing: 'ease-out' });
-      D.anim('.an-focus', [{ transform: 'scale(1.3)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }], { duration: 300 });
-      D.anim('.an-sfx', [{ transform: 'scale(0) rotate(-20deg)' }, { transform: 'scale(1.2) rotate(8deg)' }, { transform: 'scale(1) rotate(6deg)' }], { duration: 350, delay: 300 });
-      D.shake(6, 1600);
+      D.cut(`
+        ${layer(svg(`<defs><linearGradient id="s2" x2="0" y2="1"><stop offset="0" stop-color="#040818"/><stop offset="1" stop-color="#1c3060"/></linearGradient>${MOON_DEFS}</defs><rect width="1600" height="900" fill="url(#s2)"/>${stars(90, 13)}${moonSvg(1180, 210, 120)}`), 'm2')}
+        ${layer(svg(`<path d="M0 900V760H1600V900Z" fill="#05070e"/>${houses(780, false, 9)}`))}
+        <div class="an-fog"></div>`);
+      const w = D.world();
+      const man = makeHuman(w, { color: '#05070c', rim: '#b8c8ff', scale: 2.3, x: 760, y: 840 });
+      const wolf = wolfAt(w, 760, 850, 0.95);
+      wolf.set(WOLF_POSE.crouch);
+      wolf.svg.style.visibility = 'hidden';
+      const mv = motion(man, [
+        [0, { ...HUMAN_POSE.stand }],
+        [0.35, { ...HUMAN_POSE.stand, head: -32, body: -4 }, 'out'],
+        [0.7, { fUpper: -40, fFore: -120, bUpper: -30, bFore: -110, body: 12, head: -10 }, 'snap'],
+        [1.1, { fUpper: -20, fFore: -110, bUpper: -10, bFore: -110, body: 48, head: 20, fThigh: -40, fShin: 60, bThigh: 20, bShin: 50 }, 'inOut'],
+      ]);
+      D.tick((s) => {
+        mv(s);
+        if (s > 0.7 && s < 1.9) { man.extra = { body: Math.sin(s * 60) * 3, head: Math.sin(s * 47) * 4 }; man.apply(); }
+        // 번쩍이는 동안 사람과 늑대가 번갈아 보인다
+        if (s > 1.1) {
+          const strobe = s < 1.7 ? Math.floor(s * 14) % 2 === 0 : true;
+          wolf.svg.style.visibility = strobe ? 'visible' : 'hidden';
+          man.svg.style.visibility = strobe ? 'hidden' : 'visible';
+        }
+        wolf.extra = { chest: Math.sin(s * 30) * 2, tail1: Math.sin(s * 3) * 10 };
+        wolf.apply();
+      });
+      D.at(0.7, () => { D.sound('roar'); D.shake(8, 1000); });
+      D.at(1.15, () => { D.flash('#dfe8ff', 120); D.impact(90); });
+      D.at(1.45, () => { D.flash('#dfe8ff', 120); D.impact(90); });
+      D.at(1.7, () => { wolf.eyesOn(1); D.shake(16, 400); });
+      D.anim('.m2', [{ transform: 'scale(1.05)' }, { transform: 'scale(1.15)' }], { duration: 1800, easing: 'ease-in' });
     });
     // 3~4. 절벽 위 늑대인간: 웅크렸다가 일어서 포효하고, 고개를 젖혀 운다 (관절 하나하나)
     D.at(5.2, () => {
@@ -147,24 +174,83 @@ const SCENES = {
       D.anim('.an-sfx.howl', [{ transform: 'scale(.3) rotate(-12deg)', opacity: 0 }, { transform: 'scale(1.15) rotate(-6deg)', opacity: 1 }, { transform: 'scale(1) rotate(-6deg)', opacity: 1 }], { duration: 400 });
       D.anim('.an-focus', [{ opacity: 0.3, transform: 'scale(1)' }, { opacity: 0.9, transform: 'scale(1.06)' }, { opacity: 0.45, transform: 'scale(1)' }], { duration: 380, iterations: 5 });
     });
-    // 5. 눈 초근접 → 임팩트
-    D.at(10.4, () => {
+    // 5. 사냥: 마을 사람을 하나씩 — 등불 든 사람, 쇠스랑 든 사람, 문 앞에서 떠는 사람
+    const street = (seed, lit) => `${layer(svg(`<defs><linearGradient id="ks${seed}" x2="0" y2="1"><stop offset="0" stop-color="#050a1e"/><stop offset="1" stop-color="#1a2a50"/></linearGradient>${MOON_DEFS}</defs>
+      <rect width="1600" height="900" fill="url(#ks${seed})"/>${stars(60, seed)}${moonSvg(1300, 160, 80)}
+      ${houses(780, lit, seed)}<path d="M0 900V780H1600V900Z" fill="#06080e"/><path d="M0 800Q800 780 1600 800" stroke="#1a2440" stroke-width="3" fill="none"/>`), `kbg${seed}`)}<div class="an-fog"></div>`;
+    const kill = (at, { seed, from, victimX, tool, flip }) => {
+      D.at(at, () => {
+        D.sound('growl');
+        D.cut(street(seed, true));
+        const w = D.world();
+        const v = makeHuman(w, { color: '#0a0c14', rim: tool === 'torch' ? '#ffb070' : '#b8c8ff', tool, scale: 2.1, x: victimX, y: 790, flip: !flip });
+        v.set(HUMAN_POSE.stand);
+        const wolf = wolfAt(w, from, 850, 0.9, { flip });
+        wolf.set(WOLF_POSE.crouch);
+        wolf.eyesOn(1);
+        const dir = flip ? -1 : 1;
+        const mw = motion(wolf, [
+          [0, { ...WOLF_POSE.crouch, x: from, y: 850, rot: 0 }],
+          [0.35, { ...WOLF_POSE.crouch, x: from + dir * 60, y: 850 }, 'out'],
+          [0.75, { ...WOLF_POSE.roar, x: victimX - dir * 120, y: 700, rot: dir * 18 }, 'out'],
+          [0.95, { ...WOLF_POSE.roar, fUpper: -40, fFore: -10, x: victimX + dir * 90, y: 790, rot: dir * 10 }, 'snap'],
+          [1.6, { ...WOLF_POSE.crouch, x: victimX + dir * 330, y: 850, rot: 0 }, 'out'],
+        ]);
+        const mv = motion(v, [
+          [0, { ...HUMAN_POSE.stand }],
+          [0.3, { ...HUMAN_POSE.stand, head: -10 }],
+          [0.55, { fUpper: -120, fFore: -60, bUpper: -100, bFore: -70, body: -10, head: -20, tool: 60 }, 'snap'],
+          [0.95, { fUpper: -120, fFore: -60, bUpper: -100, bFore: -70, body: -10, head: -20, tool: 60 }],
+          [1.05, { fUpper: -160, fFore: -20, bUpper: 140, bFore: 20, body: 20, head: 30, rot: 0, x: victimX }, 'snap'],
+          [1.6, { fUpper: -170, fFore: -10, bUpper: 160, bFore: 10, body: 10, head: 20, rot: -dir * 88, x: victimX + dir * 40, y: 770 }, 'in'],
+        ]);
+        D.tick((s) => { mw(s); mv(s); wolf.extra = { tail2: Math.sin(s * 14) * 20, jaw: s > 0.6 && s < 1.1 ? 20 : 0 }; wolf.apply(); });
+        D.at(0.5, () => D.sound('scream'));
+        D.at(0.95, () => {
+          D.sound('slash');
+          D.flash('#ff2010', 160);
+          D.impact(120);
+          D.shake(26, 450);
+          const sp = document.createElement('div');
+          sp.className = 'blood';
+          sp.style.left = `${victimX - 180}px`;
+          sp.style.top = '330px';
+          sp.innerHTML = `<svg viewBox="-200 -200 400 400" width="360" height="360">${Array.from({ length: 16 }, (_, i) => { const a2 = (i / 16) * Math.PI * 2 + i; const L = 60 + (i % 5) * 26; return `<path d="M0 0L${Math.cos(a2 - 0.06) * L} ${Math.sin(a2 - 0.06) * L}Q${Math.cos(a2) * (L + 20)} ${Math.sin(a2) * (L + 20)} ${Math.cos(a2 + 0.06) * L} ${Math.sin(a2 + 0.06) * L}Z" fill="#8a0808"/><circle cx="${Math.cos(a2) * (L + 26)}" cy="${Math.sin(a2) * (L + 26)}" r="${4 + (i % 3) * 3}" fill="#8a0808"/>`; }).join('')}<circle r="40" fill="#a01010"/></svg>`;
+          w.appendChild(sp);
+          sp.animate([{ transform: 'scale(.2)', opacity: 1 }, { transform: 'scale(1)', opacity: 0.95, offset: 0.3 }, { transform: 'scale(1.05) translateY(20px)', opacity: 0.85 }], { duration: 900, fill: 'forwards', easing: 'ease-out' });
+          D.add(CLAW_SMALL);
+          D.anim('.cl', [{ clipPath: 'inset(0 100% 100% 0)' }, { clipPath: 'inset(0 0 0 0)' }], { duration: 200, stagger: 50 });
+          D.anim('.an-claw', [{ opacity: 1 }, { opacity: 1, offset: 0.6 }, { opacity: 0 }], { duration: 700 });
+        });
+        D.at(1.35, () => D.sound('thud'));
+        D.anim(`.kbg${seed}`, [{ transform: 'scale(1.06)' }, { transform: `scale(1.14) translateX(${-dir * 2}%)` }], { duration: 1600 });
+      });
+    };
+    kill(10.4, { seed: 21, from: -200, victimX: 900, tool: 'torch', flip: false });
+    kill(12.1, { seed: 33, from: 1800, victimX: 640, tool: 'fork', flip: true });
+    kill(13.8, { seed: 45, from: -220, victimX: 1020, tool: null, flip: false });
+    // 마지막 불빛이 꺼진다
+    D.at(15.5, () => {
+      D.sound('drone');
+      D.cut(`${street(57, true)}`);
+      D.anim('.win', [{ fill: '#ffc868' }, { fill: '#161c2c' }], { duration: 90, delay: 100, stagger: 90 });
+    });
+    // 6. 눈 초근접 → 임팩트 → 할퀴기
+    D.at(17.1, () => {
       D.cut(`<div class="an-zoomer">${wolfEyes()}</div>`);
       D.anim('.an-zoomer', [{ transform: 'scale(1.7)' }, { transform: 'scale(1.1)' }], { duration: 900, easing: 'cubic-bezier(.1,.9,.2,1)' });
       D.anim('.an-pupil', [{ transform: 'scaleX(1)' }, { transform: 'scaleX(.3)' }], { duration: 300, delay: 500, easing: 'ease-in' });
     });
-    D.at(11.15, () => { D.impact(260); D.sound('impact'); D.shake(26, 400); });
-    // 6. 할퀴기
-    D.at(11.6, () => {
+    D.at(17.85, () => { D.impact(260); D.sound('impact'); D.shake(26, 400); });
+    D.at(18.3, () => {
       D.sound('slash');
-      D.cut(`<div class="an-bg" style="background:radial-gradient(circle at 50% 50%, #5a0808, #0a0000)"></div>${CLAW}${sfxText('스악!!', 'slash', 'right:8%;bottom:16%')}`);
+      D.cut(`<div class="an-bg" style="background:radial-gradient(circle at 50% 50%, #5a0808, #0a0000)"></div>${CLAW}`);
       D.flash('#fff', 180);
       D.anim('.cl', [{ clipPath: 'inset(0 100% 100% 0)' }, { clipPath: 'inset(0 0 0 0)' }], { duration: 260, stagger: 70, easing: 'cubic-bezier(.2,.9,.3,1)' });
-      D.anim('.an-sfx', [{ transform: 'scale(2) rotate(10deg)', opacity: 0 }, { transform: 'scale(1) rotate(-8deg)', opacity: 1 }], { duration: 250, delay: 300 });
       D.shake(30, 600);
     });
     // 7. 핏빛 달 아래 제목
-    D.at(12.9, () => {
+    D.at(19.6, () => {
       D.cut(`
         ${layer(svg(`<defs><linearGradient id="s7" x2="0" y2="1"><stop offset="0" stop-color="#1a0000"/><stop offset=".6" stop-color="#5a0a0a"/><stop offset="1" stop-color="#8a1a10"/></linearGradient>
           <radialGradient id="rm"><stop offset="0" stop-color="#ffd0a0"/><stop offset=".7" stop-color="#e85a30"/><stop offset="1" stop-color="#a02010"/></radialGradient>
@@ -216,11 +302,31 @@ const SCENES = {
       D.anim('.an-sfx', [{ transform: 'scale(0) rotate(-10deg)' }, { transform: 'scale(1.15) rotate(-6deg)' }, { transform: 'scale(1) rotate(-6deg)' }], { duration: 350, delay: 200 });
       D.anim('.an-focus', [{ transform: 'rotate(0deg)' }, { transform: 'rotate(2deg)' }], { duration: 120, iterations: 14, direction: 'alternate' });
     });
-    // 3. 늑대인간 당황
+    // 3. 새벽빛에 몰린 늑대인간: 눈을 가리며 물러선다, 앞에는 쇠스랑 든 마을 사람들
     D.at(5, () => {
-      D.cut(`<div class="an-bg" style="background:#1a0a0a"></div>${focusLines('#ff9080', 100, 300)}${portrait('werewolf')}${sfxText('!!', 'small', 'right:16%;top:14%')}`);
-      D.shake(12, 900);
-      D.anim('.an-portrait', [{ transform: 'translate(-50%,-50%) scale(1.15)' }, { transform: 'translate(-53%,-50%) scale(1.15)' }], { duration: 60, iterations: 14, direction: 'alternate' });
+      D.cut(`${layer(svg(`<defs><linearGradient id="v3" x2="0" y2="1"><stop offset="0" stop-color="#2a2a5a"/><stop offset=".6" stop-color="#e88a50"/><stop offset="1" stop-color="#ffd890"/></linearGradient></defs><rect width="1600" height="900" fill="url(#v3)"/><circle cx="1180" cy="640" r="260" fill="#fff0b0" opacity=".55"/>${trees(20, 760, 140, 80, '#2a1420', 61)}<path d="M0 900V760H1600V900Z" fill="#1a0a10"/>`), 'v3bg')}<div class="an-rays" style="opacity:.5"></div>`);
+      const w = D.world();
+      const wolf = wolfAt(w, 1080, 790, 1.05, { rim: '#ffd8a0' });
+      wolf.eyesOn(1);
+      const mw = motion(wolf, [
+        [0, { ...WOLF_POSE.roar }],
+        [0.5, { ...WOLF_POSE.roar, jaw: 34 }, 'snap'],
+        [0.9, { ...WOLF_POSE.stand, fUpper: -150, fFore: -120, head: 20, neck: 10, x: 1110 }, 'out'],
+        [1.4, { ...WOLF_POSE.stand, fUpper: -150, fFore: -120, head: 26, neck: 16, x: 1150, chest: 16 }, 'inOut'],
+      ]);
+      const mob = [];
+      for (let i = 0; i < 4; i++) {
+        const h = makeHuman(w, { color: '#0a0406', rim: '#ffb070', tool: i % 2 ? 'fork' : 'torch', scale: 3.2 - i * 0.3, x: 200 + i * 160, y: 960 });
+        mob.push(h);
+      }
+      D.tick((s) => {
+        mw(s);
+        wolf.extra = { chest: Math.sin(s * 8) * 2, tail1: -10 + Math.sin(s * 10) * 6 };
+        wolf.apply();
+        mob.forEach((h, i) => h.set({ ...HUMAN_POSE.point, fUpper: -100 + Math.sin(s * 6 + i) * 8, tool: 100, x: 200 + i * 160 + s * 60 }));
+      });
+      D.at(0.5, () => { D.sound('roar'); D.shake(12, 600); });
+      D.anim('.v3bg', [{ transform: 'scale(1.1)' }, { transform: 'scale(1.18) translateX(-2%)' }], { duration: 1400 });
     });
     // 4. 쇠스랑 일격 → 늑대인간이 날아간다 (몸이 꺾이며 회전)
     D.at(6.4, () => {
@@ -347,7 +453,7 @@ const SCENES = {
 };
 
 const TITLES = {
-  wolf: ['늑대인간의 승리', 12.9],
+  wolf: ['늑대인간의 승리', 19.6],
   village: ['마을의 승리', 9.2],
   tanner: ['무두장이의 승리', 7.4],
   none: ['아무도 이기지 못했다', 3],
@@ -368,6 +474,8 @@ const CLAW = `<svg class="an-claw" viewBox="0 0 1600 900" preserveAspectRatio="x
   <filter id="cblur"><feGaussianBlur stdDeviation="12"/></filter></defs>
   ${[0, 1, 2, 3].map((i) => `<g class="cl"><path d="${clawPath(360 + i * 200, 20 + i * 30, 960 + i * 180, 880 - i * 20, 80 - Math.abs(i - 1.5) * 14)}" fill="#ff2a10" opacity=".6" filter="url(#cblur)"/><path d="${clawPath(360 + i * 200, 20 + i * 30, 960 + i * 180, 880 - i * 20, 62 - Math.abs(i - 1.5) * 12)}" fill="url(#cg)"/><path d="${clawPath(372 + i * 200, 44 + i * 30, 948 + i * 180, 856 - i * 20, 20)}" fill="#1a0000" opacity=".7"/></g>`).join('')}
 </svg>`;
+
+const CLAW_SMALL = CLAW.replace('class="an-claw"', 'class="an-claw" style="opacity:.85"');
 
 /**
  * 결말 영상을 재생한다. 끝나거나 [건너뛰기]를 누르면 resolve.

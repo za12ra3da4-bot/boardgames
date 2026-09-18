@@ -73,7 +73,17 @@ FRONT.wolf = () => `
       <div class="wf-badge">3~10명<br>10분</div>
     </div>`;
 
+// 어둠 속 보석상 그림 + 금빛 제목 (스플렌더 상자 느낌)
+FRONT.gem = () => `
+    <div class="gf2">
+      <img class="gf2-art" src="/gem/assets/box.svg" alt="">
+      <div class="gf2-author">Renaissance Merchants</div>
+      <div class="gf2-title">찬란한 보석상</div>
+      <div class="gf2-band"><span>2~4명</span><span>30분</span><span>10세 이상</span></div>
+    </div>`;
+
 const SPINE = {
+  gem: '찬란한 보석상',
   wolf: '보름밤의 늑대인간',
   bang: '황야의 뱅!',
   clue: '밤의 저택',
@@ -94,7 +104,52 @@ const authHeaders = () => (getToken() ? { 'x-admin-token': getToken() } : {});
 function paintAdmin() {
   adminBtn.textContent = CAN_EDIT ? '관리자 로그아웃' : '관리자';
   adminBtn.classList.toggle('on', CAN_EDIT);
+  filmBtn.hidden = !CAN_EDIT;
 }
+
+/* ───── 결말 영상 미리 보기 (관리자 전용) ───── */
+const filmBtn = document.getElementById('filmBtn');
+const filmDialog = document.getElementById('filmDialog');
+const FILMS = [
+  { game: '황야의 뱅', list: [['무법자 승리', 'bang', 'outlaw'], ['보안관 승리', 'bang', 'sheriff'], ['배신자 승리', 'bang', 'renegade']] },
+  { game: '보름밤의 늑대인간', list: [['늑대인간 승리', 'wolf', 'wolf'], ['마을 승리', 'wolf', 'village'], ['무두장이 승리', 'wolf', 'tanner'], ['모두 패배', 'wolf', 'none']] },
+];
+document.getElementById('filmList').innerHTML = FILMS.map((g) => `<div class="film-game"><h4>${g.game}</h4>${g.list.map(([label, id, kind]) => `<button type="button" class="btn" data-film="${id}:${kind}">▶ ${label}</button>`).join('')}</div>`).join('');
+filmBtn.addEventListener('click', () => { filmDialog.hidden = false; });
+document.getElementById('filmClose').addEventListener('click', () => { filmDialog.hidden = true; });
+document.getElementById('filmList').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-film]');
+  if (!b) return;
+  const [id, kind] = b.dataset.film.split(':');
+  const host = document.getElementById('filmHost');
+  filmDialog.hidden = true;
+  // 효과음: 늑대인간 게임의 합성 효과음을 빌려 쓴다
+  if (!window.SFX) await new Promise((res) => { const s = document.createElement('script'); s.src = '/wolf/js/sfx.js'; s.onload = res; s.onerror = res; document.head.appendChild(s); });
+  const X = window.SFX || {};
+  X.unlock && X.unlock();
+  const call = (n) => X[n] && X[n]();
+  const MAP = {
+    'start:wolf': () => { call('drone'); setTimeout(() => call('drone'), 2200); }, 'start:village': () => { call('drone'); setTimeout(() => call('rooster'), 4000); },
+    'start:tanner': () => call('drone'), 'start:none': () => { call('drone'); setTimeout(() => call('lose'), 3000); }, 'start:duel': () => call('bell'),
+    roar: () => { call('growl'); call('hit'); }, whoosh: () => call('flip'), impact: () => call('boom'), slash: () => { call('slash'); call('hit'); },
+    cheer: () => { call('win'); setTimeout(() => call('bell'), 600); }, thunder: () => call('boom'), tension: () => call('tick'),
+    gun: () => { call('boom'); call('hit'); }, gun2: () => setTimeout(() => { call('boom'); }, 40), laugh: () => call('lose'), wind: () => call('flip'), whistle: () => call('bell'),
+  };
+  const sound = (k) => (MAP[k] ? MAP[k]() : call(k));
+  try {
+    if (id === 'bang') {
+      const m = await import('/bang/js/ending.js');
+      await m.playEnding(host, [kind], { sub: '미리 보기', sound });
+    } else if (id === 'wolf') {
+      const m = await import('/wolf/js/cutscene.js');
+      await m.playCutscene(host, kind, { sub: '미리 보기', sound });
+    }
+  } catch (err) {
+    console.error(err);
+    alert('영상을 불러오지 못했어요');
+  }
+  filmDialog.hidden = false;
+});
 
 adminBtn.addEventListener('click', async () => {
   if (CAN_EDIT) {

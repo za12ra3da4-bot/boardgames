@@ -2,7 +2,7 @@
   "name": "boardgames",
   "version": "1.0.0",
   "private": true,
-  "description": "보드게임 - 친구들과 함께하는 온라인 보드게임 모음 (황야의 뱅, 밤의 저택, 바람섬 개척기, 보름밤 늑대인간)",
+  "description": "보드게임 - 친구들과 함께하는 온라인 보드게임 모음 (황야의 뱅, 밤의 저택, 바람섬 개척기, 보름밤의 늑대인간, 찬란한 보석상)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -14,7 +14,9 @@
     "assets:isle": "node isle/scripts/gen-assets.js",
     "sim:isle": "node isle/scripts/simulate.js",
     "assets:wolf": "node wolf/scripts/gen-assets.js",
-    "sim:wolf": "node wolf/scripts/simulate.js"
+    "sim:wolf": "node wolf/scripts/simulate.js",
+    "assets:gem": "node gem/scripts/gen-assets.js",
+    "sim:gem": "node gem/scripts/simulate.js"
   },
   "engines": {
     "node": ">=18"

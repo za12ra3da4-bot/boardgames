@@ -5,6 +5,7 @@
 //   /clue/   밤의 저택
 //   /isle/   바람섬 개척기
 //   /wolf/   보름밤 늑대인간
+//   /gem/    찬란한 보석상
 const path = require('path');
 const http = require('http');
 const os = require('os');
@@ -55,6 +56,16 @@ const GAMES = [
     desc: '단 하룻밤, 카드가 뒤바뀌는 마을. 10분 동안 떠들고 추리해서 늑대인간을 찾아 투표하라.',
     players: '3~10명',
     time: '10~15분',
+  },
+  {
+    id: 'gem',
+    base: '/gem',
+    dir: 'gem',
+    title: '찬란한 보석상',
+    sub: '보석 수집 · 경제 게임',
+    desc: '르네상스의 보석 상인이 되어 원석을 모으고, 광산과 공방을 사들여 귀족의 후원을 받아라. 먼저 15점!',
+    players: '2~4명',
+    time: '30분',
   },
 ];
 

@@ -97,3 +97,10 @@ svg.rig { position: absolute; left: 0; top: 0; transform-origin: 300px 520px; ov
   background: radial-gradient(circle, rgba(230, 230, 230, .8), rgba(200, 200, 200, 0) 70%); }
 .glint { position: absolute; width: 60px; height: 60px; z-index: 5; opacity: 0;
   background: radial-gradient(circle, #fff 0 12%, transparent 14%), conic-gradient(transparent 0 40deg, #fff 40deg 50deg, transparent 50deg 130deg, #fff 130deg 140deg, transparent 140deg 220deg, #fff 220deg 230deg, transparent 230deg 310deg, #fff 310deg 320deg, transparent 320deg); }
+.ground-shadow { position: absolute; left: 20%; top: 700px; width: 60%; height: 160px; border-radius: 50%; background: radial-gradient(ellipse, rgba(0,0,0,.7), transparent 70%); }
+.slowmo-shot { filter: saturate(.35) contrast(1.25) sepia(.25); }
+.bullet-trail { position: absolute; height: 4px; background: linear-gradient(90deg, rgba(255,240,180,0), #fff4c0, rgba(255,240,180,0)); box-shadow: 0 0 12px #ffd070; z-index: 5; }
+.dust-ring { position: absolute; left: 800px; top: 830px; width: 500px; height: 120px; border-radius: 50%; z-index: 4; pointer-events: none;
+  background: radial-gradient(ellipse, transparent 30%, rgba(230,200,150,.8) 45%, transparent 70%); }
+
+.blood { position: absolute; width: 360px; height: 360px; z-index: 3; pointer-events: none; transform-origin: 50% 50%; }

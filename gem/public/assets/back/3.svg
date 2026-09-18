@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 336" width="240" height="336">
+  <defs><radialGradient id="bg" cx="0.5" cy="0.45" r="0.8"><stop offset="0" stop-color="#4a65ae"/><stop offset="1" stop-color="#0e1e5a"/></radialGradient><filter id="grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1.5 0 0 0 -.6"/></filter></defs>
+  <rect width="240" height="336" rx="14" fill="#f4ecd8"/>
+  <rect x="6" y="6" width="228" height="324" rx="10" fill="url(#bg)"/>
+  <rect x="16" y="16" width="208" height="304" rx="6" fill="none" stroke="#f4dc90" stroke-width="2"/>
+  <rect x="22" y="22" width="196" height="292" rx="4" fill="none" stroke="#f4dc90" stroke-width="1" stroke-dasharray="2 5"/>
+  <path d="M160 168Q197.3 188.6 154.7 187.9" stroke="#f4dc90" stroke-width="2" fill="none" opacity=".7"/><path d="M154.6 188Q176.7 224.5 140.1 202.6" stroke="#f4dc90" stroke-width="2" fill="none" opacity=".7"/><path d="M140 202.6Q140.8 245.2 120.1 208" stroke="#f4dc90" stroke-width="2" fill="none" opacity=".7"/><path d="M120 208Q99.4 245.3 100.1 202.7" stroke="#f4dc90" stroke-width="2" fill="none" opacity=".7"/><path d="M100 202.6Q63.5 224.7 85.4 188.1" stroke="#f4dc90" stroke-width="2" fill="none" opacity=".7"/><path d="M85.4 188Q42.8 188.8 80 168.1" stroke="#f4dc90" stroke-width="2" fill="none" opacity=".7"/><path d="M80 168Q42.7 147.4 85.3 148.1" stroke="#f4dc90" stroke-width="2" fill="none" opacity=".7"/><path d="M85.4 148Q63.3 111.5 99.9 133.4" stroke="#f4dc90" stroke-width="2" fill="none" opacity=".7"/><path d="M100 133.4Q99.2 90.8 119.9 128" stroke="#f4dc90" stroke-width="2" fill="none" opacity=".7"/><path d="M120 128Q140.6 90.7 139.9 133.3" stroke="#f4dc90" stroke-width="2" fill="none" opacity=".7"/><path d="M140 133.4Q176.5 111.3 154.6 147.9" stroke="#f4dc90" stroke-width="2" fill="none" opacity=".7"/><path d="M154.6 148Q197.2 147.2 160 167.9" stroke="#f4dc90" stroke-width="2" fill="none" opacity=".7"/>
+  <circle cx="120" cy="168" r="36" fill="#0e1e5a" stroke="#f4dc90" stroke-width="3"/>
+  <circle cx="96" cy="168" r="8" fill="#f4dc90"/><circle cx="120" cy="168" r="8" fill="#f4dc90"/><circle cx="144" cy="168" r="8" fill="#f4dc90"/>
+  <text x="120" y="290" text-anchor="middle" font-family="Georgia, serif" font-size="14" letter-spacing="5" fill="#f4dc90">PALAZZO</text>
+  <rect width="240" height="336" rx="14" filter="url(#grain)" opacity=".1"/>
+</svg>

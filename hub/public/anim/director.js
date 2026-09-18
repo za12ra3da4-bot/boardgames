@@ -103,7 +103,7 @@ export function speedLines(color = '#fff', count = 40) {
 }
 // 의성어는 쓰지 않는다. 대사(shout)만 영화 자막처럼 아래에 띄운다.
 export const sfxText = (text, cls = '') => (cls.includes('shout') ? `<div class="an-sub">${text}</div>` : '');
-export const portrait = (role, cls = '') => `<div class="an-portrait ${cls}"><img src="assets/role/${role}.svg" alt=""></div>`;
+export const portrait = (role, cls = '', base = '/wolf/assets/role/') => `<div class="an-portrait ${cls}"><img src="${base}${role}.svg" alt=""></div>`;
 
 /* ═════════════ 연출 도구 ═════════════ */
 

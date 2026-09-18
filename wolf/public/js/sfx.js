@@ -78,6 +78,10 @@ const SFX = (() => {
     birds: () => { for (let i = 0; i < 6; i++) tone({ f: 2400 + Math.random() * 900, f2: 3400, dur: 0.07, vol: 0.03, delay: i * 0.13 + (i > 2 ? 0.4 : 0) }); },
     drone: () => { tone({ f: 110, f2: 98, dur: 2.2, vol: 0.08, attack: 0.6 }); tone({ f: 165, f2: 147, dur: 2.2, vol: 0.04, attack: 0.6 }); },
     ghost: () => { tone({ f: 500, f2: 900, dur: 1.2, vol: 0.06, attack: 0.4 }); tone({ f: 900, f2: 400, dur: 1.4, vol: 0.05, delay: 1.1 }); },
+    growl: () => { for (let i = 0; i < 6; i++) noise({ dur: 0.18, vol: 0.35, freq: 180 + i * 10, delay: i * 0.12, decay: 1 }); tone({ f: 70, f2: 55, type: 'sawtooth', dur: 0.8, vol: 0.08 }); },
+    scream: () => { tone({ f: 900, f2: 1400, type: 'sawtooth', dur: 0.25, vol: 0.05 }); tone({ f: 1400, f2: 500, type: 'sawtooth', dur: 0.7, vol: 0.05, delay: 0.22 }); tone({ f: 1350, f2: 480, type: 'square', dur: 0.7, vol: 0.02, delay: 0.24 }); },
+    slash: () => { noise({ dur: 0.18, vol: 0.5, freq: 3500, type: 'highpass', decay: 3 }); noise({ dur: 0.3, vol: 0.4, freq: 600, delay: 0.05 }); },
+    thud: () => { tone({ f: 90, f2: 40, dur: 0.35, vol: 0.4 }); noise({ dur: 0.25, vol: 0.3, freq: 300 }); },
     unlock: () => ac(),
   };
 })();

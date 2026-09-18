@@ -1,8 +1,0 @@
-<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="css/style.css"><link rel="stylesheet" href="/anim/anim.css">
-<body><div id="cutscene" class="cutscene" hidden></div>
-<script type="module">
-import { playCutscene } from './js/cutscene.js';
-const q = new URLSearchParams(location.search);
-window.play = (k) => playCutscene(document.getElementById('cutscene'), k, { sub: '당신은 승리했습니다' });
-if (q.get('k')) play(q.get('k'));
-</script>
