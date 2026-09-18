@@ -974,8 +974,8 @@ li.on .rs-num { background: var(--print-red); color: #fff; }
 .me-info .me-txt b small.me-role-name { display: inline; font-family: var(--font); font-size: 12px; color: #6b5236; }
 
 /* 캐릭터 고르기 · 인트로 */
-.pc-card { width: 262px; padding: 8px 8px 10px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
-.pc-card .chcard { --w: 244px; }
+.pc-card { width: min(338px, 42vw); padding: 8px 8px 10px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.pc-card .chcard { --w: min(320px, 40vw); }
 .pc-note { font-weight: 900; font-size: 13px; color: #9a1d14; }
 .intro-char { display: flex; flex-direction: column; align-items: center; }
 .intro-char .chcard { --w: 200px; }
@@ -997,3 +997,4 @@ li.on .rs-num { background: var(--print-red); color: #fff; }
 .phand .arm { filter: none; will-change: transform; }
 .hand .bcard { will-change: transform; }
 .drag-ghost .bcard { filter: none; box-shadow: 8px 18px 16px rgba(0, 0, 0, .45); }
+.modal-box:has(.pickchar) { max-width: 780px; }

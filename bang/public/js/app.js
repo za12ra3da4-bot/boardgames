@@ -1709,6 +1709,8 @@ document.addEventListener('mouseover', (e) => {
     return;
   }
   const face = e.target.closest('[data-char]');
+  // 캐릭터 고르기 창에서는 카드가 이미 크게 보이므로 확대 창을 띄우지 않는다
+  if (face && face.closest('.pickchar')) return;
   if (face && face.dataset.char) {
     const c = B.CHAR[face.dataset.char];
     if (!c) return;
