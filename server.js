@@ -80,6 +80,26 @@ process.on('unhandledRejection', (e) => console.error('[오류 - 서버는 계�
 
 // 게임들을 각자의 주소에 붙인다 (socket.io 는 네임스페이스로 분리된다)
 // 슬래시 없는 /bang 은 express.static 이 알아서 /bang/ 으로 넘겨준다.
+// ── 손그림 파일로 바꿔 끼우기: <게임>/art/<경로>.png 가 있으면 /<게임>/assets/<경로>.svg 대신 그 파일을 보낸다.
+//    (예: bang/art/card/bang.png → /bang/assets/card/bang.svg 자리에 나온다. 코드는 고칠 필요 없음)
+const ART_EXT = ['.png', '.webp', '.jpg', '.jpeg'];
+function findArt(dir, rel) {
+  if (!/^[a-z0-9_\-/]+$/i.test(rel) || rel.includes('..')) return null;
+  for (const ext of ART_EXT) {
+    const file = path.join(__dirname, dir, 'art', rel + ext);
+    if (fs.existsSync(file)) return file;
+  }
+  return null;
+}
+for (const g of GAMES) {
+  app.get(new RegExp(`^${g.base}/assets/(.+)\\.svg$`), (req, res, next) => {
+    const file = findArt(g.dir, req.params[0]);
+    if (!file) return next();
+    res.set('Cache-Control', 'no-cache');
+    return res.sendFile(file);
+  });
+}
+
 for (const g of GAMES) {
   // eslint-disable-next-line global-require, import/no-dynamic-require
   require(`./${g.dir}/mount`)(app, io, g.base);
@@ -155,6 +175,30 @@ app.post('/api/admin/login', express.json({ limit: '1kb' }), (req, res) => {
 app.post('/api/admin/logout', (req, res) => {
   adminTokens.delete(String(req.get('x-admin-token') || ''));
   res.json({ ok: true });
+});
+
+// ── 손그림 파일 목록: <게임>/art/slots.json 의 칸마다 파일이 들어갔는지 알려 준다 (관리자만)
+app.get('/api/art/:id', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  if (!canEdit(req)) return res.status(403).json({ error: '관리자만 볼 수 있어요' });
+  const g = GAMES.find((x) => x.id === req.params.id);
+  if (!g) return res.status(404).json({ error: '없는 게임' });
+  let slots;
+  try {
+    slots = JSON.parse(fs.readFileSync(path.join(__dirname, g.dir, 'art', 'slots.json'), 'utf8'));
+  } catch (e) {
+    return res.json({ id: g.id, title: g.title, base: g.base, groups: [] });
+  }
+  for (const grp of slots.groups) {
+    for (const it of grp.items) {
+      const rel = grp.dir ? `${grp.dir}/${it.id}` : it.id;
+      const file = findArt(g.dir, rel);
+      it.path = `${g.dir}/art/${rel}.png`;
+      it.url = `${g.base}/assets/${rel}.svg`;
+      it.done = !!file;
+    }
+  }
+  return res.json({ id: g.id, title: g.title, base: g.base, ...slots });
 });
 
 app.get('/api/games', (req, res) => {

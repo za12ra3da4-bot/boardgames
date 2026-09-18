@@ -31,6 +31,8 @@ const FRONT = {
   // 나무 상자 + 수배 전단
   bang: () => `
     <div class="bf">
+      <img class="box-art" src="/bang/assets/box.svg" alt="" onload="this.parentNode.classList.add('has-art')" onerror="this.remove()">
+      <div class="art-title">황야의 <b>뱅!</b></div>
       <div class="bf-title">황야의 <b>뱅!</b></div>
       <div class="bf-kicker">서부 총잡이 카드게임</div>
       <div class="bf-poster">
@@ -105,6 +107,7 @@ function paintAdmin() {
   adminBtn.textContent = CAN_EDIT ? '관리자 로그아웃' : '관리자';
   adminBtn.classList.toggle('on', CAN_EDIT);
   filmBtn.hidden = !CAN_EDIT;
+  document.getElementById('artBtn').hidden = !CAN_EDIT;
 }
 
 /* ───── 결말 영상 미리 보기 (관리자 전용) ───── */

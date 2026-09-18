@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>그림 넣기 · 보드게임 밤</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap">
+<style>
+  :root { --bg: #f4ecdc; --ink: #2a1a0c; --muted: #7a6450; --line: #d8c8a8; --ok: #2a7a3a; --no: #b8322a; --card: #fffaf0; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--ink); }
+  header { position: sticky; top: 0; z-index: 5; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding: 12px 16px; background: #2a1a0c; color: #f4ecdc; }
+  header h1 { margin: 0; font-size: 18px; }
+  header a { color: #f0d890; }
+  select, button { font: inherit; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; }
+  main { max-width: 1100px; margin: 0 auto; padding: 16px; }
+  .how { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; line-height: 1.8; }
+  .how code { background: #efe4cc; padding: 1px 6px; border-radius: 4px; }
+  .progress { font-weight: 900; }
+  h2 { margin: 26px 0 4px; font-size: 20px; }
+  .meta { color: var(--muted); font-size: 14px; margin-bottom: 10px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+  .slot { display: grid; grid-template-columns: 96px 1fr; gap: 12px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+  .slot img { width: 96px; height: 96px; object-fit: contain; background: #e8dcc4; border-radius: 8px; }
+  .slot b { font-size: 15px; }
+  .tag { display: inline-block; font-size: 12px; font-weight: 900; padding: 1px 8px; border-radius: 10px; margin-left: 6px; color: #fff; }
+  .tag.ok { background: var(--ok); } .tag.no { background: var(--no); }
+  .file { font-family: Consolas, monospace; font-size: 12px; color: var(--muted); word-break: break-all; margin: 2px 0 6px; }
+  .prompt { font-size: 12.5px; line-height: 1.5; color: #4a3a2a; max-height: 5.2em; overflow: hidden; }
+  .row { display: flex; gap: 6px; margin-top: 6px; }
+  .row button { font-size: 12px; padding: 4px 8px; }
+  .err { color: var(--no); font-weight: 700; }
+  @media (max-width: 480px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>그림 넣기</h1>
+  <select id="game">
+    <option value="bang">황야의 뱅</option>
+    <option value="wolf">보름밤의 늑대인간</option>
+    <option value="gem">찬란한 보석상</option>
+    <option value="clue">밤의 저택</option>
+    <option value="isle">바람섬 개척기</option>
+  </select>
+  <span class="progress" id="progress"></span>
+  <span style="flex:1"></span>
+  <a href="/">← 게임 목록</a>
+</header>
+<main>
+  <div class="how">
+    <b>사용법</b><br>
+    1. 카드마다 <b>요청 문장 복사</b>를 눌러 이미지 AI(ChatGPT 이미지 · 미드저니 등)에 붙여 넣고, 적힌 크기 비율로 그림을 뽑아요.<br>
+    2. 받은 그림을 <b>파일 이름 그대로</b> PNG로 저장해 보드게임만들기 폴더 안 그 경로에 넣어요. (예: <code>bang/art/card/bang.png</code>)<br>
+    3. 새로고침하면 게임에 바로 나와요. 친구들 사이트에도 올리려면 저장 후 GitHub에 올려야 해요.<br>
+    <span style="color:var(--muted)">요청 문장에는 게임 전체의 그림체(공통 스타일)가 같이 붙어 있어서, 모든 카드가 한 사람이 그린 것처럼 맞춰져요.</span>
+  </div>
+  <div id="out"></div>
+</main>
+<script>
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const token = (() => { try { return localStorage.getItem('hub.adminToken') || ''; } catch (e) { return ''; } })();
+const sel = document.getElementById('game');
+const params = new URLSearchParams(location.search);
+if (params.get('game')) sel.value = params.get('game');
+let data = null;
+async function load() {
+  const out = document.getElementById('out');
+  out.textContent = '불러오는 중…';
+  const r = await fetch(`/api/art/${sel.value}`, { headers: { 'x-admin-token': token } });
+  if (r.status === 403) { out.innerHTML = '<p class="err">관리자로 로그인한 뒤에 볼 수 있어요. 게임 목록에서 [관리자]로 로그인하세요.</p>'; return; }
+  data = await r.json();
+  if (!data.groups || !data.groups.length) { out.innerHTML = '<p>이 게임은 아직 그림 목록을 준비 중이에요.</p>'; document.getElementById('progress').textContent = ''; return; }
+  let done = 0; let all = 0;
+  out.innerHTML = data.groups.map((g, gi) => `<h2>${esc(g.title)}</h2><div class="meta">크기 ${esc(g.size)} · ${esc(g.note || '')}</div>
+    <div class="grid">${g.items.map((it, ii) => { all++; if (it.done) done++; return `<div class="slot">
+      <img src="${esc(it.url)}?t=${Date.now()}" alt="" loading="lazy">
+      <div><b>${esc(it.name)}</b><span class="tag ${it.done ? 'ok' : 'no'}">${it.done ? '그림 들어감' : '아직 기본 그림'}</span>
+        <div class="file">${esc(it.path)}</div>
+        <div class="prompt">${esc(it.prompt)}</div>
+        <div class="row"><button data-copy="${gi}:${ii}">요청 문장 복사</button><button data-name="${esc(it.path.split('/').pop())}">파일 이름 복사</button></div>
+      </div></div>`; }).join('')}</div>`).join('');
+  document.getElementById('progress').textContent = `${done} / ${all} 완료`;
+}
+document.addEventListener('click', async (e) => {
+  const c = e.target.closest('[data-copy]');
+  const n = e.target.closest('[data-name]');
+  let text = null;
+  if (c) {
+    const [gi, ii] = c.dataset.copy.split(':').map(Number);
+    const g = data.groups[gi];
+    const it = g.items[ii];
+    text = it.prompt.startsWith('(') ? it.prompt : `${it.prompt}. ${data.style} Aspect ratio ${g.size.split('(')[1] ? g.size.split('(')[1].replace(')', '') : g.size}.`;
+  }
+  if (n) text = n.dataset.name;
+  if (text == null) return;
+  const btn = c || n;
+  try { await navigator.clipboard.writeText(text); btn.textContent = '복사됨!'; } catch (_) { prompt('복사하세요', text); }
+  setTimeout(() => { btn.textContent = c ? '요청 문장 복사' : '파일 이름 복사'; }, 1200);
+});
+sel.addEventListener('change', () => { history.replaceState(null, '', `?game=${sel.value}`); load(); });
+load();
+</script>
+</body>
+</html>

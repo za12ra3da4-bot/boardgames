@@ -286,3 +286,11 @@ a { color: inherit; text-decoration: none; }
 .gf2-title { position: absolute; left: 0; right: 0; top: 13%; text-align: center; font-family: 'Nanum Myeongjo', serif; font-weight: 800; font-size: 38px; letter-spacing: .02em;
   background: linear-gradient(#fff8d8, #f4d060 50%, #b8801a); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 3px 0 #1a0e04) drop-shadow(0 0 10px rgba(0,0,0,.7)); }
 .gf2-band { position: absolute; left: 7%; right: 7%; bottom: 5%; display: flex; justify-content: center; gap: 10px; padding: 3px 0; background: rgba(10, 8, 4, .7); color: #f4e0a0; font-size: 10px; font-weight: 900; }
+
+/* 그림 파일로 바꾼 상자 */
+.box-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; }
+.art-title { display: none; }
+.has-art > * { display: none !important; }
+.has-art > .box-art { display: block !important; }
+.has-art > .art-title { display: block !important; position: absolute; left: 0; right: 0; top: 18px; text-align: center; font-family: 'Rye', serif; font-size: 36px; color: #f4e2b0; text-shadow: 0 3px 0 #2a1406, 0 0 14px rgba(0, 0, 0, .8); }
+.has-art > .art-title b { color: #e84a2a; }

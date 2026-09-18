@@ -1,0 +1,106 @@
+{
+  "game": "황야의 뱅",
+  "style": "Original hand-drawn illustration in the style of a vintage 1880s American western dime-novel print: confident ink linework with cross-hatching, muted hand-painted watercolor tints (ochre, rust red, faded turquoise, sepia), aged cream paper texture, dramatic lighting, expressive faces with real human anatomy and natural hand poses. No text, no letters, no logos, no card border or frame.",
+  "groups": [
+    {
+      "title": "행동 카드 그림 (카드 가운데 그림 칸)",
+      "dir": "card",
+      "size": "1200 x 1050 (가로 8 : 세로 7)",
+      "note": "카드 틀과 글자는 게임이 그려 넣어요. 그림만 만들어 주세요.",
+      "items": [
+        { "id": "bang", "name": "뱅!", "prompt": "Close-up of a gunslinger's hand firing a Colt revolver toward the viewer, bright muzzle flash and smoke, the hammer and cylinder drawn in detail, dust flying" },
+        { "id": "missed", "name": "빗나감!", "prompt": "A cowboy in a wide hat throwing himself sideways behind a wooden water trough as a bullet whizzes past his cheek and splinters the wood, motion lines of the dodge" },
+        { "id": "beer", "name": "맥주", "prompt": "A foaming glass mug of beer slid across a scratched saloon bar counter, a weathered hand reaching for it, warm lamplight, bottles on shelves behind" },
+        { "id": "panic", "name": "강탈!", "prompt": "A sly bandit snatching a leather wallet from a surprised rancher's coat pocket in a crowded street, both faces clearly expressive" },
+        { "id": "catbalou", "name": "캣 벌루", "prompt": "A fierce young frontier woman in a riding skirt kicking a card table over in a saloon, playing cards and coins flying through the air" },
+        { "id": "stagecoach", "name": "역마차", "prompt": "A stagecoach pulled by four galloping horses racing across a desert road, driver cracking a whip, mail sacks on the roof" },
+        { "id": "wellsfargo", "name": "웰스 파고", "prompt": "An armored express-company wagon with a heavy iron strongbox, a guard with a shotgun sitting on top, gold coins spilling from a sack" },
+        { "id": "gatling", "name": "개틀링", "prompt": "A Gatling gun on a wooden-wheeled carriage firing a sweeping burst, the gunner cranking the handle, a row of empty cartridges flying" },
+        { "id": "indians", "name": "인디언 습격!", "prompt": "Horsemen charging over a ridge at sunset in a dramatic cloud of dust, seen from a distance, silhouettes against a red sky, respectful and non-caricatured depiction" },
+        { "id": "duel", "name": "결투", "prompt": "Two gunfighters facing each other at high noon on an empty main street, long shadows, hands hovering over holsters, tumbleweed between them" },
+        { "id": "store", "name": "잡화점", "prompt": "Interior of a frontier general store, shelves of cans, lanterns, rope, sacks of flour, a shopkeeper in an apron behind the counter smiling" },
+        { "id": "saloon", "name": "살롱", "prompt": "A lively saloon interior with a piano player, cowboys raising glasses in a toast, swinging doors, warm golden light" },
+        { "id": "barrel", "name": "술통", "prompt": "A cowboy crouching behind a large wooden whiskey barrel while bullets punch holes in the staves, liquor spurting from the holes" },
+        { "id": "scope", "name": "조준경", "prompt": "A rifleman on a rooftop squinting through a long brass rifle telescope, one eye closed, the scope drawn in intricate detail" },
+        { "id": "mustang", "name": "야생마", "prompt": "A wild mustang rearing up on its hind legs, mane flying, dust exploding under its hooves, powerful anatomy" },
+        { "id": "jail", "name": "감옥", "prompt": "A scruffy outlaw gripping the iron bars of a small-town jail cell, a ring of keys hanging on the wall outside, a shaft of light through the barred window" },
+        { "id": "dynamite", "name": "다이너마이트", "prompt": "A bundle of red dynamite sticks tied with twine, the fuse fizzing with sparks, lying on a wooden table beside a pocket watch" },
+        { "id": "volcanic", "name": "볼케닉", "prompt": "A lever-action Volcanic repeating pistol with engraved brass frame lying on green felt, drawn like a detailed gunsmith catalog illustration" },
+        { "id": "schofield", "name": "스코필드", "prompt": "A Smith and Wesson Schofield top-break revolver opened to show the cylinder, cartridges scattered beside it, catalog-style detailed drawing" },
+        { "id": "remington", "name": "레밍턴", "prompt": "A Remington 1875 single-action revolver with ivory grips resting in a tooled leather holster, detailed engraving" },
+        { "id": "carabine", "name": "카빈총", "prompt": "A cavalry carbine with a leather sling leaning against a saddle, brass buttplate, detailed wood grain" },
+        { "id": "winchester", "name": "윈체스터", "prompt": "A Winchester 1873 lever-action rifle held across the chest of a rugged rider, the receiver engraving catching the sunlight" }
+      ]
+    },
+    {
+      "title": "인물 카드 그림 (세로 초상화)",
+      "dir": "char",
+      "size": "1200 x 1520 (가로 15 : 세로 19)",
+      "note": "허리 위 초상화. 이름·체력은 게임이 넣어요.",
+      "items": [
+        { "id": "ben", "name": "악바리 벤", "prompt": "Waist-up portrait of a battered but grinning brawler, bandaged forehead, torn shirt, clenched bruised fists, missing tooth" },
+        { "id": "jack", "name": "도박꾼 잭", "prompt": "Waist-up portrait of a slick riverboat gambler in a brocade vest and bowler hat, fanning a hand of playing cards, thin mustache, knowing smile" },
+        { "id": "janet", "name": "쌍권총 재닛", "prompt": "Waist-up portrait of a confident woman gunslinger holding two revolvers crossed in front of her chest, braided hair, leather duster" },
+        { "id": "lobo", "name": "엘 로보", "prompt": "Waist-up portrait of a menacing Mexican bandit with a wolf-pelt draped over his shoulders, bandoliers, piercing eyes" },
+        { "id": "jesse", "name": "소매치기 제시", "prompt": "Waist-up portrait of a young pickpocket with a crooked smirk, flipping a stolen gold pocket watch, flat cap, patched jacket" },
+        { "id": "jordan", "name": "방탄 조던", "prompt": "Waist-up portrait of a tough frontiersman wearing an improvised iron plate under his coat with dented bullet marks, calm stare" },
+        { "id": "kit", "name": "카드장인 킷", "prompt": "Waist-up portrait of an elegant card sharp in a white suit, three cards spread between long fingers, pale eyes, neat goatee" },
+        { "id": "luke", "name": "행운아 루크", "prompt": "Waist-up portrait of a lucky easygoing cowboy tossing a silver coin, a horseshoe hanging from his belt, sunny grin" },
+        { "id": "paul", "name": "바람잡이 폴", "prompt": "Waist-up portrait of a fast-talking con man in a checkered suit, holding a bottle of snake-oil tonic, exaggerated persuasive gesture" },
+        { "id": "pedro", "name": "페드로", "prompt": "Waist-up portrait of a jovial Mexican vaquero in a wide sombrero and embroidered jacket, poncho over one shoulder, warm smile" },
+        { "id": "rose", "name": "매의 눈 로즈", "prompt": "Waist-up portrait of a sharp-eyed woman sharpshooter shading her eyes with a hand, a rifle over her shoulder, hawk feather in her hat" },
+        { "id": "sid", "name": "약초꾼 시드", "prompt": "Waist-up portrait of an old herbalist with a long grey beard, bundles of dried herbs and a mortar and pestle, round spectacles" },
+        { "id": "cole", "name": "냉혈한 콜", "prompt": "Waist-up portrait of a cold-blooded killer in a black frock coat, gaunt face, emotionless eyes, gloved hand resting on a holster" },
+        { "id": "suzy", "name": "행운의 수지", "prompt": "Waist-up portrait of a cheerful saloon card dealer with curly hair and a feathered headband, winking, holding a single ace" },
+        { "id": "vic", "name": "대머리독수리 빅", "prompt": "Waist-up portrait of a bald, hunched scavenger with a hooked nose and a vulture perched on his shoulder, pockets stuffed with loot" },
+        { "id": "will", "name": "꼬마 윌", "prompt": "Waist-up portrait of a scrappy teenage gunslinger with an oversized hat, freckles, holding a smoking revolver with both hands" }
+      ]
+    },
+    {
+      "title": "인물 얼굴 (둥근 아이콘)",
+      "dir": "face",
+      "size": "800 x 800 (정사각형, 얼굴이 가운데)",
+      "note": "위 인물 그림에서 얼굴만 정사각형으로 잘라 넣으면 돼요. 파일 이름은 인물과 같게.",
+      "items": [
+        { "id": "ben", "name": "악바리 벤", "prompt": "(인물 그림 ben 의 얼굴 부분 자르기)" },
+        { "id": "jack", "name": "도박꾼 잭", "prompt": "(인물 그림 jack 의 얼굴 부분 자르기)" },
+        { "id": "janet", "name": "쌍권총 재닛", "prompt": "(인물 그림 janet 의 얼굴 부분 자르기)" },
+        { "id": "lobo", "name": "엘 로보", "prompt": "(인물 그림 lobo 의 얼굴 부분 자르기)" },
+        { "id": "jesse", "name": "소매치기 제시", "prompt": "(인물 그림 jesse 의 얼굴 부분 자르기)" },
+        { "id": "jordan", "name": "방탄 조던", "prompt": "(인물 그림 jordan 의 얼굴 부분 자르기)" },
+        { "id": "kit", "name": "카드장인 킷", "prompt": "(인물 그림 kit 의 얼굴 부분 자르기)" },
+        { "id": "luke", "name": "행운아 루크", "prompt": "(인물 그림 luke 의 얼굴 부분 자르기)" },
+        { "id": "paul", "name": "바람잡이 폴", "prompt": "(인물 그림 paul 의 얼굴 부분 자르기)" },
+        { "id": "pedro", "name": "페드로", "prompt": "(인물 그림 pedro 의 얼굴 부분 자르기)" },
+        { "id": "rose", "name": "매의 눈 로즈", "prompt": "(인물 그림 rose 의 얼굴 부분 자르기)" },
+        { "id": "sid", "name": "약초꾼 시드", "prompt": "(인물 그림 sid 의 얼굴 부분 자르기)" },
+        { "id": "cole", "name": "냉혈한 콜", "prompt": "(인물 그림 cole 의 얼굴 부분 자르기)" },
+        { "id": "suzy", "name": "행운의 수지", "prompt": "(인물 그림 suzy 의 얼굴 부분 자르기)" },
+        { "id": "vic", "name": "대머리독수리 빅", "prompt": "(인물 그림 vic 의 얼굴 부분 자르기)" },
+        { "id": "will", "name": "꼬마 윌", "prompt": "(인물 그림 will 의 얼굴 부분 자르기)" }
+      ]
+    },
+    {
+      "title": "역할 카드 (카드 전체)",
+      "dir": "role",
+      "size": "1000 x 1400 (가로 5 : 세로 7)",
+      "note": "카드 한 장 전체 그림이에요. 아래쪽에 영어 이름을 크게 넣어 주세요.",
+      "items": [
+        { "id": "sheriff", "name": "보안관", "prompt": "Full playing-card design: a stern sheriff with a silver star badge on his vest, standing tall with thumbs in his gun belt; ornate western border; the word SHERIFF in large old-west wooden lettering at the bottom" },
+        { "id": "deputy", "name": "부관", "prompt": "Full playing-card design: a loyal young deputy with a smaller star badge holding a shotgun, standing guard; ornate western border; the word DEPUTY in large old-west lettering at the bottom" },
+        { "id": "outlaw", "name": "무법자", "prompt": "Full playing-card design: a masked outlaw with a red bandana over his face aiming a revolver at the viewer, a wanted poster torn behind him; ornate western border; the word OUTLAW in large old-west lettering at the bottom" },
+        { "id": "renegade", "name": "배신자", "prompt": "Full playing-card design: a lone renegade in a poncho and sombrero, face half in shadow, two revolvers drawn, walking away from a burning town; ornate border; the word RENEGADE in large old-west lettering at the bottom" },
+        { "id": "back", "name": "역할 카드 뒷면", "prompt": "Back side of a playing card: symmetrical ornate western pattern with a large sheriff star in the center, crossed revolvers, rope border, two-tone sepia and rust red, no text" }
+      ]
+    },
+    {
+      "title": "상자 앞면",
+      "dir": "",
+      "size": "1000 x 1360 (가로 250 : 세로 340)",
+      "note": "사이트 목록에 보이는 게임 상자 앞면. 제목 글자도 그림에 넣어 주세요 (한글 제목 '황야의 뱅'은 AI가 잘 못 쓰니, 그림만 뽑고 제목은 비워 두면 게임이 글자를 올려요).",
+      "items": [
+        { "id": "box", "name": "상자 앞면", "prompt": "Board game box cover: a dusty frontier main street at sunset, a sheriff, a masked outlaw, a deputy and a renegade in a poncho standing in a tense four-way standoff, each hand on a holster, saloon and water tower behind, dramatic sky, a large empty area at the top for the title" }
+      ]
+    }
+  ]
+}
