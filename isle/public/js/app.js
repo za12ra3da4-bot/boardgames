@@ -93,7 +93,12 @@ socket.on('room', (room) => {
   render();
 });
 
-const emit = (ev, data) => new Promise((res) => socket.emit(ev, data, (r) => res(r || { ok: true })));
+// 서버 답을 영원히 기다리지 않는다: 10초가 지나면 버튼이 다시 풀리게
+const emit = (ev, data) => new Promise((res) => {
+  let done = false;
+  const tm = setTimeout(() => { if (!done) { done = true; res({ ok: false, slow: true, error: '서버 응답이 늦어요. 잠시 뒤 다시 눌러 주세요' }); } }, 10_000);
+  socket.emit(ev, data, (r) => { if (done) return; done = true; clearTimeout(tm); res(r || { ok: true }); });
+});
 async function call(ev, data) {
   const r = await emit(ev, data);
   if (!r.ok && r.error) toast(r.error, 'err');

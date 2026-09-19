@@ -51,7 +51,12 @@ socket.on('chat', (m) => {
   if (!m.system && m.pid !== S.me) { SFX.chat(); if (S.g && S.tab !== 'chat') { S.unread++; renderBadge(); } }
 });
 socket.on('room', (room) => { S.room = room; S.g = room && room.game; S.receivedAt = Date.now(); render(); });
-const emit = (ev, d) => new Promise((res) => socket.emit(ev, d, (r) => res(r || { ok: true })));
+// 서버 답을 영원히 기다리지 않는다: 10초가 지나면 버튼이 다시 풀리게
+const emit = (ev, d) => new Promise((res) => {
+  let done = false;
+  const tm = setTimeout(() => { if (!done) { done = true; res({ ok: false, slow: true, error: '서버 응답이 늦어요. 잠시 뒤 다시 눌러 주세요' }); } }, 10_000);
+  socket.emit(ev, d, (r) => { if (done) return; done = true; clearTimeout(tm); res(r || { ok: true }); });
+});
 async function call(ev, d) { const r = await emit(ev, d); if (!r.ok && r.error) toast(esc(r.error), 'err'); return r; }
 async function act(a) { const r = await emit('game:act', a); if (!r.ok && r.error) { toast(esc(r.error), 'err'); SFX.alarm(); } return r; }
 
@@ -265,7 +270,7 @@ $('#scene').addEventListener('click', (e) => {
     S.fsSending = true;
     const btn = $('#fsSubmit');
     if (btn) { btn.disabled = true; btn.textContent = '발표하는 중…'; }
-    act({ type: 'forensic', location: E.loc, picks: E.picks }).then((r) => { S.fsSending = false; if (r.ok) S.fsEdit = null; else renderScene(); });
+    act({ type: 'forensic', location: E.loc, picks: E.picks }).then((r) => { S.fsSending = false; if (r.ok) S.fsEdit = null; renderScene(); }).catch(() => { S.fsSending = false; renderScene(); });
     return;
   }
   const opt = e.target.closest('.opt.can');

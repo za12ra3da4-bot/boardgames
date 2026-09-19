@@ -73,8 +73,14 @@ const pchar = (pid) => { const p = player(pid); return p ? p.char : null; };
 const who = (pid) => `<b class="who" style="--c:${colorOf(pchar(pid))}">${esc(pname(pid))}</b>`;
 
 function send(ev, data) {
+  // 서버 답을 영원히 기다리지 않는다: 10초가 지나면 버튼이 다시 풀리게
   return new Promise((resolve) => {
+    let done = false;
+    const tm = setTimeout(() => { if (done) return; done = true; const r = { ok: false, slow: true, error: '서버 응답이 늦어요. 잠시 뒤 다시 눌러 주세요' }; toast(esc(r.error), 'err'); resolve(r); }, 10_000);
     socket.emit(ev, data, (r) => {
+      if (done) return;
+      done = true;
+      clearTimeout(tm);
       if (r && r.ok === false && r.error) toast(esc(r.error), 'err');
       resolve(r || {});
     });
