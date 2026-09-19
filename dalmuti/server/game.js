@@ -107,11 +107,18 @@ class Game {
       this.phase = 'revolt';
       this.revolt = { pid: jj.pid, great: jj.pos === this.n() - 1, asked: true };
       this.addLog('sys', `{p:${jj.pid}} 님이 광대 두 장을 받았습니다! 혁명을 일으킬 수 있습니다.`);
-      if (jj.isBot || !this.online(jj)) this.later(1500 + rand(1500), () => this.decideRevolt(jj, this.botWantsRevolt(jj)));
-      this.schedule(this.online(jj) ? T.revolt : T.offline, () => this.decideRevolt(jj, false));
+      this.armRevolt();
       return;
     }
     this.startTax();
+  }
+  /** 혁명 결정 시간: 사람이 접속해 있으면 사람이, 아니면 AI 가 대신 (돌아오면 다시 사람에게) */
+  armRevolt() {
+    const jj = this.pl(this.revolt.pid);
+    const on = this.online(jj);
+    this.revoltOnline = on;
+    if (!on) this.later(1500 + rand(1500), () => { if (jj.isBot || !this.online(jj)) this.decideRevolt(jj, this.botWantsRevolt(jj)); });
+    this.schedule(on ? T.revolt : T.offline, () => this.decideRevolt(jj, false));
   }
   botWantsRevolt(p) {
     // 아래 계급일수록, 손패가 나쁠수록 혁명을 외친다
@@ -221,9 +228,15 @@ class Game {
     const p = this.pl(pid);
     if (lead) { this.trick = null; for (const q of this.players) q.passed = false; }
     this.event({ type: 'turn', pid, lead });
+    this.armTurn(p);
+  }
+  /** 차례 시간: 접속한 사람은 T.turn, 나간 사람은 잠깐 기다렸다 AI 가 대신 둔다.
+      AI 가 두기 전에 돌아오면 그 사람이 그대로 이어서 한다 */
+  armTurn(p) {
     const auto = p.isBot || !this.online(p);
-    if (auto) this.later(p.isBot ? T.bot[0] + rand(T.bot[1]) : T.offline, () => this.botMove(p));
-    else clearTimeout(this.botTimer);
+    this.turnOnline = !auto;
+    clearTimeout(this.botTimer);
+    if (auto) this.later(p.isBot ? T.bot[0] + rand(T.bot[1]) : T.offline, () => { if (p.isBot || !this.online(p)) this.botMove(p); });
     this.schedule(auto ? T.offline + 3000 : T.turn, () => this.timeoutMove(p));
   }
   timeoutMove(p) {
@@ -409,10 +422,14 @@ class Game {
     }
   }
   onPresence() {
-    // 차례인 사람이 나갔으면 곧 자동으로
+    // 차례인 사람이 나가면 AI 가, 돌아오면 다시 그 사람이 (시간도 새로)
     if (this.phase === 'play' && this.turn) {
       const p = this.pl(this.turn);
-      if (p && !p.isBot && !this.online(p) && this.deadline - Date.now() > T.offline) this.schedule(T.offline, () => this.timeoutMove(p));
+      if (p && !p.isBot && this.online(p) !== this.turnOnline) this.armTurn(p);
+    }
+    if (this.phase === 'revolt' && this.revolt && !this.revolt.done) {
+      const jj = this.pl(this.revolt.pid);
+      if (jj && !jj.isBot && this.online(jj) !== this.revoltOnline) this.armRevolt();
     }
     this.changed();
   }
@@ -470,7 +487,7 @@ class Game {
     g.dead = false;
     const go = {
       deal: () => g.later(1000, () => g.startRound()),
-      revolt: () => { const p = g.pl(g.revolt.pid); g.schedule(T.revolt, () => g.decideRevolt(p, false)); if (p.isBot) g.later(1500, () => g.decideRevolt(p, g.botWantsRevolt(p))); },
+      revolt: () => g.armRevolt(),
       revolting: () => g.later(1500, () => g.startPlay()),
       tax: () => g.schedule(T.tax, () => { for (const st of g.tax.steps) if (!st.back) { const to = g.pl(st.to); g.taxBack(to, g.botTaxBack(to, st.n)); } }),
       taxdone: () => g.later(1000, () => g.startPlay()),
