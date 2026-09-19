@@ -181,10 +181,10 @@ const GRIP = {
 const objAt = (key, x, y, sc = 1, rot = 0) => `<g transform="translate(${x} ${y}) rotate(${rot}) scale(${sc}) translate(-50 -50)">${OBJ[key] || ''}</g>`;
 // 수단마다 동작 (kind) 과 세부
 const MOVE = {
-  knife: { kind: 'thrust' }, scissors: { kind: 'thrust', n: 2 }, syringe: { kind: 'jab' }, shard: { kind: 'slash' }, sword: { kind: 'slash', wide: 1 },
-  axe: { kind: 'chop' }, chainsaw: { kind: 'saw' }, harpoon: { kind: 'throwSpear' }, bow: { kind: 'arrow' },
+  knife: { kind: 'thrust' }, scissors: { kind: 'thrust', n: 2 }, syringe: { kind: 'jab' }, shard: { kind: 'grab' }, sword: { kind: 'slash', wide: 1 },
+  axe: { kind: 'woodchop' }, chainsaw: { kind: 'saw' }, harpoon: { kind: 'throwSpear' }, bow: { kind: 'arrow' },
   hammer: { kind: 'smash', n: 2 }, crowbar: { kind: 'smash' }, trophy: { kind: 'smash' }, candle: { kind: 'smash', out: 1 }, dumbbell: { kind: 'smash', two: 1 },
-  brick: { kind: 'smash', debris: '#a8502a' }, pot: { kind: 'smash', debris: '#5a3a1a', leaf: 1 }, ice: { kind: 'smash', debris: '#dff4ff' }, bottle: { kind: 'smash', debris: '#6ab07a' },
+  brick: { kind: 'smash', debris: '#a8502a' }, pot: { kind: 'hurl' }, ice: { kind: 'smash', debris: '#dff4ff' }, bottle: { kind: 'smash', debris: '#6ab07a' },
   bat: { kind: 'swing' }, golf: { kind: 'swing', up: 1 }, pan: { kind: 'swing', clang: 1 },
   pistol: { kind: 'shoot' }, shotgun: { kind: 'shoot', big: 1 },
   poison: { kind: 'table', how: 'pour' }, pills: { kind: 'table', how: 'drop' }, mushroom: { kind: 'table', how: 'soup' },
@@ -197,6 +197,33 @@ const MOVE = {
   scarf: { kind: 'cord', color: '#6a2a8a', w: 14 },
   match: { kind: 'fire' }, gas: { kind: 'fire', pour: 1 }, firecracker: { kind: 'boom' }, dryer: { kind: 'shock' },
 };
+// 건네는 작은 소품 (손 좌표: 팔이 앞으로 뻗으면 +x 가 위쪽)
+const WINE_GLASS = '<g transform="translate(0 18)"><path d="M-3 -10 V10" stroke="#e8eef4" stroke-width="3.4" stroke-linecap="round"/><path d="M-3 0 H24" stroke="#e8eef4" stroke-width="3"/>'
+  + '<path d="M24 -15 Q58 -18 60 0 Q58 18 24 15 Z" fill="rgba(230,240,250,.3)" stroke="#eef4fa" stroke-width="2.4"/><path d="M27 -12 Q44 -13 45 0 Q44 13 27 12Z" fill="#8a1020"/><path d="M50 -10 Q56 -6 56 0" stroke="#fff" stroke-width="2" fill="none" opacity=".7"/></g>';
+const CHOCO_BAR = '<g transform="translate(0 16)"><rect x="-4" y="-11" width="42" height="22" rx="2" fill="#5a2a14" stroke="#1a0e08" stroke-width="2"/><rect x="-4" y="-11" width="15" height="22" fill="#c8a040" stroke="#1a0e08" stroke-width="2"/><path d="M20 -11V11M29 -11V11" stroke="#3a1a0a" stroke-width="1.6"/></g>';
+/** 식탁 위 물건: 잔 · 찻잔 · 국그릇 · 초콜릿 조각 (가운데 아래가 0,0) */
+function dishSvg(what) {
+  if (what === 'wine') return '<path d="M-2 0 H18 M8 0 V-26" stroke="#eef4fa" stroke-width="3" stroke-linecap="round"/><path d="M-6 -26 Q-8 -56 8 -58 Q24 -56 22 -26 Z" fill="rgba(230,240,250,.3)" stroke="#eef4fa" stroke-width="2.4"/><path d="M-5 -34 Q8 -30 21 -34 Q20 -27 8 -26 Q-4 -27 -5 -34Z" fill="#8a1020"/>';
+  if (what === 'soup') return '<path d="M-26 -30 Q0 6 26 -30Z" fill="#f4f0e6" stroke="#1a0e08" stroke-width="3"/><path d="M-22 -28 H22" stroke="#c89040" stroke-width="5"/><path d="M-8 -34 q-5 -12 2 -22 M8 -34 q-5 -12 2 -22" stroke="#dfe8f0" stroke-width="2" fill="none" opacity=".7"/>';
+  if (what === 'choco') return '<rect x="-12" y="-14" width="24" height="14" rx="2" fill="#5a2a14" stroke="#1a0e08" stroke-width="2"/><path d="M0 -14 V0" stroke="#3a1a0a" stroke-width="1.6"/>';
+  // 찻잔
+  return '<path d="M-16 -30 H16 L12 0 H-12Z" fill="#f4f0e6" stroke="#1a0e08" stroke-width="3"/><path d="M16 -24 q10 0 10 8 q0 8 -12 8" fill="none" stroke="#1a0e08" stroke-width="3"/><path d="M-14 -26 H14" stroke="#b8702a" stroke-width="4"/><path d="M-4 -34 q-4 -10 2 -18" stroke="#dfe8f0" stroke-width="2" fill="none" opacity=".7"/>';
+}
+/** 구룡의 술집 안: 비 내리는 창(맞은편 아파트가 보인다) · 술병 선반 · 전등 · 둥근 탁자와 의자 */
+function barInterior() {
+  const bottles = Array.from({ length: 14 }, (_, i) => `<rect x="${1210 + (i % 7) * 50}" y="${i < 7 ? 214 : 354}" width="20" height="${46 + (i % 3) * 8}" rx="6" fill="${['#2a6a3a', '#8a2a1a', '#c8a040', '#2a4a8a', '#6a1a4a'][i % 5]}" opacity=".9" stroke="#0a0806" stroke-width="2"/>`).join('');
+  return `<defs><linearGradient id="barWall" x2="0" y2="1"><stop offset="0" stop-color="#3a1a14"/><stop offset="1" stop-color="#1a0c08"/></linearGradient>
+      <radialGradient id="barLamp" cy=".2"><stop offset="0" stop-color="#ffd890" stop-opacity=".55"/><stop offset="1" stop-color="#ffd890" stop-opacity="0"/></radialGradient></defs>
+    <path fill-rule="evenodd" fill="url(#barWall)" d="M-100 -100 H1700 V840 H-100Z M40 30 H370 V450 H40Z"/>
+    <rect x="30" y="20" width="350" height="440" fill="none" stroke="#1a0c06" stroke-width="18"/><path d="M205 30 V450 M40 240 H370" stroke="#1a0c06" stroke-width="10"/>
+    <text x="205" y="505" text-anchor="middle" font-family="'Song Myung',serif" font-size="46" fill="#ff5a8a" opacity=".85">酒 吧</text>
+    <rect x="1180" y="180" width="380" height="16" fill="#5a3a1a"/><rect x="1180" y="320" width="380" height="16" fill="#5a3a1a"/><rect x="1180" y="460" width="380" height="16" fill="#5a3a1a"/>${bottles}
+    ${[620, 1000].map((x) => `<path d="M${x} 0 V120" stroke="#0a0806" stroke-width="3"/><path d="M${x - 40} 150 Q${x} 110 ${x + 40} 150Z" fill="#8a3a1a" stroke="#0a0806" stroke-width="3"/><ellipse cx="${x}" cy="300" rx="260" ry="240" fill="url(#barLamp)"/>`).join('')}
+    <rect y="840" width="1600" height="200" fill="#2a1a10"/>${Array.from({ length: 16 }, (_, i) => `<rect x="${i * 100}" y="840" width="50" height="60" fill="#3a2414"/>`).join('')}`;
+}
+const tableSvg = '<g><ellipse cx="900" cy="706" rx="190" ry="26" fill="#5a3a1a" stroke="#1a0e08" stroke-width="5"/><path d="M892 720 V840 M840 840 H960" stroke="#3a2410" stroke-width="12"/>'
+  + '<path d="M1040 780 H1130 V850 M1040 780 V850 M1120 700 V780" stroke="#3a2410" stroke-width="9" fill="none"/>'
+  + '<path d="M680 780 H770 V850 M680 780 V850 M690 700 V780" stroke="#3a2410" stroke-width="9" fill="none"/></g>';
 const VICTIM_K = { skin: '#e2b08a', skinD: '#a8765a', hair: '#3a2a20', coat: '#4a5a6a', coatD: '#2a3440', coat2: '#8a8a8a', shirt: '#e8e4dc', tie: '#2a3a5a', pants: '#2a2e36', pantsD: '#16181e', shoe: '#1a1410', hat: 'none', hairStyle: 'short', brow: '#3a2a20' };
 function flashbackShot(D, t0, murder, { watcher = '', outcome = 'solved' } = {}) {
   D.at(t0, () => {
@@ -207,11 +234,11 @@ function flashbackShot(D, t0, murder, { watcher = '', outcome = 'solved' } = {})
     const ck = (K.CARD[murder.clue] || {}).key || 'lipstick';
     const M = MOVE[mk] || { kind: 'smash' };
     const kind = M.kind;
+    const indoor = kind === 'table' || kind === 'offer';
     S.layer(0.3, BG(svg(alley({ seed: 17, fog: 0.35 }))));
     // 무대 소품: 탁자와 잔 · 계단 · 욕조
     let set = '<ellipse cx="1000" cy="846" rx="230" ry="18" fill="#9ab8e8" opacity=".14"/>';
-    if (kind === 'table') set += `<g transform="translate(1110 830)"><rect x="-60" y="-96" width="120" height="14" fill="#5a3a1a" stroke="#1a0e08" stroke-width="4"/><path d="M-50 -82 V0 M50 -82 V0" stroke="#3a2410" stroke-width="8"/></g>
-      <g class="kw-cup" transform="translate(1098 704)">${M.how === 'soup' ? '<path d="M-10 12 Q12 40 34 12Z" fill="#f4f0e6" stroke="#1a0e08" stroke-width="3"/><path d="M-4 14 H28" stroke="#c89040" stroke-width="5"/><path d="M4 4 q-4 -10 2 -18 M16 4 q-4 -10 2 -18" stroke="#dfe8f0" stroke-width="2" fill="none" opacity=".7"/>' : '<path d="M0 0 H22 V30 Q11 36 0 30Z" fill="#dfe8f0" opacity=".85" stroke="#1a0e08" stroke-width="3"/><path d="M2 10 H20 V28 Q11 32 2 28Z" fill="#c8a040" opacity=".8"/>'}</g>`;
+    if (indoor) set += barInterior() + tableSvg;
     if (kind === 'stairs') set += '<path d="M1060 846 H1600 V900 H1060Z" fill="#0e1018"/>' + Array.from({ length: 6 }, (_, i) => `<path d="M${1060 + i * 70} ${846 + i * 40} h70 v40" fill="none" stroke="#6a7488" stroke-width="5"/>`).join('') + '<path d="M1060 846 L1480 1086" stroke="#3a4050" stroke-width="3"/>';
     if (kind === 'tub') set += objAt('bathtub', 1060, 800, 2.3);
     // 맞은편 아파트: 불 켜진 창 하나에서 누군가 내려다본다
@@ -233,16 +260,17 @@ function flashbackShot(D, t0, murder, { watcher = '', outcome = 'solved' } = {})
         <rect x="${WX - 40}" y="${WY + 35}" width="80" height="7" fill="#5a4a3a"/>
         <text class="kw-watch-name" x="${WX}" y="${WY - 46}" text-anchor="middle" font-family="'Noto Sans KR',sans-serif" font-weight="900" font-size="15" fill="#ffd890" stroke="#0a0806" stroke-width="3" paint-order="stroke" opacity="0">${esc(watcher)}</text></svg>`);
     }
-    const fromRight = kind === 'table';
-    const faceOff = kind === 'offer';
+    const fromRight = false;
+    const faceOff = indoor; // 탁자에 앉아 왼쪽(탁자 · 맞은편)을 본다
     const vehicle = kind === 'vehicle';
     const mur = vehicle ? null : C.add({ look: 'murderer', x: fromRight ? 1750 : 80, y: 818, scale: 1.18, rim: '#c8d8ff', flip: fromRight, rimSide: fromRight ? -1 : 1 });
-    const vic = C.add({ look: VICTIM_K, x: 1000, y: 832, scale: 1.24, rim: '#c8d8ff', flip: faceOff, rimSide: faceOff ? -1 : 1 });
+    const vic = C.add({ look: VICTIM_K, x: indoor ? 1080 : 1000, y: indoor ? 840 : 832, scale: 1.24, rim: indoor ? '#ffd890' : '#c8d8ff', flip: faceOff, rimSide: faceOff ? -1 : 1 });
     const grip = (key) => { const g = GRIP[key] || [0, 50, 50, 0.8]; return `<g transform="scale(${g[3]}) rotate(${g[0]}) translate(${-g[1]} ${-g[2]})">${OBJ[key] || ''}</g>`; };
     if (mur && !['stairs', 'tub', 'smother'].includes(kind) && !(kind === 'cord')) mur.hold(grip(mk));
     if (mur && kind === 'cord') mur.hold(grip(mk));
     if (mur && kind === 'smother') mur.hold(null);
     if (mur && kind === 'fire' && M.pour) mur.hold(grip('gas'));
+    if (mur && kind === 'offer') mur.hold(null);
     if (mur) mur.brow('angry');
     // 효과 층
     L.el.insertAdjacentHTML('beforeend', `<svg viewBox="0 0 1600 900" style="position:absolute;left:0;top:0;width:1600px;height:900px;overflow:visible;pointer-events:none">
@@ -255,21 +283,24 @@ function flashbackShot(D, t0, murder, { watcher = '', outcome = 'solved' } = {})
       <ellipse class="fx-fire" rx="90" ry="120" fill="#ff8a2a" opacity="0"/>
       <g class="fx-zap" opacity="0"><path d="M0 -120 L-20 -60 L10 -50 L-14 20 L30 -60 L0 -70 L20 -120Z" fill="#dff4ff" stroke="#8ad8ff" stroke-width="3"/></g>
       <g class="fx-proj" opacity="0"></g>
-      <g class="fx-veh" opacity="0">${vehicle ? `<path d="M0 0 L-700 -80 L-700 80Z" fill="#fff8d0" opacity=".35" transform="translate(-60 -60)"/>${objAt(mk, 0, -60, M.small ? 2.4 : 4.2)}` : ''}</g>
+      <g class="fx-veh" opacity="0">${vehicle ? (M.small
+        ? `<path d="M-190 -130 L-1000 -260 L-1000 20Z" fill="#fff8d0" opacity=".3"/><g transform="scale(-1 1)">${objAt(mk, 0, -150, 5)}</g>`
+        : `<path d="M-300 -230 L-1100 -380 L-1100 -40Z" fill="#fff8d0" opacity=".3"/><g transform="scale(-1 1)">${objAt(mk, 0, -256, 8)}</g>`) : ''}</g>
       <text class="fx-text" x="0" y="0" font-family="'Black Han Sans',sans-serif" font-size="64" fill="#fff4a0" stroke="#1a0e08" stroke-width="4" paint-order="stroke" opacity="0" text-anchor="middle"></text>
       <g class="fx-clue" opacity="0">${objAt(ck, 0, 0, 0.9)}</g>
+      ${indoor ? `<g class="kw-vdish">${dishSvg(M.how === 'soup' ? 'soup' : M.eat ? 'choco' : mk === 'wine' ? 'wine' : 'tea')}</g>${kind === 'offer' && !M.eat ? `<g class="kw-mdish">${dishSvg('wine')}</g>` : ''}` : ''}
       <ellipse class="fx-spot" rx="120" ry="34" fill="#ffe8a0" opacity="0"/></svg>`);
     const q = (c) => L.el.querySelector(c);
     const cord = q('.fx-cord'), cover = q('.fx-cover'), swoosh = q('.fx-swoosh'), muzzle = q('.fx-muzzle'), parts = q('.fx-parts'), stars = q('.fx-stars');
     const fire = q('.fx-fire'), zap = q('.fx-zap'), proj = q('.fx-proj'), veh = q('.fx-veh'), txt = q('.fx-text'), clueEl = q('.fx-clue'), spot = q('.fx-spot');
     const cup = L.el.querySelector('.kw-cup');
-    const rn = rain(shot, { groundY: 0.8 });
-    const standX = { shoot: M.big ? 560 : 520, table: 1300, arrow: 380, throwSpear: 420, fire: 620, boom: 600, shock: 700, splash: 820, snake: 640, bees: 700, offer: 860, stairs: 870, tub: 900, saw: 840, swing: 850, chop: 860 }[kind] || 870;
-    const HIT = { table: 4.6, offer: 4.4, cord: 2.9, snake: 3.4, bees: 3.2, vehicle: 2.6, arrow: 3.1, throwSpear: 3.0 }[kind] || 3.1;
+    const rn = indoor ? () => {} : rain(shot, { groundY: 0.8 });
+    const standX = { table: 880, offer: 800, woodchop: 820, hurl: 560, grab: 905, shoot: M.big ? 560 : 520, arrow: 380, throwSpear: 420, fire: 620, boom: 600, shock: 700, splash: 890, snake: 640, bees: 700, stairs: 870, tub: 900, saw: 840, swing: 850, chop: 860 }[kind] || 870;
+    const HIT = { table: 4.4, offer: 4.4, cord: 2.9, snake: 3.4, bees: 3.2, vehicle: 2.6, arrow: 3.1, throwSpear: 3.0 }[kind] || 3.1;
     const END = 4.4; // 이 뒤로는 범인이 달아나고 단서가 떨어진다
-    const clueX = kind === 'vehicle' ? 900 : 860;
+    const clueX = kind === 'vehicle' ? 900 : indoor ? 760 : 860;
     const cam = camPath(S.cam, [
-      [0, { x: kind === 'table' ? 1050 : 660, y: 470, z: 1.12 }],
+      [0, { x: indoor ? 900 : 660, y: 470, z: 1.12 }],
       [2.3, { x: (standX + 1000) / 2, y: 450, z: 1.4 }],
       [HIT, { x: (standX + 1000) / 2 + 20, y: 440, z: 1.6 }],
       [END + 0.4, { x: 940, y: 520, z: 1.3 }],
@@ -304,6 +335,7 @@ function flashbackShot(D, t0, murder, { watcher = '', outcome = 'solved' } = {})
     const mid = () => vic.point('chest', 0, -40);
     const head = () => vic.point('head', 10, -50);
     let last = 0;
+    let stuck = false;
     D.tick((s) => {
       const dt = s - last;
       last = s;
@@ -392,6 +424,83 @@ function flashbackShot(D, t0, murder, { watcher = '', outcome = 'solved' } = {})
           }
           break;
         }
+        case 'woodchop': {
+          // 도끼: 어깨 뒤로 크게 젖혔다가 옆으로 크게 휘두른다 (장작 패듯)
+          const back = { upperF: 80, foreF: -30, upperB: 70, foreB: -30, chest: -20, hipX: -10 };
+          const thru = { upperF: -96, foreF: -8, upperB: -90, foreB: -10, chest: 24, hipX: 10 };
+          if (s > 2.2) mp = { ...STAND, ...raise({ upperF: -40, foreF: -30 }, back, 2.2, 2.95) };
+          if (s > HIT - 0.12) mp = { ...STAND, ...mixPose(back, thru, seg(s, HIT - 0.12, HIT + 0.05)) };
+          if (s > HIT - 0.12 && s < HIT + 0.14) {
+            const a = mur.point('handF', 0, 110);
+            swoosh.setAttribute('d', `M${a.x - 220} ${a.y - 10} Q${a.x - 60} ${a.y + 40} ${a.x + 40} ${a.y}`);
+            swoosh.setAttribute('stroke-width', 14);
+            swoosh.setAttribute('opacity', 0.85);
+          } else swoosh.setAttribute('opacity', 0);
+          if (s > HIT) {
+            at('hit', () => { impact(22); const hp = head(); say2(hp.x + 60, hp.y - 20, '퍽!'); });
+            // 휙 돌아 무릎이 꺾이고 앞으로 쓰러진다
+            const k = seg(s, HIT, HIT + 0.5);
+            vp = k < 1 ? { ...STAND, chest: 20, head: 30, upperF: -60, upperB: 40 } : { ...STAND, ...POSE.kneel, chest: 40, head: 30, upperF: 30, upperB: 20 };
+            if (s > HIT + 0.15 && s < HIT + 0.35) vp = { ...vp, flip: true };
+            if (s > HIT + 1.2) { const f2 = ease.inOut(seg(s, HIT + 1.2, HIT + 1.6)); vrot = f2 * 80; vp = mixPose({ ...STAND, ...POSE.kneel, chest: 40 }, { ...STAND, ...FALL }, f2); }
+          }
+          break;
+        }
+        case 'hurl': {
+          // 화분: 떨어진 곳에서 두 손으로 번쩍 들어 던진다 → 머리에 맞아 박살
+          const lift = { upperF: -175, foreF: -60, upperB: -170, foreB: -60, chest: -18 };
+          const toss = { upperF: -80, foreF: -10, upperB: -78, foreB: -10, chest: 22 };
+          if (s > 2.2) mp = { ...STAND, ...raise({ upperF: -40, foreF: -30 }, lift, 2.2, 2.8) };
+          if (s > 2.95) mp = { ...STAND, ...mixPose(lift, toss, seg(s, 2.95, 3.1)) };
+          if (s > 3.0) at('throw', () => {
+            mur.hold(null);
+            const a = mur.point('handF', 0, 30);
+            const b = head();
+            proj.innerHTML = objAt('pot', 0, 0, 0.9);
+            proj.animate([
+              { opacity: 1, transform: `translate(${a.x}px, ${a.y}px) rotate(0deg)` },
+              { opacity: 1, transform: `translate(${(a.x + b.x) / 2}px, ${Math.min(a.y, b.y) - 170}px) rotate(200deg)` },
+              { opacity: 1, transform: `translate(${b.x}px, ${b.y}px) rotate(400deg)` },
+            ], { duration: 520, fill: 'forwards', easing: 'ease-in' });
+          });
+          if (s > 3.52) at('hit', () => {
+            proj.style.opacity = 0;
+            const hp = head();
+            impact(14);
+            burst(hp.x, hp.y, '#5a3a1a', 22, 200, 8, 160);
+            burst(hp.x, hp.y, '#c06a3a', 10, 220, 14, 180);
+            burst(hp.x, hp.y, '#3a8a3a', 7, 160, 10, 120);
+            say2(hp.x + 50, hp.y - 30, '쨍그랑!');
+          });
+          if (s > 3.52) {
+            // 무릎부터 꺾이며 제자리에 주저앉는다
+            const k = ease.inOut(seg(s, 3.6, 4.2));
+            vp = mixPose({ ...STAND, head: 26, chest: 10, upperF: -140, upperB: -130 }, { ...STAND, ...POSE.kneel, chest: 50, head: 40, upperF: 30, upperB: 30 }, k);
+            if (s > 4.4) { const f2 = ease.inOut(seg(s, 4.4, 4.8)); vrot = f2 * 84; vp = mixPose(vp, { ...STAND, ...FALL }, f2); }
+          }
+          break;
+        }
+        case 'grab': {
+          // 깨진 유리: 바짝 붙어 어깨를 잡고, 짧게 두 번 긋는다 → 목을 움켜쥐고 비틀거린다
+          if (s > 2.2) mp = { ...STAND, upperB: -84, foreB: -6, upperF: -30, foreF: -120, chest: 10, hipX: 6 };
+          const cuts = [HIT - 0.2, HIT + 0.25];
+          cuts.forEach((c0, i) => {
+            if (s > c0 - 0.08 && s < c0 + 0.12) mp = { ...mp, upperF: -70 - seg(s, c0 - 0.08, c0 + 0.08) * 60, foreF: -40 };
+            if (s > c0) at(`cut${i}`, () => {
+              const n = vic.point('neck', 8, -6);
+              impact(i ? 6 : 9, i === 0);
+              for (let k = 0; k < 5; k++) { const g2 = document.createElementNS('http://www.w3.org/2000/svg', 'path'); g2.setAttribute('d', 'M0 -8 L2 0 L0 8 L-2 0Z M-8 0 L0 2 L8 0 L0 -2Z'); g2.setAttribute('fill', '#ffffff'); parts.appendChild(g2); g2.animate([{ transform: `translate(${n.x + (k - 2) * 10}px, ${n.y}px) scale(.4)`, opacity: 1 }, { transform: `translate(${n.x + (k - 2) * 26}px, ${n.y - 30 - k * 6}px) scale(1.2)`, opacity: 0 }], { duration: 500, fill: 'forwards' }); }
+            });
+          });
+          if (s > HIT + 0.5) mp = { ...STAND, upperF: -86, foreF: -4, upperB: -80, foreB: -6, chest: 18 };
+          if (s > HIT - 0.2) {
+            vp = { ...STAND, upperF: -160, foreF: -150, handF: -20, upperB: -40, head: -10, chest: -6 };
+            if (s > HIT + 0.55) vx = 1000 + ease.out(seg(s, HIT + 0.55, HIT + 1.2)) * 110;
+            if (s > HIT + 0.55) vp = { ...vp, chest: 14 + Math.sin(s * 9) * 6, head: 12 };
+            fall(HIT + 1.3, HIT + 1.8);
+          }
+          break;
+        }
         case 'saw': {
           if (s > 2.2) mp = { ...STAND, upperF: -82, foreF: -6, upperB: -78, foreB: -8, chest: 10 + Math.sin(s * 60) * 1.5 };
           if (s > 2.4 && s < HIT + 0.9 && Math.random() < 0.6) { const a = mur.point('handF', 0, 120); burst(a.x, a.y, '#ffd070', 2, 80, 3, 60); }
@@ -409,7 +518,12 @@ function flashbackShot(D, t0, murder, { watcher = '', outcome = 'solved' } = {})
             proj.innerHTML = objAt(kind === 'arrow' ? 'harpoon' : 'harpoon', 0, 0, kind === 'arrow' ? 0.8 : 1.2, 45);
             proj.animate([{ opacity: 1, transform: `translate(${a.x}px, ${a.y}px)` }, { opacity: 1, transform: `translate(${b.x}px, ${b.y}px)` }], { duration: 160, fill: 'forwards' });
           });
-          if (s > HIT) { at('hit', () => impact(11)); vp = { ...STAND, chest: -18, head: -22, upperF: -120, upperB: -110 }; fall(HIT + 0.35, HIT + 1.05); }
+          if (s > HIT) {
+            at('hit', () => { impact(11); proj.getAnimations().forEach((an) => an.cancel()); proj.style.opacity = 1; });
+            vp = { ...STAND, chest: -18, head: -22, upperF: -120, upperB: -110 };
+            fall(HIT + 0.35, HIT + 1.05);
+            stuck = true;
+          }
           break;
         }
         case 'shoot': {
@@ -429,46 +543,99 @@ function flashbackShot(D, t0, murder, { watcher = '', outcome = 'solved' } = {})
           }
           break;
         }
-        case 'table': {
-          const pour = seg(s, 1.6, 2.0) * (1 - seg(s, 2.8, 3.0));
-          mp = { ...mp, ...mixPose({ upperF: -40, foreF: -30 }, { upperF: -70, foreF: -60, handF: -110 }, pour) };
-          if (s > 1.9 && s < 2.8) at('drip', () => {
-            const color = M.how === 'drop' ? '#f4f0e6' : M.how === 'soup' ? '#c8302a' : '#5aff7a';
-            for (let i = 0; i < (M.how === 'drop' ? 4 : 7); i++) {
-              const d0 = document.createElementNS('http://www.w3.org/2000/svg', M.how === 'soup' ? 'circle' : 'ellipse');
-              if (M.how === 'soup') d0.setAttribute('r', 7); else { d0.setAttribute('rx', 4); d0.setAttribute('ry', 6); }
-              d0.setAttribute('fill', color); d0.setAttribute('stroke', '#1a0e08');
-              parts.appendChild(d0);
-              d0.animate([{ transform: 'translate(1111px, 650px)', opacity: 1 }, { transform: 'translate(1111px, 712px)', opacity: 0.2 }], { duration: 420, delay: i * 120, fill: 'forwards', easing: 'ease-in' });
-            }
-          });
-          if (s > 3.0) { mp = { ...STAND, ...gait(((s - 3) * 1.1) % 1) }; mx = standX + (s - 3.0) * 420; }
-          mflip = s <= 3.0;
-          vp = { ...STAND, head: 4 };
-          const reach = seg(s, 3.3, 3.7);
-          const drink = seg(s, 3.8, 4.2);
-          if (s > 3.3) vp = { ...STAND, upperF: -40 - reach * 30, foreF: -70 + reach * 40 };
-          if (s > 3.7) at('take', () => { vic.hold('goblet'); if (cup) cup.style.opacity = 0; });
-          if (s > 3.8) vp = { ...STAND, upperF: -60 - drink * 22, foreF: -70 - drink * 52, handF: -20 * drink, head: -14 * drink, neck: -8 * drink };
-          if (s > HIT) { at('hit', () => { impact(8); vic.hold(null); }); vp = { ...STAND, upperF: -84, foreF: -118 + Math.sin(s * 30) * 8, upperB: -76, foreB: -112, head: 14 + Math.sin(s * 24) * 5, chest: 10 }; fall(HIT + 0.5, HIT + 1.1); }
-          break;
-        }
-        case 'offer': {
-          // 마주 서서 건넨다 → 받아 먹거나 마신다 → 쓰러진다
-          if (s > 2.2) mp = { ...STAND, ...raise({ upperF: -40, foreF: -30 }, { upperF: -80, foreF: -10, head: -4 }, 2.2, 2.8) };
-          if (s > 3.0) at('give', () => { mur.hold(null); vic.hold(grip(mk)); });
-          if (s > 3.0) mp = { ...STAND, ...POSE.pockets, head: -4 };
-          mp.brow = 0;
-          if (s < 3.0) vp = { ...STAND, upperF: -20, foreF: -40, head: 4 };
-          else { const d = seg(s, 3.2, 3.7); vp = { ...STAND, upperF: -60 - d * 22, foreF: -70 - d * 52, handF: -20 * d, head: -14 * d }; }
-          if (s > HIT) { at('hit', () => { impact(8); vic.hold(null); }); vp = { ...STAND, upperF: -84, foreF: -118 + Math.sin(s * 30) * 8, upperB: -76, foreB: -112, head: 14 + Math.sin(s * 24) * 5, chest: 10 }; fall(HIT + 0.5, HIT + 1.1, -1); }
+        case 'table': case 'offer': {
+          const vd = L.el.querySelector('.kw-vdish');
+          const md = L.el.querySelector('.kw-mdish');
+          const TABLE_V = { x: 960, y: 700 };
+          const TABLE_M = { x: 830, y: 700 };
+          const SIT_V = { ...STAND, ...POSE.sit };
+          // 범인: 건네기 → 맞은편에 앉아 있다 / 탁자 → 지나가며 몰래 넣고 떠난다
+          if (kind === 'offer') {
+            mx = 740;
+            mp = { ...STAND, ...POSE.sit, upperF: -30, foreF: -60, head: 2 };
+            if (M.eat && s > 2.2 && s < 3.2) mp = { ...STAND, ...POSE.sit, upperF: -70, foreF: -10, chest: 14 };
+          } else {
+            const walk = s < 1.6;
+            mx = walk ? 80 + (standX - 80) * (s / 1.6) : s < 3.0 ? standX : standX - (s - 3.0) * 420;
+            mp = walk ? { ...STAND, ...gait((s * 0.9) % 1), ...sneak } : { ...STAND, ...sneak };
+            const pour = seg(s, 1.7, 2.0) * (1 - seg(s, 2.7, 2.9));
+            if (s >= 1.6 && s < 3.0) mp = { ...mp, ...mixPose({ upperF: -40, foreF: -30 }, { upperF: -70, foreF: -60, handF: -110, chest: 20 }, pour) };
+            if (s > 3.0) { mp = { ...STAND, ...gait(((s - 3) * 1.1) % 1) }; mflip = true; }
+            if (s > 1.9 && s < 2.7) at('drip', () => {
+              const color = M.how === 'drop' ? '#f4f0e6' : M.how === 'soup' ? '#c8302a' : '#5aff7a';
+              for (let i = 0; i < (M.how === 'drop' ? 3 : 7); i++) {
+                const d0 = document.createElementNS('http://www.w3.org/2000/svg', M.how === 'drop' || M.how === 'soup' ? 'circle' : 'ellipse');
+                if (M.how === 'drop' || M.how === 'soup') d0.setAttribute('r', M.how === 'soup' ? 7 : 5); else { d0.setAttribute('rx', 4); d0.setAttribute('ry', 6); }
+                d0.setAttribute('fill', color); d0.setAttribute('stroke', '#1a0e08');
+                parts.appendChild(d0);
+                d0.animate([{ transform: `translate(${TABLE_V.x}px, 620px)`, opacity: 1 }, { transform: `translate(${TABLE_V.x}px, 676px)`, opacity: 0.1 }], { duration: 380, delay: i * 110, fill: 'forwards', easing: 'ease-in' });
+              }
+            });
+          }
+          // 피해자: 앉아서 → 손을 뻗어 집고 → 입에 대고 기울여 마신다(먹는다)
+          const reach = seg(s, 3.1, 3.4);
+          const lift = seg(s, 3.4, 3.8);
+          const tilt = M.eat ? 0 : ease.inOut(seg(s, 3.85, 4.15));
+          vp = { ...SIT_V, upperF: -20 - reach * 30, foreF: -60 + reach * 30, head: 6 };
+          if (s > 3.4) vp = { ...SIT_V, upperF: -50 - lift * 12, foreF: -30 - lift * 98, head: 4 - lift * 4 - tilt * 20, neck: -tilt * 8, chest: -tilt * 6 };
+          // 건배: 범인도 잔을 든다
+          if (kind === 'offer' && !M.eat && s > 3.0 && s < 3.6) { mp = { ...mp, upperF: -80, foreF: -40 }; at('clink', () => say2(900, 560, '짠!')); }
+          // 잔 · 그릇 위치: 집기 전에는 탁자 위, 집은 뒤로는 손을 따라 곧게 (마실 때만 기울인다)
+          const place = (el, pt, rot = 0, sc = 1) => el && el.setAttribute('transform', `translate(${pt.x} ${pt.y}) rotate(${rot}) scale(${sc})`);
+          if (s < 3.4) place(vd, TABLE_V);
+          else if (s < HIT) {
+            const h = vic.point('handF', 0, 18);
+            const bite = M.eat ? Math.max(0.35, 1 - seg(s, 3.9, 4.3) * 0.65) : 1;
+            place(vd, { x: h.x, y: h.y + 10 }, -tilt * 55, bite);
+          }
+          if (md) {
+            if (s > 3.0 && s < 3.9) { const h = mur.point('handF', 0, 18); place(md, { x: h.x, y: h.y + 10 }); } else place(md, TABLE_M);
+          }
+          if (s > HIT) {
+            at('hit', () => {
+              impact(8);
+              if (vd) {
+                const h = vic.point('handF', 0, 18);
+                vd.animate([{ transform: `translate(${h.x}px, ${h.y}px) rotate(0deg)` }, { transform: `translate(${h.x + 30}px, 836px) rotate(120deg)` }], { duration: 420, fill: 'forwards', easing: 'ease-in' });
+                setTimeout(() => { vd.style.opacity = 0; if (!M.eat) { burst(h.x + 30, 836, '#eef4fa', 12, 120, 5, 60); burst(h.x + 30, 838, mk === 'wine' ? '#8a1020' : '#b8702a', 8, 90, 6, 30); } }, 420);
+              }
+            });
+            // 목을 움켜쥐고 떨다가 → 탁자 위로 엎어진다
+            const slump = ease.inOut(seg(s, HIT + 0.9, HIT + 1.3));
+            vp = mixPose({ ...SIT_V, upperF: -64, foreF: -134 + Math.sin(s * 30) * 8, upperB: -56, foreB: -128, head: 16 + Math.sin(s * 24) * 5, chest: 10 }, { ...SIT_V, chest: 58, neck: 20, head: 34, upperF: -40, foreF: -20, upperB: -30, foreB: -20 }, slump);
+          }
+          if (kind === 'offer' && s > END + 0.2) { mp = { ...STAND, ...gait(((s - END) * 1.2) % 1) }; mx = 740 - (s - END - 0.2) * 480; mflip = true; }
+          vx = 1080;
+          vy = 840;
           break;
         }
         case 'splash': {
-          if (s > 2.2) mp = { ...STAND, ...raise({ upperF: -40, foreF: -30 }, { upperF: 20, foreF: -30 }, 2.2, 2.8) };
-          if (s > HIT - 0.15) mp = { ...STAND, upperF: -100, foreF: -10, handF: -60, chest: 14 };
-          if (s > HIT - 0.1) at('throw', () => { const a = mur.point('handF', 0, 60); const b = head(); for (let i = 0; i < 16; i++) { const d0 = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); d0.setAttribute('r', 5 + Math.random() * 5); d0.setAttribute('fill', '#b8f070'); parts.appendChild(d0); d0.animate([{ transform: `translate(${a.x}px, ${a.y}px)`, opacity: 1 }, { transform: `translate(${b.x + (Math.random() - 0.5) * 60}px, ${b.y + (Math.random() - 0.5) * 60}px)`, opacity: 0.1 }], { duration: 260 + i * 12, fill: 'forwards' }); } });
-          if (s > HIT) { at('hit', () => impact(9)); vp = { ...STAND, upperF: -150, foreF: -140, upperB: -140, foreB: -130, head: 20 + Math.sin(s * 30) * 6, chest: 10 }; fall(HIT + 0.8, HIT + 1.4); }
+          // 염산: 뒤로 다가가 병을 머리 위에서 기울여 붓는다 → 연기가 치솟고 머리를 감싸 쥐다 쓰러진다
+          if (s > 2.2) mp = { ...STAND, ...raise({ upperF: -40, foreF: -30 }, { upperF: -150, foreF: -30, handF: 0, chest: -4 }, 2.2, 2.7) };
+          const pouring = s > 2.8 && s < 4.0;
+          if (s > 2.7) mp = { ...STAND, upperF: -150, foreF: -30, handF: -120 * seg(s, 2.7, 2.9), chest: 6 };
+          if (pouring) {
+            const a = mur.point('handF', 0, 70);
+            const hp = head();
+            cord.setAttribute('d', `M${a.x} ${a.y} Q${a.x + 10} ${(a.y + hp.y) / 2} ${hp.x} ${hp.y - 10}`);
+            cord.setAttribute('stroke', '#b8f070');
+            cord.setAttribute('stroke-width', 7 + Math.sin(s * 40) * 2);
+            cord.setAttribute('opacity', 0.9);
+            if (Math.random() < 0.5) {
+              const pf = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+              pf.setAttribute('r', 10 + Math.random() * 10);
+              pf.setAttribute('fill', '#d8f0c8');
+              parts.appendChild(pf);
+              pf.animate([{ transform: `translate(${hp.x + (Math.random() - 0.5) * 50}px, ${hp.y}px)`, opacity: 0.6 }, { transform: `translate(${hp.x + (Math.random() - 0.5) * 120}px, ${hp.y - 140}px)`, opacity: 0 }], { duration: 900, fill: 'forwards', easing: 'ease-out' });
+            }
+          } else cord.setAttribute('opacity', 0);
+          if (s > 2.9) at('hit', () => { impact(8); const hp = head(); say2(hp.x + 30, hp.y - 60, '치이익!'); });
+          if (s > 2.9) {
+            vp = { ...STAND, upperF: -160 + Math.sin(s * 26) * 10, foreF: -150, upperB: -150, foreB: -140, head: 18 + Math.sin(s * 30) * 8, chest: 14 };
+            vx = 1000 + Math.sin(s * 5) * 14;
+            fall(4.1, 4.6);
+          }
+          if (s > 4.0) mp = { ...STAND, upperF: -20, foreF: -30, head: 6 };
           break;
         }
         case 'snake': case 'bees': {
@@ -489,9 +656,11 @@ function flashbackShot(D, t0, murder, { watcher = '', outcome = 'solved' } = {})
         case 'vehicle': {
           // 헤드라이트가 비치더니 달려와 들이받는다
           const k = seg(s, 1.6, HIT);
-          const vxp = 1900 - k * 900;
+          // 차 앞머리가 HIT 순간 피해자에게 닿도록 (차가 크니 가운데는 그만큼 뒤)
+          const front = M.small ? 190 : 304;
+          const vxp = 2100 - k * (1100 - front);
           veh.setAttribute('opacity', s > 1.4 ? 1 : 0);
-          veh.setAttribute('transform', `translate(${s < HIT ? vxp : 1000 - (s - HIT) * 1400} 830)`);
+          veh.setAttribute('transform', `translate(${s < HIT ? vxp : 1000 + front - (s - HIT) * 1600} 846)`);
           if (s > 1.5 && s < HIT) vp = { ...STAND, upperF: -140, foreF: -30, upperB: -130, head: 10, chest: -6 };
           if (s > HIT) {
             at('hit', () => impact(22));
@@ -599,7 +768,7 @@ function flashbackShot(D, t0, murder, { watcher = '', outcome = 'solved' } = {})
         default: break;
       }
       // 범행 뒤: 범인이 달아나다 주머니에서 단서가 떨어진다
-      if (mur && kind !== 'table' && kind !== 'snake' && kind !== 'bees' && s > END + 0.3) {
+      if (mur && !indoor && kind !== 'snake' && kind !== 'bees' && s > END + 0.3) {
         mp = { ...STAND, ...gait(((s - END) * 1.3) % 1, true) };
         mx = standX - (s - END - 0.3) * 520;
         mflip = true;
@@ -643,8 +812,6 @@ function flashbackShot(D, t0, murder, { watcher = '', outcome = 'solved' } = {})
           if (outcome !== 'solved') {
             st.style.color = '#ffb020';
             st.style.borderColor = '#ffb020';
-            L.el.querySelectorAll('rect[fill="#ffd890"]').forEach((w) => w.animate([{ fill: '#ffd890' }, { fill: '#0a0e18' }], { duration: 250, delay: 700, fill: 'forwards' }));
-            setTimeout(() => watcherP && (watcherP.svg.style.opacity = '0.15'), 950);
           }
           shot.appendChild(st);
           st.animate([{ opacity: 0, transform: 'translate(-50%,-50%) rotate(-12deg) scale(2.6)' }, { opacity: 0.94, transform: 'translate(-50%,-50%) rotate(-12deg) scale(1)' }], { duration: 280, fill: 'forwards', easing: 'cubic-bezier(.3,1.6,.5,1)' });
@@ -653,7 +820,9 @@ function flashbackShot(D, t0, murder, { watcher = '', outcome = 'solved' } = {})
         });
       }
       if (mur) mur.set({ ...mp, x: mx, flip: mflip });
-      vic.set({ ...vp, x: vx, y: vy, rot: vrot });
+      vic.set({ ...vp, flip: vp.flip ?? faceOff, x: vx, y: vy, rot: vrot });
+      // 꽂힌 작살 · 화살은 가슴에 붙어 몸과 함께 넘어간다
+      if (stuck) { const c0 = vic.point('chest', 0, -50); proj.setAttribute('transform', `translate(${c0.x} ${c0.y}) rotate(${vrot})`); proj.style.transform = ''; }
       C.update(dt);
       S.render(s);
     });
@@ -661,6 +830,338 @@ function flashbackShot(D, t0, murder, { watcher = '', outcome = 'solved' } = {})
   });
 }
 
+/* ═════════ 목격자 제거: 계단 → 402호 문 → 창 너머에서 기절시킴 → 옥상으로 끌고 가 밀어 떨어뜨림 → 아래에서 올려다본 추락 ═════════ */
+const WIT_LEN = 15.2;
+function hitWitnessShot(D, t0, murder, witness) {
+  const mk = (K.CARD[murder.means] || {}).key || 'knife';
+  const grip = (key) => { const g = GRIP[key] || [0, 50, 50, 0.8]; return `<g transform="scale(${g[3]}) rotate(${g[0]}) translate(${-g[1]} ${-g[2]})">${OBJ[key] || ''}</g>`; };
+  const shadowOf = (C, look, scale) => { const sp = C.add({ look, x: 0, y: 0, scale, rim: '#000', shadow: false }); sp.svg.style.filter = 'brightness(0) blur(5px)'; sp.svg.style.opacity = '0.55'; return sp; };
+  // ① 계단: 깜빡이는 전구 아래 올라가는 발소리 · 벽에 커다란 그림자
+  D.at(t0, () => {
+    D.cut('');
+    const { S, shot } = scene(D, MEM_CSS);
+    let steps = '';
+    for (let i = 0; i < 12; i++) steps += `<path d="M${200 + i * 110} ${900 - i * 60} h110 v-60" fill="none" stroke="#4a5a58" stroke-width="6"/><rect x="${200 + i * 110}" y="${900 - i * 60}" width="110" height="${60 + i * 60}" fill="#1a2422"/>`;
+    S.layer(1, BG(svg(`<rect width="1600" height="900" fill="#0e1614"/><rect x="0" y="0" width="1600" height="900" fill="#1a2a26"/>${steps}<path d="M200 800 L1520 80" stroke="#6a7a70" stroke-width="5"/><path d="M200 740 L1520 20" stroke="#6a7a70" stroke-width="3"/>
+      <path d="M1100 0 V120" stroke="#0a0806" stroke-width="3"/><circle class="kw-bulb" cx="1100" cy="130" r="14" fill="#fff4c0"/><ellipse class="kw-bulbglow" cx="1100" cy="200" rx="420" ry="380" fill="#fff4c0" opacity=".16"/>`)));
+    const L = S.layer(1, '');
+    const C = cast(L.el);
+    const sh = shadowOf(C, 'murderer', 2.6);
+    const mur = C.add({ look: 'murderer', x: 200, y: 900, scale: 1.2, rim: '#8ad8ff' });
+    mur.hold(grip(mk));
+    mur.brow('angry');
+    const bulb = shot.querySelector('.kw-bulb');
+    const glow = shot.querySelector('.kw-bulbglow');
+    const cam = camPath(S.cam, [[0, { x: 520, y: 620, z: 1.25 }], [2.2, { x: 780, y: 470, z: 1.3 }]]);
+    let last = 0;
+    D.tick((s) => {
+      const dt = s - last;
+      last = s;
+      cam(s);
+      const on = Math.random() > 0.1;
+      if (bulb) bulb.setAttribute('opacity', on ? 1 : 0.2);
+      if (glow) glow.setAttribute('opacity', on ? 0.16 : 0.03);
+      // 계단을 한 칸씩 오른다 (발이 계단에 맞게 위아래로)
+      const k = s / 2.2;
+      const x = 200 + k * 700;
+      const y = 900 - k * 380 - Math.abs(Math.sin(s * 7)) * 10;
+      const pose = { ...POSE.stand, ...gait((s * 1.2) % 1), thighF: -40 + Math.sin(s * 7) * 30, shinF: 40, chest: 10 };
+      mur.set({ ...pose, x, y });
+      sh.set({ ...pose, x: x - 200, y: y - 60 });
+      sh.svg.style.opacity = on ? '0.55' : '0.1';
+      C.update(dt);
+      S.render(s);
+    });
+  });
+  // ② 복도: 402호 문 앞에서 걷어찬다
+  D.at(t0 + 2.2, () => {
+    D.cut('');
+    const { S, shot } = scene(D, MEM_CSS);
+    let doors = '';
+    for (let i = 0; i < 4; i++) {
+      const x = 180 + i * 330;
+      if (i === 1) continue;
+      doors += `<rect x="${x}" y="300" width="150" height="420" fill="#2a2418" stroke="#0a0806" stroke-width="6"/><circle cx="${x + 128}" cy="520" r="7" fill="#c8a040"/><rect x="${x + 50}" y="330" width="50" height="26" fill="#c8b890"/><text x="${x + 75}" y="349" text-anchor="middle" font-family="'Noto Sans KR',sans-serif" font-weight="900" font-size="16" fill="#1a1208">${401 + i}</text>`;
+    }
+    S.layer(1, BG(svg(`<rect width="1600" height="900" fill="#1a2420"/><rect y="720" width="1600" height="180" fill="#2a2a24"/>${Array.from({ length: 16 }, (_, i) => `<path d="M${i * 100} 720 L${i * 100 - 60} 900" stroke="#1a1a14" stroke-width="3"/>`).join('')}
+      ${doors}<rect x="0" y="0" width="1600" height="90" fill="#0e1410"/><rect class="kw-tube" x="300" y="100" width="1000" height="14" rx="6" fill="#dff8e8"/>
+      <rect x="510" y="300" width="150" height="420" fill="#ffd890"/>
+      <g class="kw-door"><rect x="510" y="300" width="150" height="420" fill="#3a3020" stroke="#0a0806" stroke-width="6"/><circle cx="638" cy="520" r="7" fill="#c8a040"/><rect x="560" y="330" width="50" height="26" fill="#c8b890"/><text x="585" y="349" text-anchor="middle" font-family="'Noto Sans KR',sans-serif" font-weight="900" font-size="16" fill="#1a1208">402</text></g>
+      <path class="kw-spill" d="M510 720 L300 900 H900 L660 720Z" fill="#ffd890" opacity="0"/>`)));
+    const L = S.layer(1, '');
+    const C = cast(L.el);
+    const mur = C.add({ look: 'murderer', x: 1300, y: 860, scale: 1.3, rim: '#8ad8ff', flip: true, rimSide: -1 });
+    mur.hold(grip(mk));
+    mur.brow('angry');
+    const cam = camPath(S.cam, [[0, { x: 900, y: 480, z: 1.1 }], [1.6, { x: 680, y: 500, z: 1.4 }]]);
+    const tube = shot.querySelector('.kw-tube');
+    let last = 0;
+    let kicked = false;
+    D.tick((s) => {
+      const dt = s - last;
+      last = s;
+      cam(s);
+      if (tube) tube.setAttribute('opacity', Math.random() < 0.08 ? 0.2 : 1);
+      const x = Math.max(760, 1300 - s * 600);
+      if (x > 760) mur.set({ ...POSE.stand, ...gait((s * 1.2) % 1), x, flip: true });
+      else {
+        const k = Math.max(0, Math.min(1, (s - 1.0) / 0.25));
+        mur.set({ ...POSE.stand, thighF: -95 * Math.sin(k * Math.PI), shinF: 10, chest: -10, x: 760, flip: true });
+        if (k > 0.5 && !kicked) {
+          kicked = true;
+          D.shake(18, 320);
+          D.flash('#ffd890', 160);
+          D.sound.stamp && D.sound.stamp();
+          const door = shot.querySelector('.kw-door');
+          if (door) door.animate([{ transform: 'none' }, { transform: 'translate(28px, 6px) skewY(-10deg) scaleX(.18)' }], { duration: 200, fill: 'forwards' });
+          const sp = shot.querySelector('.kw-spill');
+          if (sp) sp.animate([{ opacity: 0 }, { opacity: 0.5 }], { duration: 200, fill: 'forwards' });
+        }
+      }
+      C.update(dt);
+      S.render(s);
+    });
+  });
+  // ③ 창 너머 그림자극: 흔들리는 전등 · 커튼에 비친 큰 그림자 → 붙잡고 → 번개 · 유리 금 → 커튼이 닫히고 불이 꺼진다
+  D.at(t0 + 3.8, () => {
+    D.cut('');
+    const { S, shot } = scene(D, MEM_CSS);
+    const WX0 = 470;
+    const WY0 = 150;
+    const WW = 660;
+    const WH = 560;
+    S.layer(0.4, BG(svg('<rect width="1600" height="900" fill="#0a0e18"/>')));
+    const L = S.layer(1, `<svg viewBox="0 0 1600 900" style="position:absolute;inset:0;width:1600px;height:900px"><defs><radialGradient id="roomShade" cx=".5" cy=".3" r=".8"><stop offset=".4" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".5"/></radialGradient></defs>
+      <rect class="kw-room" x="${WX0}" y="${WY0}" width="${WW}" height="${WH}" fill="#f0c880"/>
+      <rect x="${WX0 + 40}" y="${WY0 + 30}" width="${WW - 80}" height="${WH - 30}" fill="#e8b870" opacity=".6"/>
+      <rect x="${WX0}" y="${WY0}" width="${WW}" height="${WH}" fill="url(#roomShade)"/></svg>`);
+    const C = cast(L.el);
+    // 커튼에 비친 큰 그림자 (사람보다 먼저 = 뒤에)
+    const shW = shadowOf(C, 'woman', 2.1);
+    const shM = shadowOf(C, 'murderer', 2.3);
+    const wit = C.add({ look: 'woman', x: 880, y: 900, scale: 1.25, rim: '#ffd890' });
+    const mur = C.add({ look: 'murderer', x: 360, y: 900, scale: 1.3, rim: '#ffd890' });
+    mur.hold(grip(mk));
+    mur.brow('angry');
+    // 흔들리는 전구 · 창틀 · 벽 · 커튼(닫힐 것) · 유리 금 · 빗방울
+    L.el.insertAdjacentHTML('beforeend', `<svg viewBox="0 0 1600 900" style="position:absolute;left:0;top:0;width:1600px;height:900px;pointer-events:none;overflow:visible">
+      <g class="kw-lamp"><path d="M800 ${WY0} V${WY0 + 110}" stroke="#1a1208" stroke-width="3"/><path d="M770 ${WY0 + 130} Q800 ${WY0 + 100} 830 ${WY0 + 130}Z" fill="#3a2a1a"/><circle cx="800" cy="${WY0 + 138}" r="11" fill="#fff4c0"/></g>
+      <rect class="kw-curL" x="${WX0}" y="${WY0}" width="0" height="${WH}" fill="#7a2a1a"/><rect class="kw-curR" x="${WX0 + WW}" y="${WY0}" width="0" height="${WH}" fill="#7a2a1a"/>
+      <path fill-rule="evenodd" fill="#141a2a" d="M-300 -300 H1900 V1200 H-300Z M${WX0} ${WY0} H${WX0 + WW} V${WY0 + WH} H${WX0}Z"/>
+      <rect x="${WX0 - 14}" y="${WY0 - 14}" width="${WW + 28}" height="${WH + 28}" fill="none" stroke="#3a2a1a" stroke-width="22"/>
+      <path d="M${WX0 + WW / 2} ${WY0} V${WY0 + WH} M${WX0} ${WY0 + WH / 2} H${WX0 + WW}" stroke="#3a2a1a" stroke-width="12"/>
+      <rect x="${WX0 - 40}" y="${WY0 + WH + 10}" width="${WW + 80}" height="26" fill="#5a4a3a"/>
+      <g class="kw-crack" fill="none" stroke="#f4f8ff" stroke-width="3" opacity="0"><path d="M${WX0 + 420} ${WY0 + 200} l-60 -90 M${WX0 + 420} ${WY0 + 200} l80 -60 M${WX0 + 420} ${WY0 + 200} l-20 120 M${WX0 + 420} ${WY0 + 200} l110 40 M${WX0 + 420} ${WY0 + 200} l-100 30"/><circle cx="${WX0 + 420}" cy="${WY0 + 200}" r="18"/></g>
+      ${Array.from({ length: 44 }, (_, i) => `<ellipse cx="${WX0 + ((i * 97) % WW)}" cy="${WY0 + ((i * 61) % WH)}" rx="2.4" ry="4" fill="#dfe8ff" opacity=".35"/>`).join('')}
+      <text x="${WX0 + WW / 2}" y="${WY0 - 40}" text-anchor="middle" font-family="'Noto Sans KR',sans-serif" font-weight="900" font-size="30" fill="#ffd890" stroke="#0a0806" stroke-width="4" paint-order="stroke">${esc(witness || '목격자')}</text></svg>`);
+    const lamp = L.el.querySelector('.kw-lamp');
+    const room = L.el.querySelector('.kw-room');
+    const rn = rain(shot, { groundY: 1.2 });
+    const cam = camPath(S.cam, [[0, { x: 800, y: 440, z: 1.0 }], [1.8, { x: 800, y: 420, z: 1.12 }], [2.2, { x: 820, y: 400, z: 1.3 }], [3.6, { x: 800, y: 420, z: 1.18 }]]);
+    const HIT2 = 1.9;
+    let last = 0;
+    let done = false;
+    D.tick((s) => {
+      const dt = s - last;
+      last = s;
+      cam(s);
+      rn(dt);
+      // 전등이 흔들린다 → 그림자도 흔들린다
+      const sw = Math.sin(s * 2.6) * (s > HIT2 ? 26 : 10);
+      if (lamp) lamp.setAttribute('transform', `rotate(${sw.toFixed(2)} 800 ${WY0})`);
+      const shift = sw * 6;
+      // 범인: 들어와 → 어깨를 붙잡고 → 흉기 손잡이로 뒤통수를 내리쳐 기절시킨다
+      const mx = Math.min(720, 360 + s * 380);
+      const up = Math.max(0, Math.min(1, (s - 1.1) / 0.45));
+      let mp = { ...POSE.stand, ...(mx < 720 ? gait((s * 1) % 1) : {}), upperF: -40 - up * 132, foreF: -30 + up * 6, upperB: -40 - up * 44, foreB: -10, chest: -up * 6 };
+      if (s > HIT2 - 0.1) mp = { ...POSE.stand, upperF: -50, foreF: -8, upperB: -84, foreB: -6, chest: 18 };
+      mur.set({ ...mp, x: mx });
+      shM.set({ ...mp, x: mx - 260 + shift, y: 940 });
+      // 목격자: 창밖을 보다 인기척에 돌아서 두 손을 든다 → 무너진다
+      const turn = s > 1.0;
+      let wp = { ...POSE.stand, ...(turn ? { upperF: -150, foreF: -140, upperB: -140, foreB: -130, head: -10 } : { upperF: -20, foreF: -60, head: 0 }) };
+      let wx = 880;
+      // 기절: 무릎이 풀려 스르르 주저앉는다
+      if (s > HIT2) { const k = Math.min(1, (s - HIT2) / 0.6); wp = mixPose({ ...POSE.stand, head: 30, chest: 10, upperF: 10, upperB: 10 }, { ...POSE.stand, ...POSE.kneel, chest: 50, neck: 20, head: 40, upperF: 30, foreF: 0, upperB: 20 }, k); wx = 880; }
+      wit.set({ ...wp, x: wx, flip: turn });
+      shW.set({ ...wp, x: wx + 120 + shift, y: 930, flip: turn });
+      if (s > HIT2 && !done) {
+        done = true;
+        const l = document.createElement('div');
+        l.className = 'kw-lightning';
+        shot.appendChild(l);
+        l.animate([{ opacity: 0 }, { opacity: 0.95, offset: 0.1 }, { opacity: 0.2, offset: 0.25 }, { opacity: 0.8, offset: 0.35 }, { opacity: 0 }], { duration: 700 });
+        L.el.classList.add('kw-silh');
+        setTimeout(() => L.el.classList.remove('kw-silh'), 500);
+        D.shake(16, 340);
+        D.flash('#ffffff', 140);
+        D.sound.thunder && D.sound.thunder();
+        const hp = wit.point('head', 10, -60);
+        L.el.querySelector('.kw-crack').style.display = 'none';
+        // 별이 도는 기절 표시
+        const st = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        st.innerHTML = [0, 1, 2].map((i) => `<path transform="rotate(${i * 120})" d="M0 -30 L5 -20 L0 -12 L-5 -20Z" fill="#fff4a0"/>`).join('');
+        L.el.querySelector('svg:last-of-type').appendChild(st);
+        st.animate([{ transform: `translate(${hp.x}px, ${hp.y}px) rotate(0deg)`, opacity: 1 }, { transform: `translate(${hp.x}px, ${hp.y}px) rotate(540deg)`, opacity: 0 }], { duration: 1400, fill: 'forwards' });
+        // 커튼이 휙 닫히고 → 불이 꺼진다
+        setTimeout(() => {
+          L.el.querySelector('.kw-curL').animate([{ width: '0px' }, { width: `${WW / 2}px` }], { duration: 420, fill: 'forwards', easing: 'ease-in' });
+          const r2 = L.el.querySelector('.kw-curR');
+          r2.animate([{ x: `${WX0 + WW}px`, width: '0px' }, { x: `${WX0 + WW / 2}px`, width: `${WW / 2}px` }], { duration: 420, fill: 'forwards', easing: 'ease-in' });
+        }, 450);
+        setTimeout(() => {
+          if (room) room.animate([{ fill: '#f0c880' }, { fill: '#10141e' }], { duration: 160, fill: 'forwards' });
+          L.el.querySelectorAll('.kw-curL, .kw-curR').forEach((c) => c.animate([{ fill: '#7a2a1a' }, { fill: '#140a0a' }], { duration: 160, fill: 'forwards' }));
+          if (lamp) lamp.style.opacity = 0;
+        }, 950);
+      }
+      C.update(dt);
+      S.render(s);
+    });
+  });
+}
+
+/** ④ 계단: 기절한 목격자의 두 손목을 잡고 뒷걸음질로 끌고 올라간다 */
+function stairDragShot(D, t0) {
+  D.at(t0, () => {
+    D.cut('');
+    const { S, shot } = scene(D, MEM_CSS);
+    let steps = '';
+    for (let i = 0; i < 14; i++) steps += `<path d="M${120 + i * 110} ${960 - i * 60} h110 v-60" fill="none" stroke="#4a5a58" stroke-width="6"/><rect x="${120 + i * 110}" y="${960 - i * 60}" width="110" height="${60 + i * 60}" fill="#1a2422"/>`;
+    S.layer(1, BG(svg(`<rect width="1600" height="900" fill="#1a2a26"/>${steps}<path d="M120 860 L1660 20" stroke="#6a7a70" stroke-width="5"/>
+      <path d="M1200 0 V100" stroke="#0a0806" stroke-width="3"/><circle class="kw-bulb" cx="1200" cy="110" r="14" fill="#fff4c0"/><ellipse class="kw-bulbglow" cx="1200" cy="200" rx="460" ry="380" fill="#fff4c0" opacity=".16"/>
+      <text x="1380" y="120" font-family="'Noto Sans KR',sans-serif" font-weight="900" font-size="26" fill="#6a7a70">옥상 ↑</text>`)));
+    const L = S.layer(1, '');
+    const C = cast(L.el);
+    const wit = C.add({ look: 'woman', x: 0, y: 0, scale: 1.15, rim: '#8ad8ff' });
+    const mur = C.add({ look: 'murderer', x: 600, y: 700, scale: 1.2, rim: '#8ad8ff', flip: true, rimSide: -1 });
+    mur.brow('angry');
+    const bulb = shot.querySelector('.kw-bulb');
+    const glow = shot.querySelector('.kw-bulbglow');
+    const SL = 0.545; // 계단 기울기 (60/110)
+    const cam = camPath(S.cam, [[0, { x: 620, y: 560, z: 1.12 }], [2.6, { x: 980, y: 380, z: 1.12 }]]);
+    let last = 0;
+    D.tick((s) => {
+      const dt = s - last;
+      last = s;
+      cam(s);
+      const on = Math.random() > 0.1;
+      if (bulb) bulb.setAttribute('opacity', on ? 1 : 0.2);
+      if (glow) glow.setAttribute('opacity', on ? 0.16 : 0.03);
+      // 한 칸 오를 때마다 몸이 들썩인다
+      const k = s / 2.6;
+      const x = 640 + k * 620;
+      const step = Math.abs(Math.sin(s * 6));
+      const y = 740 - (x - 640) * SL - step * 8;
+      mur.set({ ...POSE.stand, ...gait((s * 0.9) % 1), upperF: -24, foreF: -8, upperB: -20, foreB: -8, chest: 44, neck: 10, hipY: 30, x, y, flip: true });
+      const hand = mur.point('handF', 0, 22);
+      // 목격자: 계단 비탈을 따라 누워 두 팔이 끌려 올라간다 (발은 아래 계단)
+      const ang = 62;
+      const len = 450;
+      wit.set({ ...POSE.stand, upperF: -178, foreF: -2, upperB: -176, foreB: -2, head: 20 + step * 6, x: hand.x - len * Math.sin(ang * Math.PI / 180), y: hand.y + len * Math.cos(ang * Math.PI / 180) + 12, rot: ang + step * 3 });
+      if (step > 0.98) D.sound.card && Math.random() < 0.3 && D.sound.card();
+      C.update(dt);
+      S.render(s);
+    });
+  });
+}
+/** ⑤ 옥상: 문을 나와 난간 끝까지 끌고 가 → 밀어 떨어뜨린다  ⑥ 건물을 따라 떨어진다 */
+function roofShots(D, t0, witness) {
+  D.at(t0, () => {
+    D.cut('');
+    const { S, shot } = scene(D, MEM_CSS);
+    // 뒤: 비 내리는 도시 불빛 · 네온 · 물탱크
+    let city = '';
+    for (let i = 0; i < 22; i++) { const x = i * 80; const h = 120 + ((i * 53) % 200); city += `<rect x="${x}" y="${640 - h}" width="70" height="${h}" fill="#141a2a"/>${Array.from({ length: 6 }, (_, k) => `<rect x="${x + 10 + (k % 2) * 30}" y="${650 - h + Math.floor(k / 2) * 34}" width="14" height="16" fill="${(i + k) % 3 ? '#0a0e18' : '#ffd890'}"/>`).join('')}`; }
+    S.layer(0.35, BG(svg(`<rect width="1600" height="900" fill="#0a0e1c"/>${city}<text x="300" y="560" font-family="'Song Myung',serif" font-size="80" fill="#ff3a5a" opacity=".5">旅館</text><text x="1100" y="520" font-family="'Song Myung',serif" font-size="70" fill="#3af0e0" opacity=".45">藥</text>`)));
+    const L = S.layer(1, `<svg viewBox="0 0 1600 900" style="position:absolute;inset:0;width:1600px;height:900px;overflow:visible">
+      <rect x="-200" y="780" width="1500" height="300" fill="#2a2e38"/>${Array.from({ length: 12 }, (_, i) => `<path d="M${i * 110 - 200} 780 L${i * 110 - 260} 1000" stroke="#1a1e28" stroke-width="3"/>`).join('')}
+      <g transform="translate(120 560)"><rect x="0" y="0" width="200" height="220" fill="#3a4050" stroke="#0a0c12" stroke-width="5"/><path d="M0 60 H200 M0 140 H200" stroke="#0a0c12" stroke-width="4"/><path d="M40 220 V260 M160 220 V260" stroke="#0a0c12" stroke-width="10"/></g>
+      <ellipse cx="700" cy="800" rx="260" ry="14" fill="#9ab8e8" opacity=".12"/></svg>`);
+    const C = cast(L.el);
+    const wit = C.add({ look: 'woman', x: 300, y: 790, scale: 1.2, rim: '#8ab0ff' });
+    const mur = C.add({ look: 'murderer', x: 700, y: 790, scale: 1.25, rim: '#8ab0ff', flip: true, rimSide: -1 });
+    mur.brow('angry');
+    // 난간(가장 앞)
+    L.el.insertAdjacentHTML('beforeend', `<svg viewBox="0 0 1600 900" style="position:absolute;left:0;top:0;width:1600px;height:900px;pointer-events:none;overflow:visible">
+      <rect x="1300" y="700" width="400" height="400" fill="#141820"/><rect x="1300" y="690" width="400" height="22" fill="#4a5060"/>
+      <path d="M1300 712 V1100" stroke="#0a0c12" stroke-width="6"/></svg>`);
+    const rn = rain(shot, { groundY: 0.87 });
+    const cam = camPath(S.cam, [[0, { x: 620, y: 520, z: 1.1 }], [2.2, { x: 1000, y: 540, z: 1.2 }], [3.0, { x: 1180, y: 560, z: 1.45 }], [3.6, { x: 1250, y: 620, z: 1.5 }]]);
+    let last = 0;
+    let pushed = false;
+    D.tick((s) => {
+      const dt = s - last;
+      last = s;
+      cam(s);
+      rn(dt);
+      // 끌고 간다: 범인은 뒷걸음질, 목격자는 누운 채 팔이 잡혀 끌려온다
+      const k = Math.min(1, s / 2.0);
+      const mx = 700 + k * 560;
+      if (s < 2.0) {
+        // 허리를 숙여 두 손목을 잡고 뒷걸음질로 끈다
+        mur.set({ ...POSE.stand, ...gait((s * 0.8) % 1), thighF: -20, thighB: 10, upperF: -24, foreF: -8, upperB: -20, foreB: -8, chest: 48, neck: 10, hipY: 34, x: mx, flip: true });
+        const hand = mur.point('handF', 0, 22);
+        // 목격자는 바닥에 누워 두 팔이 머리 위로 끌려간다 (손목이 범인 손에)
+        wit.set({ ...POSE.stand, upperF: -178, foreF: -2, upperB: -176, foreB: -2, head: 26, thighF: -4, thighB: 6, x: hand.x - 470, y: 806, rot: 88 });
+      } else {
+        // 난간에 기대 세운 뒤 밀친다
+        const push = Math.max(0, Math.min(1, (s - 2.3) / 0.25));
+        mur.set({ ...POSE.stand, ...mixPose({ upperF: -60, foreF: -10, upperB: -56, foreB: -10 }, { upperF: -86, foreF: -4, upperB: -82, foreB: -4, chest: 20 }, push), x: 1180, flip: false });
+        if (s > 2.3 && !pushed) { pushed = true; D.shake(12, 300); D.flash('#eef4ff', 160); D.sound.thunder && D.sound.thunder(); }
+        if (s < 2.3) wit.set({ ...POSE.stand, ...POSE.kneel, chest: 40, head: 40, upperF: 20, x: 1270, y: 790, rot: 0 });
+        else {
+          const f = Math.min(1, (s - 2.3) / 0.9);
+          wit.set({ ...POSE.stand, upperF: -170, upperB: -160, head: -20, x: 1270 + f * 180, y: 790 + f * f * 700, rot: f * 160 });
+        }
+      }
+      C.update(dt);
+      S.render(s);
+    });
+  });
+  // ⑥ 건물 벽을 따라 떨어진다: 카메라가 창문 · 에어컨 · 빨래 장대 · 네온 간판을 훑으며 거리까지 내려간다
+  D.at(t0 + 3.6, () => {
+    D.cut('');
+    const { S, shot } = scene(D, MEM_CSS);
+    const H = 3000;
+    let fac = `<rect x="0" y="0" width="1600" height="${H}" fill="#0a0e1c"/><rect x="180" y="0" width="900" height="${H}" fill="#1a2030"/>`;
+    for (let r = 0; r < 26; r++) {
+      const y = 60 + r * 110;
+      for (let c = 0; c < 6; c++) {
+        const x = 220 + c * 140;
+        const lit = (r * 7 + c * 3) % 5 < 2;
+        fac += `<rect x="${x}" y="${y}" width="90" height="70" fill="${lit ? '#ffd890' : '#0c1018'}" stroke="#0a0c12" stroke-width="4"/>`;
+        if ((r + c) % 4 === 0) fac += `<rect x="${x + 20}" y="${y + 72}" width="54" height="30" fill="#8a8e98" stroke="#0a0c12" stroke-width="3"/><path d="M${x + 26} ${y + 80} h42 M${x + 26} ${y + 88} h42" stroke="#4a4e58" stroke-width="2"/>`;
+      }
+      if (r % 3 === 1) fac += `<path d="M1080 ${y + 30} H1240" stroke="#3a3020" stroke-width="5"/>${[0, 1, 2].map((i) => `<rect x="${1100 + i * 44}" y="${y + 32}" width="30" height="${40 + i * 8}" fill="${['#c83a3a', '#e8e0d0', '#3a6ac8'][i]}" opacity=".85"/>`).join('')}`;
+    }
+    [['旅館', '#ff3a5a', 520], ['藥房', '#3af0e0', 1180], ['麻雀', '#ffd23a', 1840], ['酒吧', '#ff5ae0', 2380]].forEach(([ch, col, y]) => {
+      fac += `<rect x="1090" y="${y - 90}" width="120" height="${ch.length * 110}" fill="#0a0806" stroke="${col}" stroke-width="5"/><text x="1150" y="${y}" text-anchor="middle" font-family="'Song Myung',serif" font-size="92" fill="${col}" writing-mode="tb" style="filter:drop-shadow(0 0 14px ${col})">${ch}</text>`;
+    });
+    fac += `<rect x="0" y="${H - 220}" width="1600" height="220" fill="#1a1414"/><ellipse cx="1300" cy="${H - 160}" rx="420" ry="60" fill="#ff5a8a" opacity=".2"/>`;
+    const L = S.layer(1, `<svg viewBox="0 0 1600 ${H}" style="position:absolute;left:0;top:0;width:1600px;height:${H}px;overflow:visible">${fac}</svg>`);
+    const C = cast(L.el);
+    const wit = C.add({ look: 'woman', x: 1330, y: 0, scale: 1.1, rim: '#8ab0ff', shadow: false });
+    const rn = rain(shot, { groundY: 1.3 });
+    let last = 0;
+    let hitGround = false;
+    D.tick((s) => {
+      const dt = s - last;
+      last = s;
+      rn(dt);
+      // 점점 빨라지며 떨어진다 → 카메라가 따라 내려간다
+      const f = Math.min(1, s / 1.8);
+      const y = 200 + f * f * (H - 480);
+      wit.set({ ...POSE.stand, upperF: -170 + Math.sin(s * 9) * 30, upperB: -150 - Math.sin(s * 9) * 30, thighF: -30, head: -20, x: 1330, y, rot: s * 140 });
+      S.cam.x = 1000;
+      S.cam.y = Math.min(H - 450, Math.max(450, y - 260));
+      S.cam.z = 1;
+      if (f >= 1 && !hitGround) { hitGround = true; D.flash('#000000', 1200); D.shake(12, 300); D.sound.thunder && D.sound.thunder(); }
+      C.update(dt);
+      S.render(s);
+    });
+  });
+}
 /** 추격 → 가로막힘 (체포) */
 function chaseShot(D, t0) {
   D.at(t0, () => {
@@ -963,7 +1464,7 @@ const FBW = 10.6; // 아파트 줌인까지
 const FILMS = {
   solved: { length: 32.5 + FBW, titleAt: 28.4 + FBW, title: '사건 해결' },
   escaped: { length: 18.5 + FB, titleAt: 14.8 + FB, title: '미제 사건' },
-  witness: { length: 14.5 + FBW, titleAt: 10.6 + FBW, title: '목격자는 말이 없다' },
+  witness: { length: 14.5 + FBW + WIT_LEN, titleAt: 10.6 + FBW + WIT_LEN, title: '목격자는 말이 없다' },
 };
 
 /**
@@ -994,8 +1495,11 @@ export function playEnding(host, { kind, murder, murderer, solver, witness, soun
     } else {
       boothShot(D, 3.4);
       flashbackShot(D, 7.6, murder, { watcher: witness ? `목격자 ${witness}` : '목격자', outcome: 'witness' });
-      eyesShot(D, 7.6 + FBW, 'murderer');
-      receiverShot(D, 9.2 + FBW);
+      hitWitnessShot(D, 7.6 + FBW, murder, witness ? `목격자 ${witness}` : '목격자');
+      stairDragShot(D, 7.6 + FBW + 6.8);
+      roofShots(D, 7.6 + FBW + 9.4, witness);
+      eyesShot(D, 7.6 + FBW + WIT_LEN, 'murderer');
+      receiverShot(D, 9.2 + FBW + WIT_LEN);
     }
   };
   const sub = kind === 'solved' ? `범인: ${murderer}` : `범인은 ${murderer} 였다`;
@@ -1003,5 +1507,5 @@ export function playEnding(host, { kind, murder, murderer, solver, witness, soun
 }
 
 // 영상 확인용: 컷 하나만 틀어 본다
-export const _shots = { flashbackShot };
+export const _shots = { flashbackShot, hitWitnessShot, stairDragShot, roofShots };
 export { playFilm };

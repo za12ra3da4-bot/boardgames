@@ -10,7 +10,8 @@ export function stage(shotEl) {
   shotEl.appendChild(root);
   const layers = [];
   const cam = { x: 800, y: 450, z: 1, rot: 0, shake: 0 };
-  const fit = () => Math.max(root.clientWidth / 1600, root.clientHeight / 900);
+  // 장면 전체(1600×900)가 위아래 검은 띠(각 9vh) 사이에 다 들어오게: 발 · 바닥이 잘리지 않는다
+  const fit = () => Math.min(root.clientWidth / 1600, (root.clientHeight * 0.82) / 900);
   function layer(depth, html = '', { blur = 0 } = {}) {
     const el = document.createElement('div');
     el.style.cssText = `position:absolute;left:0;top:0;width:1600px;height:900px;transform-origin:0 0;${blur ? `filter:blur(${blur}px);` : ''}`;

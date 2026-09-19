@@ -143,8 +143,33 @@ const FILMS = [
   { game: '구룡 살인사건', list: [['사건 해결', 'kowloon', 'solved'], ['미제 사건', 'kowloon', 'escaped'], ['목격자 제거', 'kowloon', 'witness']] },
   { game: '보름밤의 늑대인간', list: [['늑대인간 승리', 'wolf', 'wolf'], ['마을 승리', 'wolf', 'village'], ['무두장이 승리', 'wolf', 'tanner'], ['모두 패배', 'wolf', 'none']] },
 ];
-document.getElementById('filmList').innerHTML = FILMS.map((g) => `<div class="film-game"><h4>${g.game}</h4>${g.list.map(([label, id, kind]) => `<button type="button" class="btn" data-film="${id}:${kind}">▶ ${label}</button>`).join('')}</div>`).join('');
-filmBtn.addEventListener('click', () => { filmDialog.hidden = false; });
+// 영상에 나올 물건 · 증거를 직접 고른다 (기본은 무작위)
+const PICKS = {
+  kowloon: [['kwMeans', '살인 수단'], ['kwClue', '단서']],
+  clue: [['clSuspect', '범인'], ['clWeapon', '흉기'], ['clRoom', '장소']],
+};
+document.getElementById('filmList').innerHTML = FILMS.map((g) => {
+  const id0 = g.list[0][1];
+  const picks = PICKS[id0] ? `<div class="film-pick">${PICKS[id0].map(([sid, label]) => `<label>${label}<select id="${sid}"><option value="">무작위</option></select></label>`).join('')}</div>` : '';
+  return `<div class="film-game"><h4>${g.game}</h4>${picks}${g.list.map(([label, id, kind]) => `<button type="button" class="btn" data-film="${id}:${kind}">▶ ${label}</button>`).join('')}</div>`;
+}).join('');
+const loadScript = (src, glob) => (window[glob] ? Promise.resolve() : new Promise((res) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = res; document.head.appendChild(s); }));
+async function fillPicks() {
+  await Promise.all([loadScript('/kowloon/shared/kowloon.js', 'KOWLOON'), loadScript('/clue/shared/data.js', 'CLUE')]);
+  const fill = (sid, items) => { const el = document.getElementById(sid); if (el && el.options.length <= 1) el.insertAdjacentHTML('beforeend', items.map(([v, n]) => `<option value="${v}">${esc(n)}</option>`).join('')); };
+  if (window.KOWLOON) {
+    const all = Object.values(window.KOWLOON.CARD);
+    fill('kwMeans', all.filter((c) => c.kind === 'm').map((c) => [c.id, c.name]));
+    fill('kwClue', all.filter((c) => c.kind === 'c').map((c) => [c.id, c.name]));
+  }
+  if (window.CLUE) {
+    fill('clSuspect', window.CLUE.SUSPECTS.map((s) => [s.id, s.name]));
+    fill('clWeapon', window.CLUE.WEAPONS.map((w) => [w.id, w.name]));
+    fill('clRoom', window.CLUE.ROOMS.map((r) => [r.id, r.name]));
+  }
+}
+const picked = (sid, list) => { const v = (document.getElementById(sid) || {}).value; return v || list[Math.floor(Math.random() * list.length)]; };
+filmBtn.addEventListener('click', () => { filmDialog.hidden = false; fillPicks(); });
 document.getElementById('filmClose').addEventListener('click', () => { filmDialog.hidden = true; });
 document.getElementById('filmList').addEventListener('click', async (e) => {
   const b = e.target.closest('[data-film]');
@@ -175,7 +200,9 @@ document.getElementById('filmList').addEventListener('click', async (e) => {
     } else if (id === 'clue') {
       if (!window.CLUE) await new Promise((res) => { const s = document.createElement('script'); s.src = '/clue/shared/data.js'; s.onload = res; s.onerror = res; document.head.appendChild(s); });
       const m = await import('/clue/js/ending.js');
-      await m.playEnding(host, { kind, solution: { suspect: 'baek', weapon: 'candle', room: 'library' }, solver: '미리 보기', sound: X });
+      const C = window.CLUE;
+      const solution = { suspect: picked('clSuspect', C.SUSPECTS.map((s) => s.id)), weapon: picked('clWeapon', C.WEAPONS.map((w) => w.id)), room: picked('clRoom', C.ROOMS.map((r) => r.id)) };
+      await m.playEnding(host, { kind, solution, solver: '미리 보기', sound: X });
     } else if (id === 'dalmuti') {
       if (!window.DALMUTI) await new Promise((res) => { const s = document.createElement('script'); s.src = '/dalmuti/shared/dalmuti.js'; s.onload = res; s.onerror = res; document.head.appendChild(s); });
       const m = await import('/dalmuti/js/ending.js');
@@ -186,8 +213,8 @@ document.getElementById('filmList').addEventListener('click', async (e) => {
       const m = await import('/kowloon/js/ending.js');
       // 볼 때마다 다른 수단 · 단서
       const all = Object.values(window.KOWLOON.CARD);
-      const pick = (kd) => { const xs = all.filter((c) => c.kind === kd); return xs[Math.floor(Math.random() * xs.length)].id; };
-      await m.playEnding(host, { kind, murder: { means: pick('m'), clue: pick('c') }, murderer: '미리 보기', solver: '진 형사', sound: X });
+      const ids = (kd) => all.filter((c) => c.kind === kd).map((c) => c.id);
+      await m.playEnding(host, { kind, murder: { means: picked('kwMeans', ids('m')), clue: picked('kwClue', ids('c')) }, murderer: '미리 보기', solver: '진 형사', witness: '메이', sound: X });
     }
   } catch (err) {
     console.error(err);
