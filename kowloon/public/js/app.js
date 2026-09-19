@@ -248,6 +248,7 @@ $('#scene').addEventListener('click', (e) => {
   if (lo && S.fsEdit) { SFX.bullet(); S.fsEdit.loc = lo.dataset.locOpt; S.fsEdit.picks[1] = Number(lo.dataset.k); renderScene(); return; }
   if (e.target.closest('#fsSubmit')) {
     const E = S.fsEdit;
+    if (!E || S.fsSending) return; // 이미 보냄 (두 번 누름)
     const missing = [];
     if (!E.loc || E.picks[1] == null) missing.push('장소');
     g.tiles.forEach((tl, i) => { if (i !== 1 && E.picks[i] == null) missing.push(TILE[tl.id].name); });
@@ -259,7 +260,10 @@ $('#scene').addEventListener('click', (e) => {
       return;
     }
     SFX.stamp();
-    act({ type: 'forensic', location: E.loc, picks: E.picks }).then((r) => { if (r.ok) S.fsEdit = null; });
+    S.fsSending = true;
+    const btn = $('#fsSubmit');
+    if (btn) { btn.disabled = true; btn.textContent = '발표하는 중…'; }
+    act({ type: 'forensic', location: E.loc, picks: E.picks }).then((r) => { S.fsSending = false; if (r.ok) S.fsEdit = null; else renderScene(); });
     return;
   }
   const opt = e.target.closest('.opt.can');
