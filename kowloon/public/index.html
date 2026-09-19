@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>구룡 살인사건 · 속임수 추리 게임</title>
+<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700;900&family=Noto+Serif+KR:wght@700;900&family=Song+Myung&family=Special+Elite&display=swap">
+<link rel="stylesheet" href="/anim/anim.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="rain-bg" aria-hidden="true"></div>
+<div class="conn" id="conn" hidden></div>
+
+<section id="home" class="screen">
+  <div class="home">
+    <div class="hero">
+      <img class="hero-box" src="assets/box.png" alt="">
+      <div class="hero-text">
+        <p class="kicker">비 내리는 구룡성채의 밤</p>
+        <h1 class="title">구룡<br>살인사건</h1>
+        <p class="en">DECEPTION IN KOWLOON</p>
+        <p class="tagline">범인은 이 안에 있다. 법의학자는 진실을 알지만 말하지 못한다.<br>현장 타일의 총알만 보고 <b>살인 수단</b>과 <b>결정적 단서</b>를 맞혀라.</p>
+      </div>
+    </div>
+    <div class="join-card">
+      <div class="jc-head"><span>수사 본부</span><i>CASE FILE No. 1997</i></div>
+      <label class="lbl" for="nameInput">이름</label>
+      <input id="nameInput" class="input" maxlength="10" placeholder="닉네임 (최대 10자)" autocomplete="off">
+      <button id="createBtn" class="btn btn-red btn-lg wide">새 사건 열기</button>
+      <div class="or"><span>또는 초대 코드로 입장</span></div>
+      <div class="join-row">
+        <input id="codeInput" class="input code" maxlength="4" placeholder="ABCD" autocomplete="off">
+        <button id="joinBtn" class="btn btn-lg">입장</button>
+      </div>
+      <button class="btn wide" data-rules>게임 방법 보기</button>
+    </div>
+  </div>
+</section>
+
+<section id="lobby" class="screen" hidden>
+  <header class="bar">
+    <div class="bar-brand"><img src="assets/logo.svg" alt=""><span>구룡 살인사건</span></div>
+    <div class="bar-mid"><span class="muted">초대 코드</span><b id="lobbyCode" class="code-b">----</b><button class="btn btn-sm" id="copyLinkBtn">초대 링크 복사</button></div>
+    <div class="bar-right">
+      <button class="btn btn-sm" data-rules>룰</button>
+      <button class="icon-btn" data-mute title="소리 켜기/끄기"><i class="ic ic-volume"></i></button>
+      <button class="btn btn-sm" data-leave>나가기</button>
+    </div>
+  </header>
+  <div class="lobby">
+    <div class="lobby-main">
+      <h2 class="h2">용의자 명단 <small>3~12명 · 역할은 시작할 때 비밀로</small></h2>
+      <div id="seatGrid" class="seat-grid"></div>
+      <div id="spectators" class="spectators"></div>
+      <div class="cfg" id="cfg"></div>
+      <div class="lobby-actions">
+        <button id="addBotBtn" class="btn">AI 수사관 추가</button>
+        <button id="seatBtn" class="btn">관전으로 전환</button>
+        <div class="grow"></div>
+        <span id="startHint" class="hint"></span>
+        <button id="startBtn" class="btn btn-red btn-lg">수사 시작</button>
+      </div>
+    </div>
+    <aside class="panel lobby-side" id="lobbyChatMount"></aside>
+  </div>
+</section>
+
+<section id="game" class="screen" hidden>
+  <header class="bar">
+    <div class="bar-brand"><img src="assets/logo.svg" alt=""><span>구룡 살인사건</span><em id="gameCode"></em></div>
+    <div id="phaseBanner" class="phase-banner"></div>
+    <div class="bar-right">
+      <button class="btn btn-sm" data-rules>룰</button>
+      <button class="icon-btn" data-mute title="소리 켜기/끄기"><i class="ic ic-volume"></i></button>
+      <button class="btn btn-sm" id="hostLobbyBtn" hidden>대기실로</button>
+      <button class="btn btn-sm" data-leave>나가기</button>
+    </div>
+  </header>
+  <div class="timer"><i id="timerBar"></i></div>
+  <div class="game">
+    <main class="board">
+      <section class="scene" id="scene"></section>
+      <section class="suspects" id="suspects"></section>
+    </main>
+    <aside class="side panel">
+      <nav class="tabs" id="tabs">
+        <button data-tab="log" class="on">수사 일지</button>
+        <button data-tab="chat">대화<span class="badge" id="chatBadge" hidden></span></button>
+      </nav>
+      <div class="tab" id="tab-log"></div>
+      <div class="tab tab-chat" id="tab-chat" hidden></div>
+    </aside>
+    <section class="me" id="me"></section>
+  </div>
+</section>
+
+<a class="back-hub" id="backHub" href="/">← 다른 보드게임 고르기</a>
+<div id="modal" class="modal" hidden><div class="modal-box" id="modalBox"></div></div>
+<div id="zoom" class="zoom" hidden></div>
+<div id="toasts" class="toasts"></div>
+<div id="film" hidden></div>
+
+<template id="chatTpl">
+  <div class="chat">
+    <div class="chat-log"></div>
+    <form class="chat-form"><input class="input" maxlength="200" placeholder="메시지 입력" autocomplete="off"><button class="btn btn-red btn-sm" type="submit">보내기</button></form>
+  </div>
+</template>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="shared/kowloon.js"></script>
+<script src="js/sfx.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

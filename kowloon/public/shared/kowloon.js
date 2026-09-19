@@ -33,7 +33,9 @@
     ['bathtub', '욕조 물', 'water choke bath'], ['mushroom', '독버섯', 'poison plant food'], ['choco', '초콜릿', 'food poison sweet'],
     ['wine', '와인', 'drink poison glass'], ['fishline', '낚싯줄', 'rope water sport choke'], ['scarf', '스카프', 'cloth choke'],
     ['chain', '쇠사슬', 'metal rope big'], ['chainsaw', '전기톱', 'sharp tool electric big loud blood'], ['bow', '활', 'sport sharp wood'],
-    ['stairs', '계단', 'fall accident big'],
+    ['stairs', '계단', 'fall accident big'], ['crowbar', '쇠지렛대', 'blunt tool metal'], ['pan', '프라이팬', 'blunt kitchen metal'],
+    ['harpoon', '작살', 'sharp water sport'], ['wire', '철사', 'metal rope choke'], ['acid', '염산', 'chemical poison'],
+    ['firecracker', '폭죽', 'fire loud small'], ['dumbbell', '아령', 'blunt sport metal'], ['sword', '장검', 'sharp metal old blood'],
   ];
   const CLUES_RAW = [
     ['ring', '반지', 'money metal small love'], ['key', '열쇠', 'metal small'], ['glasses', '안경', 'glass small paper'],

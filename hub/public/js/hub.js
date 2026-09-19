@@ -84,7 +84,15 @@ FRONT.gem = () => `
       <div class="gf2-band"><span>2~4명</span><span>30분</span><span>10세 이상</span></div>
     </div>`;
 
+// 붉은 연기 속 누아르 · 네온 푸른 제목 (디셉션 상자 구도)
+FRONT.kowloon = () => `
+    <div class="kf">
+      <img class="kf-art" src="/kowloon/assets/box.png" alt="">
+      <div class="kf-band"><span>3~12명</span><span>20분</span><span>14세 이상</span></div>
+    </div>`;
+
 const SPINE = {
+  kowloon: '구룡 살인사건',
   gem: '찬란한 보석상',
   wolf: '보름밤의 늑대인간',
   bang: '황야의 뱅!',
@@ -115,6 +123,7 @@ const filmBtn = document.getElementById('filmBtn');
 const filmDialog = document.getElementById('filmDialog');
 const FILMS = [
   { game: '황야의 뱅', list: [['무법자 승리', 'bang', 'outlaw'], ['보안관 승리', 'bang', 'sheriff'], ['배신자 승리', 'bang', 'renegade']] },
+  { game: '구룡 살인사건', list: [['사건 해결', 'kowloon', 'solved'], ['미제 사건', 'kowloon', 'escaped'], ['목격자 제거', 'kowloon', 'witness']] },
   { game: '보름밤의 늑대인간', list: [['늑대인간 승리', 'wolf', 'wolf'], ['마을 승리', 'wolf', 'village'], ['무두장이 승리', 'wolf', 'tanner'], ['모두 패배', 'wolf', 'none']] },
 ];
 document.getElementById('filmList').innerHTML = FILMS.map((g) => `<div class="film-game"><h4>${g.game}</h4>${g.list.map(([label, id, kind]) => `<button type="button" class="btn" data-film="${id}:${kind}">▶ ${label}</button>`).join('')}</div>`).join('');
@@ -146,6 +155,11 @@ document.getElementById('filmList').addEventListener('click', async (e) => {
     } else if (id === 'wolf') {
       const m = await import('/wolf/js/cutscene.js');
       await m.playCutscene(host, kind, { sub: '미리 보기', sound });
+    } else if (id === 'kowloon') {
+      // 카드 데이터가 필요하다
+      if (!window.KOWLOON) await new Promise((res) => { const s = document.createElement('script'); s.src = '/kowloon/shared/kowloon.js'; s.onload = res; s.onerror = res; document.head.appendChild(s); });
+      const m = await import('/kowloon/js/ending.js');
+      await m.playEnding(host, { kind, murder: { means: 'm_knife', clue: 'c_lipstick' }, murderer: '미리 보기', solver: '진 형사', sound: X });
     }
   } catch (err) {
     console.error(err);

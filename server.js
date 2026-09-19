@@ -67,6 +67,16 @@ const GAMES = [
     players: '2~4명',
     time: '30분',
   },
+  {
+    id: 'kowloon',
+    base: '/kowloon',
+    dir: 'kowloon',
+    title: '구룡 살인사건',
+    sub: '속임수 추리 게임 (디셉션)',
+    desc: '범인은 이 안에 있다. 말 못 하는 법의학자의 총알만 보고 살인 수단과 결정적 단서를 맞혀라.',
+    players: '3~12명',
+    time: '20~30분',
+  },
 ];
 
 const app = express();
