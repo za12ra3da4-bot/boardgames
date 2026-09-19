@@ -68,7 +68,7 @@ FRONT.isle = () => `
 // 짙푸른 밤, 보름달, 절벽 위 늑대인간 · 붓글씨 같은 흰 제목
 FRONT.wolf = () => `
     <div class="wf">
-      <img class="wf-art" src="/wolf/assets/box.svg" alt="">
+      <img class="wf-art" src="/wolf/assets/box.png" alt="">
       <div class="wf-pub">FULL MOON GAMES</div>
       <div class="wf-title"><span>보름밤의</span> 늑대인간</div>
       <div class="wf-en">A ONE-NIGHT GAME OF HIDDEN ROLES</div>
