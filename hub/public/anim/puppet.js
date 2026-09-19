@@ -130,6 +130,21 @@ function headSvg(L, id) {
       + ink('M-26 -76C-6 -72 16 -72 38 -76L38 -68C16 -64 -8 -64 -26 -68Z', '#1a1210', 2)
       + line('M4 -110C8 -100 10 -92 8 -84', 2, '#000', 0.4) + fill('M-46 -70C-20 -64 30 -64 60 -72C40 -60 0 -58 -46 -70Z', '#000', ' opacity=".25"');
   }
+  // 조선 모자: 사모(양옆 날개) · 익선관(뒤로 선 두 날개) · 갓(넓은 챙) · 상투 머리띠
+  if (L.hat === 'samo') {
+    hat = ink('M-58 -86 H-20 V-78 H-58Z', '#141418', 2) + ink('M-28 -70C-32 -96 -12 -110 8 -110C26 -108 38 -94 36 -70C12 -66 -8 -66 -28 -70Z', '#141418')
+      + ink('M-16 -98C-18 -112 0 -120 12 -116C22 -112 24 -104 22 -98Z', '#141418', 2) + line('M-28 -74C-4 -70 16 -70 36 -74', 2, '#3a3a44');
+  }
+  if (L.hat === 'ikseon') {
+    hat = ink('M-28 -70C-32 -96 -12 -110 8 -110C26 -108 38 -94 36 -70C12 -66 -8 -66 -28 -70Z', '#141418')
+      + ink('M-22 -96C-40 -120 -30 -138 -12 -132C-8 -120 -10 -106 -12 -98Z', '#141418', 2) + line('M-28 -74C-4 -70 16 -70 36 -74', 2.4, '#d8a830');
+  }
+  if (L.hat === 'gat') {
+    hat = `<g opacity=".92">${ink('M-62 -70C-30 -60 50 -60 76 -72C50 -80 -30 -80 -62 -70Z', '#141418', 2)}${ink('M-14 -72V-108C0 -112 16 -112 28 -108V-72Z', '#141418', 2)}</g>` + line('M-10 -70C-14 -40 -10 -10 -4 10', 1.4, '#1a1010');
+  }
+  if (L.hat === 'band') {
+    hat = ink('M-22 -96C-22 -110 -6 -114 2 -104C4 -98 0 -92 -6 -92Z', L.hair, 2) + ink('M-32 -74C-4 -66 20 -66 40 -74L40 -66C20 -58 -4 -58 -32 -66Z', '#e8e0c8', 2) + ink('M-32 -70L-50 -60L-46 -52L-30 -64Z', '#e8e0c8', 1.6);
+  }
   if (L.hat === 'crown') {
     hat = `<g class="pp-crown">${ink('M-22 -76 L-26 -110 L-10 -94 L2 -120 L14 -94 L30 -110 L28 -76 Q2 -84 -22 -76Z', '#e0b030')}<circle cx="2" cy="-86" r="4.4" fill="#c8202a" stroke="${INK}" stroke-width="1.4"/><circle cx="-26" cy="-110" r="3.4" fill="#fff4c0" stroke="${INK}" stroke-width="1.2"/><circle cx="2" cy="-120" r="3.4" fill="#fff4c0" stroke="${INK}" stroke-width="1.2"/><circle cx="30" cy="-110" r="3.4" fill="#fff4c0" stroke="${INK}" stroke-width="1.2"/></g>`;
   }
@@ -279,6 +294,7 @@ export class Puppet {
       W[name] = { x, y, r };
       this.g[name].setAttribute('transform', `translate(${x.toFixed(2)} ${y.toFixed(2)}) rotate(${(r / D2R).toFixed(2)})`);
     }
+    this.W = W;
     // 단발머리 뒷부분 흔들림
     const hb = this.svg.querySelector('.pp-hairBack');
     if (hb) hb.setAttribute('transform', `scale(1.12) rotate(${(this.spring.hair.a * 0.6).toFixed(2)} 0 -60)`);
@@ -286,6 +302,16 @@ export class Puppet {
     this.svg.style.transform = `translate(${w.x - 400}px, ${w.y - 520}px) rotate(${w.rot}deg) scale(${w.flip ? -w.scale : w.scale}, ${w.scale})`;
     this.svg.style.transformOrigin = '400px 520px';
     if (this.shadow) this.shadow.setAttribute('rx', 70 - Math.abs(this.off.hipY || 0) * 0.3);
+  }
+
+  /** 관절(part) 기준 (lx, ly) 점의 무대 좌표 (1600×900): 밧줄 · 총구 불꽃을 손에 붙일 때 */
+  point(part, lx = 0, ly = 0) {
+    const P = this.W && this.W[part];
+    if (!P) return { x: this.world.x, y: this.world.y };
+    const px = P.x + lx * Math.cos(P.r) - ly * Math.sin(P.r);
+    const py = P.y + lx * Math.sin(P.r) + ly * Math.cos(P.r);
+    const w = this.world;
+    return { x: w.x + (w.flip ? -1 : 1) * w.scale * px, y: w.y + w.scale * py };
   }
 
   /** 앞손에 소품을 쥐여 준다 (손 좌표: 손목이 원점, +y 가 팔 방향). 이름 또는 SVG 문자열, null 이면 뺀다 */
@@ -319,6 +345,9 @@ export const PROPS = {
   poison: `<path d="M-5 -2 H5 V16 H-5Z" fill="#c8202a" stroke="${INK}" stroke-width="2"/><path d="M-5 16 H5 V26 C18 32 20 44 20 60 V86 Q20 94 12 94 H-12 Q-20 94 -20 86 V60 C-20 44 -18 32 -5 26Z" fill="#2a8a4a" stroke="${INK}" stroke-width="2"/><rect x="-14" y="54" width="28" height="24" fill="#f4ecd8" stroke="${INK}" stroke-width="1.4"/><circle cy="63" r="5" fill="${INK}"/><path d="M-6 72 L6 72" stroke="${INK}" stroke-width="2"/><path d="M-12 36 V84" stroke="#fff" stroke-width="3" opacity=".35"/>`,
   revolver: `<path d="M-8 -6 Q-12 10 -6 24 L8 24 Q10 8 6 -6Z" fill="#6a3a1a" stroke="${INK}" stroke-width="2"/><path d="M-10 22 H14 V40 H-10Z" fill="#8a8e96" stroke="${INK}" stroke-width="2"/><circle cx="2" cy="31" r="7" fill="#5a5e66" stroke="${INK}" stroke-width="1.6"/><path d="M-4 40 H8 V96 H-4Z" fill="#9aa0aa" stroke="${INK}" stroke-width="2"/><path d="M8 24 Q20 26 16 34" stroke="${INK}" stroke-width="2.4" fill="none"/>`,
   wrench: `<path d="M-5 -6 H5 V70 H-5Z" fill="#9aa0aa" stroke="${INK}" stroke-width="2"/><path d="M-5 20 H5 V50 H-5Z" fill="#c8202a" stroke="${INK}" stroke-width="1.6"/><path d="M-14 70 H14 V100 H4 V86 H-4 V100 H-14Z" fill="#b8bec8" stroke="${INK}" stroke-width="2"/>`,
+  candleOut: `<path d="M-3 -10 H3 V40 H-3Z" fill="#d8dce4" stroke="${INK}" stroke-width="2"/><path d="M-14 -16 Q0 -8 14 -16 L10 -8 H-10Z" fill="#c8ccd4" stroke="${INK}" stroke-width="2"/><path d="M-12 40 H12 L8 48 H-8Z" fill="#d8dce4" stroke="${INK}" stroke-width="2"/>
+    <path d="M-6 48 H6 V84 H-6Z" fill="#f4ecd8" stroke="${INK}" stroke-width="2"/><path d="M0 84 V90" stroke="${INK}" stroke-width="2"/><path d="M0 92 C6 100 -6 106 2 116" stroke="#aab" stroke-width="2" fill="none" opacity=".7"/>`,
+  book: `<path d="M-18 6 H18 V48 H-18Z" fill="#6a1a1a" stroke="${INK}" stroke-width="2"/><path d="M-14 10 H14 V44 H-14Z" fill="#f4ecd8"/><path d="M0 10 V44 M-10 18 h7 M-10 24 h7 M3 18 h8 M3 24 h8" stroke="#8a7a6a" stroke-width="1.4"/>`,
   goblet: `<path d="M-14 6 H14 Q14 30 0 32 Q-14 30 -14 6Z" fill="#e0b030" stroke="${INK}" stroke-width="2"/><path d="M0 32 V46 M-9 48 H9" stroke="#e0b030" stroke-width="4" stroke-linecap="round"/>`,
 };
 

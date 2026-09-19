@@ -305,6 +305,11 @@ a { color: inherit; text-decoration: none; }
 .acc-top b { font-family: 'Jua', sans-serif; font-weight: 400; font-size: 15px; }
 
 /* ───── 구룡 살인사건 상자 */
+.game.dalmuti-joseon { --w: 290px; --h: 290px; --d: 64px; }
+.dalmuti-joseon .face.side { background: linear-gradient(90deg, #0a1a40, #14306a 40%, #0a1a40); display: flex; flex-direction: column; align-items: center; padding-top: 18px; gap: 12px; border-top: 8px solid #2a7a5a; }
+.dalmuti-joseon .face.side span { writing-mode: vertical-rl; transform: none; color: #f4dc98; font-family: 'Black Han Sans', sans-serif; font-size: 22px; letter-spacing: .1em; text-shadow: 0 2px 0 #0a0a1a; }
+.dalmuti-joseon .face.side::after { content: ''; width: 34px; height: 34px; margin-top: auto; margin-bottom: 16px; border-radius: 50%; background: conic-gradient(from 90deg, #c8303a 0 50%, #2a4a9a 50% 100%); box-shadow: 0 0 0 3px #e0b030; }
+.dalmuti-joseon .face.lid { background: #14306a; filter: brightness(.8); }
 .game.dalmuti { --w: 290px; --h: 290px; --d: 64px; }
 .dalmuti .face.side { background: linear-gradient(90deg, #3a0410, #8a0e1a 40%, #4a0610); display: flex; flex-direction: column; align-items: center; padding-top: 18px; gap: 12px; }
 .dalmuti .face.side span { writing-mode: vertical-rl; transform: none; color: #fbe8a8; font-family: 'Black Han Sans', sans-serif; font-size: 24px; letter-spacing: .14em; text-shadow: 0 2px 0 #3a1804; }

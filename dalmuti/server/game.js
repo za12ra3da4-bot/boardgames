@@ -14,19 +14,22 @@ const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = rand
 const ok = (x = {}) => ({ ok: true, ...x });
 const err = (error) => ({ ok: false, error });
 const J = Dm.JESTER;
+const M = Dm.MAPAE;
+const plain = (c) => c.r !== J && c.r !== M; // 광대 · 마패가 아닌 보통 카드
 const T = { turn: 40_000, offline: 5_000, tax: 40_000, revolt: 20_000, between: 6_500, bot: [900, 1500] };
 
 class Game {
   /**
-   * seats: [{pid, name, isBot}]  hooks: { changed(), isOnline(pid) }  opts: { rounds }
+   * seats: [{pid, name, isBot}]  hooks: { changed(), isOnline(pid) }  opts: { rounds, edition }
    */
   constructor(seats, hooks, opts = {}) {
     this.id = crypto.randomBytes(5).toString('hex');
     this.hooks = hooks;
     this.rounds = Math.max(1, Math.min(10, opts.rounds || 3));
+    this.edition = Dm.EDITIONS[opts.edition] ? opts.edition : 'classic';
     // 첫 판 신분은 제비뽑기 (카드 한 장씩 뽑아 작은 숫자가 높은 신분)
-    const draws = shuffle(Dm.makeDeck()).slice(0, seats.length);
-    const order = seats.map((s, i) => ({ s, r: draws[i].r === J ? 99 : draws[i].r, k: rand(1000) })).sort((a, b) => a.r - b.r || a.k - b.k);
+    const draws = shuffle(Dm.makeDeck(this.edition)).slice(0, seats.length);
+    const order = seats.map((s, i) => ({ s, r: plain(draws[i]) ? draws[i].r : 99, k: rand(1000) })).sort((a, b) => a.r - b.r || a.k - b.k);
     this.players = order.map(({ s }, pos) => ({ pid: s.pid, name: s.name, isBot: !!s.isBot, pos, hand: [], out: false, place: null, score: 0, passed: false, draw: draws[seats.indexOf(s)].r }));
     this.round = 0;
     this.phase = 'deal';
@@ -79,7 +82,8 @@ class Game {
     }, d);
   }
   sortHand(p) { p.hand.sort((a, b) => a.r - b.r || (a.id < b.id ? -1 : 1)); }
-  cardName(r) { return Dm.RANKS[r].name; }
+  cardName(r) { return Dm.ranksOf(this.edition)[r].name; }
+  title(pos) { return Dm.seatTitle(pos, this.n(), this.edition); }
 
   /* ── 판 시작: 나누기 */
   startRound() {
@@ -90,7 +94,7 @@ class Game {
     this.finish = [];
     this.revolt = null;
     for (const p of this.players) { p.hand = []; p.out = false; p.place = null; p.passed = false; }
-    const deck = shuffle(Dm.makeDeck());
+    const deck = shuffle(Dm.makeDeck(this.edition));
     const seat = this.byPos();
     // 대달무티부터 한 장씩 돌린다
     deck.forEach((c, i) => seat[i % seat.length].hand.push(c));
@@ -149,7 +153,7 @@ class Game {
     for (const st of steps) {
       const from = this.pl(st.from);
       const to = this.pl(st.to);
-      const give = from.hand.filter((c) => c.r !== J).slice(0, st.n);
+      const give = from.hand.filter(plain).slice(0, st.n);
       for (const c of give) from.hand.splice(from.hand.indexOf(c), 1);
       to.hand.push(...give);
       this.sortHand(to);
@@ -170,7 +174,7 @@ class Game {
   }
   botTaxBack(p, n) {
     // 가장 나쁜 카드(큰 숫자)를 돌려준다, 광대는 지킨다
-    return p.hand.filter((c) => c.r !== J).slice(-n).map((c) => c.id);
+    return p.hand.filter(plain).slice(-n).map((c) => c.id);
   }
   taxBack(p, ids) {
     if (this.phase !== 'tax') return err('지금은 세금을 돌려줄 때가 아닙니다');
@@ -199,7 +203,7 @@ class Game {
     this.tax = null;
     this.trick = null;
     const lead = this.byPos()[0];
-    this.addLog('sys', `{p:${lead.pid}} (${Dm.seatTitle(0, this.n())}) 님이 먼저 냅니다.`);
+    this.addLog('sys', `{p:${lead.pid}} (${this.title(0)}) 님이 먼저 냅니다.`);
     this.setTurn(lead.pid, true);
   }
   active() { return this.players.filter((p) => !p.out); }
@@ -235,7 +239,8 @@ class Game {
     const cards = ids.map((id) => p.hand.find((c) => c.id === id));
     if (cards.some((c) => !c)) return err('내 카드에서 고르세요');
     const set = Dm.evalSet(cards);
-    if (!set) return err('같은 숫자끼리만 낼 수 있어요 (광대는 아무 숫자)');
+    if (!set) return err(cards.some((c) => c.r === M) ? '마패는 한 장만 따로 냅니다' : '같은 숫자끼리만 낼 수 있어요 (광대는 아무 숫자)');
+    if (set.mapae) return this.playMapae(p, cards[0]);
     if (this.trick && set.count !== this.trick.count) return err(`${this.trick.count}장을 내야 합니다`);
     if (!Dm.beats(set, this.trick)) return err(`${this.cardName(this.trick.rank)}(${this.trick.rank})보다 작은 숫자를 내야 합니다`);
     for (const c of cards) p.hand.splice(p.hand.indexOf(c), 1);
@@ -245,6 +250,31 @@ class Game {
     this.addLog('play', `{p:${p.pid}} ${this.cardName(set.rank)} ×${set.count}`);
     if (!p.hand.length) this.goOut(p);
     this.advance(p.pid);
+    return ok();
+  }
+  /** 암행어사 출두: 지금 판을 통째로 치우고, 낸 사람이 새로 연다 */
+  playMapae(p, card) {
+    p.hand.splice(p.hand.indexOf(card), 1);
+    this.trick = null;
+    this.lastPlay = p.pid;
+    for (const q of this.players) q.passed = false;
+    this.event({ type: 'mapae', pid: p.pid, cards: [{ id: card.id, r: card.r }] });
+    this.addLog('good', `{p:${p.pid}} 암행어사 출두요! 판을 엎었습니다`);
+    this.turn = null;
+    clearTimeout(this.timer);
+    if (!p.hand.length) {
+      this.goOut(p);
+      const act = this.active();
+      if (act.length <= 1) {
+        if (act.length === 1) this.goOut(act[0]);
+        this.endRound();
+        return ok();
+      }
+      const nx = this.nextActive(p.pid);
+      this.later(1800, () => this.setTurn(nx.pid, true));
+      return ok();
+    }
+    this.later(1800, () => this.setTurn(p.pid, true));
     return ok();
   }
   pass(p, auto = false) {
@@ -259,7 +289,7 @@ class Game {
     p.out = true;
     p.place = this.finish.length;
     this.finish.push(p.pid);
-    const title = Dm.seatTitle(p.place, this.n());
+    const title = this.title(p.place);
     this.event({ type: 'out', pid: p.pid, place: p.place });
     this.addLog('good', `{p:${p.pid}} 님이 ${p.place + 1}번째로 다 냈습니다 → 다음 판 ${title}`);
   }
@@ -303,7 +333,7 @@ class Game {
     for (const p of this.players) { p.score += n - 1 - p.place; p.pos = p.place; }
     this.history.push({ round: this.round, order: this.finish.slice() });
     this.event({ type: 'roundOver', order: this.finish.slice() });
-    this.addLog('round', `${this.round}번째 판 끝 · 새 대달무티: {p:${this.finish[0]}}`);
+    this.addLog('round', `${this.round}번째 판 끝 · 새 ${this.title(0)}: {p:${this.finish[0]}}`);
     if (this.round >= this.rounds) {
       this.phase = 'over';
       const rank = this.players.slice().sort((a, b) => b.score - a.score || a.pos - b.pos);
@@ -326,16 +356,17 @@ class Game {
   /** 가진 카드를 숫자별로 묶는다 */
   groups(p) {
     const g = {};
-    for (const c of p.hand) if (c.r !== J) (g[c.r] = g[c.r] || []).push(c);
+    for (const c of p.hand) if (plain(c)) (g[c.r] = g[c.r] || []).push(c);
     return g;
   }
   botChoose(p) {
     const g = this.groups(p);
     const jest = p.hand.filter((c) => c.r === J);
+    const mapae = p.hand.find((c) => c.r === M);
     const ranks = Object.keys(g).map(Number).sort((a, b) => b - a); // 나쁜(큰) 숫자부터
     if (!this.trick) {
-      // 먼저 낼 때: 가장 나쁜 숫자 묶음을 통째로 (광대는 아낀다)
-      if (!ranks.length) return jest.map((c) => c.id);
+      // 먼저 낼 때: 가장 나쁜 숫자 묶음을 통째로 (광대는 아낀다, 마패는 마지막에)
+      if (!ranks.length) return jest.length ? jest.map((c) => c.id) : mapae ? [mapae.id] : null;
       const r = ranks[0];
       return g[r].map((c) => c.id);
     }
@@ -350,6 +381,8 @@ class Game {
     }
     if (!tries.length) {
       if (jest.length >= count && rank > J) return jest.slice(0, count).map((c) => c.id);
+      // 못 이기면 마패로 판을 엎는다: 손패가 적거나, 센 카드 묶음이 깔렸을 때
+      if (mapae && (p.hand.length <= 4 || (rank <= 4 && count >= 2) || rand(100) < 12)) return [mapae.id];
       return null;
     }
     tries.sort((a, b) => a.jest - b.jest || b.r - a.r);
@@ -394,6 +427,7 @@ class Game {
     }
     return {
       id: this.id,
+      edition: this.edition,
       phase: this.phase,
       round: this.round,
       rounds: this.rounds,
@@ -403,11 +437,11 @@ class Game {
       deadlineIn: this.deadline ? Math.max(0, this.deadline - Date.now()) : null,
       deadlineTotal: this.deadlineTotal,
       players: this.byPos().map((p) => ({
-        pid: p.pid, name: p.name, isBot: p.isBot, pos: p.pos, title: Dm.seatTitle(p.pos, n), count: p.hand.length,
+        pid: p.pid, name: p.name, isBot: p.isBot, pos: p.pos, title: this.title(p.pos), count: p.hand.length,
         out: p.out, place: p.place, score: p.score, passed: p.passed, online: this.online(p),
         jesters: this.phase === 'revolt' && this.revolt && this.revolt.pid === p.pid ? 2 : null,
       })),
-      me: me ? { pid, hand: me.hand, pos: me.pos, title: Dm.seatTitle(me.pos, n) } : null,
+      me: me ? { pid, hand: me.hand, pos: me.pos, title: this.title(me.pos) } : null,
       tax: myTax,
       taxSteps: this.tax ? this.tax.steps.map((s) => ({ from: s.from, to: s.to, n: s.n, done: !!s.back })) : null,
       revolt: this.revolt ? { pid: this.revolt.pid, great: this.revolt.great, done: !!this.revolt.done } : null,

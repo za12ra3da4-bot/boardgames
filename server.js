@@ -89,6 +89,20 @@ const GAMES = [
   },
 ];
 
+// 같은 게임의 확장판: 선반에 상자를 따로 놓는다 (같은 서버 · 주소에 ?ed= 로 판을 고른다)
+const EXPANSIONS = [
+  {
+    id: 'dalmuti-joseon',
+    of: 'dalmuti',
+    url: '/dalmuti/?ed=joseon',
+    title: '달무티 조선 궁궐판',
+    sub: '확장판 · 계급 카드게임',
+    desc: '임금부터 노비까지 조선 궁궐의 신분 싸움. 마패 두 장이 들어간다 — 내 차례에 내면 “암행어사 출두요!” 깔린 판을 엎고 내가 새로 낸다.',
+    players: '4~8명',
+    time: '20~40분',
+  },
+];
+
 const app = express();
 const server = http.createServer(app);
 // 느린 네트워크(하마치 등)나 백그라운드 탭에서도 끊기지 않도록 여유 있게
@@ -226,9 +240,9 @@ app.get('/api/games', (req, res) => {
   const links = readLinks();
   res.json({
     canEdit: canEdit(req),
-    games: GAMES.map((g) => ({
+    games: GAMES.flatMap((g) => [g, ...EXPANSIONS.filter((x) => x.of === g.id)]).map((g) => ({
       id: g.id, title: g.title, sub: g.sub, desc: g.desc,
-      players: g.players, time: g.time, url: `${g.base}/`,
+      players: g.players, time: g.time, url: g.url || `${g.base}/`,
       links: Array.isArray(links[g.id]) ? links[g.id] : [],
     })),
   });
@@ -237,7 +251,7 @@ app.get('/api/games', (req, res) => {
 app.post('/api/links', express.json({ limit: '8kb' }), (req, res) => {
   if (!canEdit(req)) return res.status(403).json({ ok: false, error: '관리자로 로그인해야 고칠 수 있어요' });
   const { game, action } = req.body || {};
-  if (!GAMES.some((g) => g.id === game)) return res.status(400).json({ ok: false, error: '없는 게임입니다' });
+  if (![...GAMES, ...EXPANSIONS].some((g) => g.id === game)) return res.status(400).json({ ok: false, error: '없는 게임입니다' });
   const links = readLinks();
   const list = Array.isArray(links[game]) ? links[game] : [];
   if (action === 'add') {

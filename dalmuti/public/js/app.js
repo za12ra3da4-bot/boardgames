@@ -2,7 +2,7 @@ import { bindName } from '/common/me.js';
 import { mountEmotes } from '/common/emote.js';
 import { roomKeeper } from '/common/keep.js';
 import { memberFace } from '/common/avatar.js';
-import { cardSvg, backSvg } from './cards.js';
+import { cardSvg, backSvg, setEdition } from './cards.js';
 import { playEnding } from './ending.js';
 // 왕궁의 달무티 - 브라우저 쪽 화면과 조작
 const D = window.DALMUTI;
@@ -25,7 +25,30 @@ const face = (pid, size = 40) => {
   const m = S.room && S.room.members.find((x) => x.pid === pid);
   return `<span class="av-face" style="width:${size}px;height:${size}px">${memberFace(m || { pid })}</span>`;
 };
-const rname = (r) => D.RANKS[r].name;
+/* 판(확장판): 첫 화면은 주소(?ed=joseon), 방에 들어가면 방의 판을 따른다 */
+const URL_ED = (() => { const e = new URLSearchParams(location.search).get('ed'); return D.EDITIONS[e] ? e : 'classic'; })();
+function applyEdition(ed) {
+  if (document.body.dataset.edition === ed) return;
+  document.body.dataset.edition = ed;
+  setEdition(ed);
+  const jo = ed === 'joseon';
+  document.title = jo ? '달무티 조선 궁궐판 · 계급 카드게임' : '왕궁의 달무티 · 계급 카드게임';
+  const H = {
+    box: jo ? 'assets/box-joseon.png' : 'assets/box.png',
+    kicker: jo ? '임금부터 노비까지, 조선 궁궐의 신분 싸움' : '왕부터 농노까지, 모두가 카드를 쥔 왕궁',
+    title: jo ? '달무티<br><small>조선 궁궐판</small>' : '왕궁의<br>달무티',
+    en: jo ? 'JOSEON COURT EDITION' : 'THE GREAT DALMUTI',
+    tag: jo ? '숫자가 작을수록 높은 신분. 같은 장수로 더 작은 숫자를 내거나 패스!<br>노비는 <b>세금</b>을 바치고, 탈광대 두 장이면 <b>혁명</b>. 그리고 <b>마패</b> 한 장이면 — <b>암행어사 출두요!</b> 깔린 판을 엎는다.' : null,
+  };
+  const hb = $('.hero-box'); if (hb) hb.src = H.box;
+  document.querySelectorAll('.bar-brand span').forEach((s) => { s.textContent = jo ? '달무티 조선 궁궐판' : '왕궁의 달무티'; });
+  const k = $('.hero .kicker'); if (k) k.textContent = H.kicker;
+  const tt = $('.hero .title'); if (tt) tt.innerHTML = H.title;
+  const en = $('.hero .en'); if (en) en.textContent = H.en;
+  const tg = $('.hero .tagline'); if (tg && H.tag) { tg.dataset.orig = tg.dataset.orig || tg.innerHTML; tg.innerHTML = H.tag; } else if (tg && tg.dataset.orig) tg.innerHTML = tg.dataset.orig;
+}
+applyEdition(URL_ED);
+const rname = (r) => D.ranksOf(S.g && S.g.edition)[r].name;
 
 const S = { me: null, room: null, g: null, gameId: null, seenSeq: 0, tab: 'log', unread: 0, chatLog: [], receivedAt: 0, sel: new Set(), taxSel: new Set(), filmShown: null };
 
@@ -69,7 +92,7 @@ mountEmotes({ socket, myPid: () => S.me, active: () => !!S.room, members: () => 
 const inv = /[?&#]room=([A-Za-z]{4})/.exec(location.href);
 if (inv) codeInput.value = inv[1].toUpperCase();
 const needName = () => { const n = nameInput.value.trim(); if (!n) { toast('닉네임을 입력하세요', 'err'); return null; } remember('dalmuti.name', n); return n; };
-$('#createBtn').addEventListener('click', () => { const n = needName(); if (n) { SFX.unlock(); call('room:create', { name: n }); } });
+$('#createBtn').addEventListener('click', () => { const n = needName(); if (n) { SFX.unlock(); call('room:create', { name: n, edition: URL_ED }); } });
 const doJoin = () => { const n = needName(); const c = codeInput.value.trim().toUpperCase(); if (n && c.length === 4) { SFX.unlock(); call('room:join', { name: n, code: c }); } };
 $('#joinBtn').addEventListener('click', doJoin);
 codeInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doJoin(); });
@@ -147,13 +170,20 @@ function renderLobby() {
   }).join('');
   const specs = room.members.filter((m) => !m.seated);
   $('#spectators').textContent = specs.length ? `관전: ${specs.map((m) => m.name).join(', ')}` : '';
-  $('#cfg').innerHTML = `<div class="cfg-box"><h4>몇 판 할까요?</h4><div class="seg">${[1, 3, 5, 7].map((n) => `<button data-rounds="${n}" class="${cfg.rounds === n ? 'on' : ''}" ${host ? '' : 'disabled'}>${n}판</button>`).join('')}</div><p>판마다 신분 점수(대달무티가 가장 높음)를 더해 우승자를 가립니다.</p></div>`;
+  const ed = D.EDITIONS[cfg.edition] ? cfg.edition : 'classic';
+  applyEdition(ed);
+  const E = D.EDITIONS[ed];
+  $('#cfg').innerHTML = `<div class="cfg-box"><h4>이 왕궁 ${ed !== 'classic' ? '<small>확장판</small>' : ''}</h4><div class="eds"><div class="ed ed-${E.id} on">
+      <span class="ed-cards">${[1, 13, 12].map((r, i) => cardSvg(r, { w: 54, edition: E.id, cls: `k${i}` })).join('')}${E.mapae ? cardSvg(14, { w: 54, edition: E.id, cls: 'k3' }) : ''}</span>
+      <b>${E.name}</b><small>${E.sub}</small></div></div>
+    ${ed === 'joseon' ? '<p class="ed-rule"><b>마패</b> 2장이 더 들어갑니다. 내 차례에 마패 한 장만 내면 <b>암행어사 출두!</b> 깔린 카드를 모두 치우고 내가 새로 냅니다.</p>' : ''}</div>
+    <div class="cfg-box"><h4>몇 판 할까요?</h4><div class="seg">${[1, 3, 5, 7].map((n) => `<button data-rounds="${n}" class="${cfg.rounds === n ? 'on' : ''}" ${host ? '' : 'disabled'}>${n}판</button>`).join('')}</div><p>판마다 신분 점수(대달무티가 가장 높음)를 더해 우승자를 가립니다.</p></div>`;
   const me = room.members.find((m) => m.pid === S.me);
   $('#seatBtn').textContent = me && me.seated ? '관전으로 전환' : '자리에 앉기';
   $('#addBotBtn').hidden = !host;
   $('#startBtn').hidden = !host;
   $('#startBtn').disabled = seated.length < D.MIN_PLAYERS;
-  $('#startHint').textContent = host ? (seated.length < D.MIN_PLAYERS ? `${D.MIN_PLAYERS}명부터 시작할 수 있어요` : `${seated.length}명 · ${cfg.rounds}판`) : '방장이 시작하기를 기다리는 중…';
+  $('#startHint').textContent = host ? (seated.length < D.MIN_PLAYERS ? `${D.MIN_PLAYERS}명부터 시작할 수 있어요` : `${seated.length}명 · ${cfg.rounds}판 · ${(D.EDITIONS[cfg.edition] || D.EDITIONS.classic).name}`) : '방장이 시작하기를 기다리는 중…';
 }
 $('#seatGrid').addEventListener('click', (e) => { const k = e.target.closest('[data-kick]'); if (k) call('room:kick', { pid: k.dataset.kick }); });
 $('#cfg').addEventListener('click', (e) => { const b = e.target.closest('[data-rounds]'); if (b && !b.disabled) { SFX.click(); call('room:config', { rounds: Number(b.dataset.rounds) }); } });
@@ -172,6 +202,9 @@ const myTurn = () => S.g && S.g.phase === 'play' && S.g.turn === S.me;
 function renderCourt() {
   const g = S.g;
   const n = g.players.length;
+  const key = JSON.stringify([g.players, g.turn, g.phase, S.room && S.room.members.map((m) => [m.pid, m.online])]);
+  if (S.courtKey === key && $('#court').firstChild) return;
+  S.courtKey = key;
   $('#court').innerHTML = g.players.map((p) => {
     const cls = p.pos === 0 ? 'p0' : p.pos === 1 ? 'p1' : p.pos === n - 1 ? 'pl' : p.pos === n - 2 ? 'pl2' : 'pm';
     const st = g.phase === 'play' && p.passed && !p.out ? '<span class="st pass">패스</span>' : g.turn === p.pid ? '<span class="st">차례</span>' : '';
@@ -186,13 +219,16 @@ function renderCourt() {
 function renderTable() {
   const g = S.g;
   const t = g.trick;
+  const key = JSON.stringify([g.phase, g.turn, t && t.cards.map((c) => c.id), t && t.by]);
+  if (S.tableKey === key && $('#table').firstChild) return;
+  S.tableKey = key;
   let html;
   if (t) {
     const cards = t.cards;
     const w = 118;
     const spread = Math.min(46, 360 / Math.max(1, cards.length));
     html = `<div class="pile">${cards.map((c, i) => cardSvg(c.r, { w, uid: `t${i}` }).replace('<svg ', `<svg style="transform: translateX(${(i - (cards.length - 1) / 2) * spread}px) rotate(${(i - (cards.length - 1) / 2) * 4}deg)" `)).join('')}</div>
-      <div class="trick-label">${esc(nameOf(t.by))} · ${t.rank === 13 ? '광대' : rname(t.rank)} ×${t.count}</div>`;
+      <div class="trick-label">${esc(nameOf(t.by))} · ${rname(t.rank)} ×${t.count}</div>`;
   } else {
     const leadP = g.turn && pl(g.turn);
     html = `<div class="table-empty">${g.phase === 'play' ? `${leadP ? `${esc(leadP.name)} 님이 새로 냅니다` : '다음 사람이 새로 냅니다'}<small>아무 숫자든 같은 카드 몇 장이든</small>` : g.phase === 'tax' || g.phase === 'taxdone' ? '세금을 거두는 중…<small>농노가 좋은 카드를 바칩니다</small>' : g.phase === 'revolt' ? '광대 두 장! 혁명이 일어날까…' : g.phase === 'between' ? '판이 끝났습니다<small>새 신분으로 다시 나눕니다</small>' : '카드를 나누는 중…'}</div>`;
@@ -207,24 +243,27 @@ function renderHand() {
   if (!g.me) { box.innerHTML = '<div class="hand-top"><span class="me-t">관전 중</span></div>'; return; }
   const hand = g.me.hand;
   for (const id of [...S.sel]) if (!hand.some((c) => c.id === id)) S.sel.delete(id);
+  const key = JSON.stringify([hand.map((c) => c.id), [...S.sel], g.trick && [g.trick.rank, g.trick.count], g.turn, g.phase, g.me.title]);
+  if (S.handKey === key && box.firstChild) return;
+  S.handKey = key;
   const t = g.trick;
   const mine = myTurn();
   const selCards = hand.filter((c) => S.sel.has(c.id));
   const set = D.evalSet(selCards);
   const canPlay = mine && set && D.beats(set, t);
   let hint = '';
-  if (mine) hint = t ? `${t.count}장 · ${t.rank === 13 ? '광대' : `${rname(t.rank)}(${t.rank})`}보다 작은 숫자를 내거나 패스` : '먼저 냅니다: 같은 숫자 카드 몇 장이든';
+  if (mine) hint = t ? `${t.count}장 · ${t.rank === 13 ? rname(13) : `${rname(t.rank)}(${t.rank})`}보다 작은 숫자를 내거나 패스${hand.some((c) => c.r === D.MAPAE) ? ' · 마패로 판을 엎을 수도 있어요' : ''}` : '먼저 냅니다: 같은 숫자 카드 몇 장이든';
   else if (g.phase === 'play') hint = `${esc(nameOf(g.turn))} 님의 차례`;
   let prev = null;
   box.innerHTML = `<div class="hand-top"><span class="me-t">${esc(g.me.title)} · ${hand.length}장</span><span class="hint2">${hint}</span><span class="grow"></span>
-    ${mine ? `<button class="btn" id="passBtn" ${t ? '' : 'disabled'}>패스</button><button class="btn btn-gold btn-lg" id="playBtn" ${canPlay ? '' : 'disabled'}>${set ? `${set.rank === 13 ? '광대' : rname(set.rank)} ${set.count}장 내기` : '내기'}</button>` : ''}</div>
+    ${mine ? `<button class="btn" id="passBtn" ${t ? '' : 'disabled'}>패스</button><button class="btn btn-gold btn-lg" id="playBtn" ${canPlay ? '' : 'disabled'}>${set ? (set.mapae ? '마패! 출두요' : `${rname(set.rank)} ${set.count}장 내기`) : '내기'}</button>` : ''}</div>
     <div class="hand">${hand.map((c) => {
       const gap = prev !== null && prev !== c.r;
       prev = c.r;
       // 숫자가 더 작고, 광대를 보태서 장수를 맞출 수 있어야 낼 수 있다
       const jesters = hand.filter((x) => x.r === 13).length;
       const same = hand.filter((x) => x.r === c.r).length;
-      const playable = !t || (c.r === 13 ? jesters >= t.count || hand.some((x) => x.r < t.rank && hand.filter((y) => y.r === x.r).length + jesters >= t.count) : c.r < t.rank && same + jesters >= t.count);
+      const playable = !t || c.r === D.MAPAE || (c.r === 13 ? jesters >= t.count || hand.some((x) => x.r < t.rank && hand.filter((y) => y.r === x.r).length + jesters >= t.count) : c.r < t.rank && same + jesters >= t.count);
       return cardSvg(c.r, { w: 96, cls: `${S.sel.has(c.id) ? 'sel' : ''} ${gap ? 'gap' : ''} ${mine && t && !playable ? 'dim' : ''}` }).replace('<svg ', `<svg data-id="${c.id}" `);
     }).join('')}</div>`;
 }
@@ -235,8 +274,10 @@ $('#handArea').addEventListener('click', (e) => {
     const g = S.g;
     const card = g.me.hand.find((x) => x.id === id);
     if (S.sel.has(id)) S.sel.delete(id);
+    else if (card.r === D.MAPAE) { S.sel.clear(); S.sel.add(id); }
     else {
       // 다른 숫자를 누르면 그 숫자로 새로 고른다 (광대는 같이 쓸 수 있다)
+      for (const x of g.me.hand) if (x.r === D.MAPAE) S.sel.delete(x.id);
       const cur = g.me.hand.filter((x) => S.sel.has(x.id) && x.r !== 13);
       if (card.r !== 13 && cur.length && cur[0].r !== card.r) S.sel.clear();
       S.sel.add(id);
@@ -349,12 +390,13 @@ function playEvents() {
   for (const e of fresh) {
     if (e.type === 'deal') { SFX.draw(); bigBanner(`${e.round}번째 판`, '카드를 나눕니다'); }
     if (e.type === 'play') { SFX.slam(); setTimeout(() => flyCards(e.pid, e.cards.map((c) => c.r)), 30); }
+    if (e.type === 'mapae') { SFX.riot(); SFX.slam(); setTimeout(() => flyCards(e.pid, e.cards.map((c) => c.r)), 30); bigBanner('암행어사 출두요!', `${nameOf(e.pid)} 님이 판을 엎었다`); }
     if (e.type === 'pass') { SFX.pass(); setTimeout(() => bubble(e.pid, '패스'), 40); }
     if (e.type === 'clear') SFX.card();
     if (e.type === 'out') { SFX.bells(); setTimeout(() => bubble(e.pid, `${e.place + 1}등!`), 60); }
     if (e.type === 'tax') { SFX.coin(); toast(`<b>${esc(nameOf(e.from))}</b> → <b>${esc(nameOf(e.to))}</b> 세금: ${e.cards.map(rname).join(', ')}`, 'gold'); }
     if (e.type === 'revolution') { SFX.riot(); bigBanner(e.great ? '대혁명!!' : '혁명!', e.great ? '신분이 뒤집혔다' : '이번 판 세금은 없다'); }
-    if (e.type === 'roundOver') { SFX.fanfare(); bigBanner('새 대달무티', nameOf(e.order[0])); }
+    if (e.type === 'roundOver') { SFX.fanfare(); bigBanner(`새 ${D.seatTitle(0, g.players.length, g.edition)}`, nameOf(e.order[0])); }
     if (e.type === 'turn' && e.pid === S.me) SFX.tick();
   }
 }
@@ -398,7 +440,7 @@ async function showFilm(force) {
   const champ = pl(g.over.champion);
   const peon = pl(g.over.peon);
   const rose = g.history.length > 1 && g.history[0].order[g.history[0].order.length - 1] === g.over.champion;
-  await playEnding($('#film'), { champion: champ.name, peon: peon.name, rose, sound: SFX, me: g.over.champion === S.me });
+  await playEnding($('#film'), { champion: champ.name, peon: peon.name, rose, sound: SFX, me: g.over.champion === S.me, edition: g.edition });
   showResult();
 }
 function showResult() {
@@ -426,6 +468,7 @@ function render() {
     S.taxSel.clear();
     mountChat($('#tab-chat'));
   }
+  if (S.edition !== g.edition) { S.edition = g.edition; applyEdition(g.edition || 'classic'); S.handKey = S.tableKey = null; }
   renderCourt();
   renderTable();
   renderHand();

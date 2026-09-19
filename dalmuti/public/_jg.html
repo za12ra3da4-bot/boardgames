@@ -1,0 +1,8 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@700;800&family=Cinzel:wght@700;900&display=swap">
+<style>body{background:#2a1a14;margin:0;padding:8px;width:1500px;display:flex;flex-wrap:wrap;gap:8px}</style></head><body>
+<script src="shared/dalmuti.js"></script>
+<script type="module">
+import { cardSvg, backSvg } from './js/cards.js';
+document.body.innerHTML += [9,13].map(r=>cardSvg(r,{w:420,edition:'joseon'})).join('');
+</script></body></html>

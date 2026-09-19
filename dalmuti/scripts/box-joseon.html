@@ -1,0 +1,107 @@
+<!doctype html>
+<!-- 달무티 조선 궁궐판(확장판) 상자 앞면 (1000×1000). box.html 과 같은 방법으로 굽는다 → public/assets/box-joseon.png. 굽는 법: 이 파일을 dalmuti/public/_box.html 로 복사 →
+     서버 켜고 크롬 headless 로 /dalmuti/_box.html 을 1000×1000 스크린샷 → public/assets/box.png, 복사본은 지운다. -->
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@700;800&family=Cinzel:wght@700;900&family=Cinzel+Decorative:wght@700;900&family=Black+Han+Sans&display=swap">
+<style>
+  html, body { margin: 0; width: 1000px; height: 1000px; overflow: hidden; background: #1a0206; }
+  #box { position: relative; width: 1000px; height: 1000px; overflow: hidden; }
+  #bg, #fg { position: absolute; inset: 0; }
+  .c { position: absolute; filter: drop-shadow(0 14px 18px rgba(0, 0, 0, .7)); }
+  .c svg { display: block; }
+</style>
+</head><body>
+<div id="box">
+  <svg id="bg" viewBox="0 0 1000 1000" width="1000" height="1000">
+    <defs>
+      <radialGradient id="hall" cx=".5" cy=".38" r=".7"><stop offset="0" stop-color="#b8242e"/><stop offset=".45" stop-color="#6a0a14"/><stop offset="1" stop-color="#1e0206"/></radialGradient>
+      <radialGradient id="glow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff0b0" stop-opacity=".9"/><stop offset=".4" stop-color="#f0c040" stop-opacity=".35"/><stop offset="1" stop-color="#f0c040" stop-opacity="0"/></radialGradient>
+      <linearGradient id="cur" x1="0" x2="1"><stop offset="0" stop-color="#2a0208"/><stop offset=".3" stop-color="#8a0e1a"/><stop offset=".55" stop-color="#3a0410"/><stop offset=".8" stop-color="#a0162a"/><stop offset="1" stop-color="#3a0410"/></linearGradient>
+      <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6c0"/><stop offset=".45" stop-color="#f0c040"/><stop offset=".55" stop-color="#b07810"/><stop offset="1" stop-color="#f8d860"/></linearGradient>
+      <linearGradient id="pcol" x1="0" x2="1"><stop offset="0" stop-color="#5a0808"/><stop offset=".45" stop-color="#c8302a"/><stop offset="1" stop-color="#4a0606"/></linearGradient>
+      <linearGradient id="goldH" x1="0" x2="1"><stop offset="0" stop-color="#8a5a10"/><stop offset=".5" stop-color="#f8e080"/><stop offset="1" stop-color="#8a5a10"/></linearGradient>
+      <pattern id="dam" width="60" height="60" patternUnits="userSpaceOnUse"><path d="M30 6 C40 18 40 24 30 30 C20 24 20 18 30 6Z M30 54 C40 42 40 36 30 30 C20 36 20 42 30 54Z M6 30 C18 20 24 20 30 30 C24 40 18 40 6 30Z M54 30 C42 20 36 20 30 30 C36 40 42 40 54 30Z" fill="#f0c040" opacity=".07"/></pattern>
+      <filter id="grain" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="4"/><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .14 0"/></filter>
+      <filter id="soft"><feGaussianBlur stdDeviation="3"/></filter>
+    </defs>
+    <rect width="1000" height="1000" fill="#0c1430"/>
+    <g id="ilwol"></g>
+    <rect width="1000" height="1000" fill="url(#dam)"/>
+    <g transform="translate(500 470)" opacity=".35"><g id="rays"></g></g>
+    <circle cx="500" cy="470" r="330" fill="url(#glow)" opacity=".7"/>
+    <!-- 붉은 기둥 · 단청 -->
+    <rect x="0" y="0" width="120" height="1000" fill="url(#pcol)"/><rect x="880" y="0" width="120" height="1000" fill="url(#pcol)"/>
+    <rect x="0" y="0" width="1000" height="70" fill="#2a7a5a"/><g id="dan"></g><path d="M0 70 H1000" stroke="#3a6ac8" stroke-width="8"/>
+    <!-- 박석 길 -->
+    <path d="M300 1000 L420 860 H580 L700 1000Z" fill="#8a8a82"/><path d="M340 1000 L440 880 M660 1000 L560 880 M380 940 H620" stroke="#5a5a52" stroke-width="3"/>
+    <!-- 청사초롱 -->
+    <g id="lanterns"></g>
+  </svg>
+  <div id="cards"></div>
+  <svg id="fg" viewBox="0 0 1000 1000" width="1000" height="1000">
+    <defs>
+      <linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffbe0"/><stop offset=".45" stop-color="#f4c848"/><stop offset=".56" stop-color="#a86e0c"/><stop offset="1" stop-color="#f8dc70"/></linearGradient>
+      <filter id="emb" x="-10%" y="-20%" width="120%" height="150%"><feDropShadow dx="0" dy="6" stdDeviation="4" flood-color="#000" flood-opacity=".8"/></filter>
+      <filter id="grain2" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="4"/><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .12 0"/></filter>
+      <radialGradient id="vig" cx=".5" cy=".5" r=".72"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".7"/></radialGradient>
+    </defs>
+    <rect width="1000" height="1000" fill="url(#vig)"/>
+    <!-- 제목 -->
+    <g filter="url(#emb)">
+      <path d="M330 30 H670 L644 54 L670 78 H330 L356 54Z" fill="#14306a" stroke="url(#g2)" stroke-width="4"/>
+      <text x="500" y="66" text-anchor="middle" font-family="'Nanum Myeongjo',serif" font-weight="800" font-size="28" fill="#fbecc0" letter-spacing="10">조선 궁궐판</text>
+      <text x="500" y="200" text-anchor="middle" font-family="'Black Han Sans',sans-serif" font-size="128" fill="url(#g2)" stroke="#3a1804" stroke-width="4" paint-order="stroke" letter-spacing="14">달무티</text>
+    </g>
+    <text x="500" y="985" text-anchor="middle" font-family="'Cinzel',serif" font-weight="900" font-size="15" fill="#f4d880" letter-spacing="8" opacity=".9">JOSEON COURT EDITION · EXPANSION</text>
+    <!-- 인원 딱지 -->
+    <g transform="translate(96 920)" filter="url(#emb)"><circle r="62" fill="#0e1a40" stroke="url(#g2)" stroke-width="5"/><text y="-2" text-anchor="middle" font-family="'Black Han Sans',sans-serif" font-size="32" fill="#fbecc0">4~8</text><text y="28" text-anchor="middle" font-family="'Black Han Sans',sans-serif" font-size="18" fill="#f0c040">명 · 30분</text></g>
+    <g transform="translate(900 930)" filter="url(#emb)"><rect x="-74" y="-30" width="148" height="60" rx="8" fill="#f4ecd8"/><text y="8" text-anchor="middle" font-family="'Black Han Sans',sans-serif" font-size="24" fill="#8a1a22">보드게임 밤</text></g>
+    <g transform="translate(868 150) rotate(12)" filter="url(#emb)"><circle r="58" fill="#c8202a" stroke="url(#g2)" stroke-width="5"/><text y="-6" text-anchor="middle" font-family="'Black Han Sans',sans-serif" font-size="26" fill="#fff4c0">확장판</text><text y="22" text-anchor="middle" font-family="'Nanum Myeongjo',serif" font-weight="800" font-size="15" fill="#fff4c0">마패 2장</text></g>
+    <rect width="1000" height="1000" filter="url(#grain2)"/>
+  </svg>
+</div>
+<script src="/dalmuti/shared/dalmuti.js"></script>
+<script type="module">
+  import { cardSvg, setEdition } from '/dalmuti/js/cards.js';
+  setEdition('joseon');
+  // 빛줄기
+  let rays = '';
+  for (let i = 0; i < 24; i++) rays += `<path d="M0 0 L${Math.cos(i * 0.2618 - 0.06) * 700} ${Math.sin(i * 0.2618 - 0.06) * 700} L${Math.cos(i * 0.2618 + 0.06) * 700} ${Math.sin(i * 0.2618 + 0.06) * 700}Z" fill="#f8d870" opacity="${i % 2 ? 0.12 : 0.22}"/>`;
+  document.getElementById('rays').innerHTML = rays;
+  // 일월오봉도 (뒤 병풍)
+  const pine = (x, y, s) => `<g transform="translate(${x} ${y}) scale(${s})"><path d="M0 0 C-8 -60 12 -100 0 -160" stroke="#8a2a1a" stroke-width="12" fill="none"/>${[-140, -100, -60].map((yy, i) => `<ellipse cx="${i % 2 ? 20 : -20}" cy="${yy}" rx="${44 - i * 6}" ry="16" fill="#1a5a3a"/>`).join('')}</g>`;
+  document.getElementById('ilwol').innerHTML = `<rect x="120" y="70" width="760" height="930" fill="#2a5a9a"/>
+    <circle cx="250" cy="300" r="58" fill="#d8303a"/><circle cx="750" cy="300" r="58" fill="#f4f0e6"/>
+    <path d="M100 760 L220 480 L300 620 L400 360 L500 560 L600 360 L700 620 L780 480 L900 760Z" fill="#1a6a5a" stroke="#0e3a30" stroke-width="6"/>
+    <path d="M400 360 L430 440 L370 440Z M600 360 L630 440 L570 440Z M220 480 L244 540 L196 540Z M780 480 L804 540 L756 540Z" fill="#e8f0e0" opacity=".8"/>
+    ${pine(180, 860, 1.2)}${pine(820, 860, 1.2)}
+    <rect x="120" y="760" width="760" height="240" fill="#1a3a7a"/>${Array.from({ length: 20 }, (_, i) => `<path d="M${110 + (i % 10) * 80} ${800 + Math.floor(i / 10) * 50} q40 -34 80 0" stroke="#f4f0e6" stroke-width="5" fill="none"/>`).join('')}
+    <rect x="120" y="70" width="760" height="930" fill="#000" opacity=".25"/>`;
+  document.getElementById('dan').innerHTML = Array.from({ length: 17 }, (_, i) => `<circle cx="${30 + i * 60}" cy="35" r="18" fill="#e8c040"/><circle cx="${30 + i * 60}" cy="35" r="8" fill="#c8303a"/>`).join('');
+  document.getElementById('lanterns').innerHTML = [60, 940].map((x) => `<path d="M${x} 70 V160" stroke="#2a1a0a" stroke-width="3"/><rect x="${x - 28}" y="160" width="56" height="80" rx="10" fill="#2a4a9a" stroke="#0a1430" stroke-width="3"/><rect x="${x - 28}" y="182" width="56" height="30" fill="#c8303a"/><ellipse cx="${x}" cy="200" rx="90" ry="90" fill="url(#glow)" opacity=".6"/>`).join('');
+  // 계급 피라미드: 아래 줄부터 깔고 맨 위 대달무티를 가장 앞에
+  const rows = [
+    // [계급, 가운데 x, 위 y, 너비, 기울기]
+    [13, 150, 640, 150, -16], [13, 850, 640, 150, 16],
+    [12, 300, 680, 150, -9], [11, 420, 700, 150, -3], [14, 580, 690, 160, 4], [9, 700, 680, 150, 9],
+    [8, 330, 520, 160, -8], [6, 500, 540, 160, 0], [5, 670, 520, 160, 8],
+    [3, 395, 360, 180, -5], [2, 605, 360, 180, 5],
+    [1, 500, 262, 210, 0],
+  ];
+  const host = document.getElementById('cards');
+  rows.forEach(([r, x, y, w, rot], i) => {
+    const d = document.createElement('div');
+    d.className = 'c';
+    d.style.cssText = `left:${x - w / 2}px; top:${y}px; transform: rotate(${rot}deg); z-index:${i}`;
+    if (r === 1) d.style.filter = 'drop-shadow(0 0 26px rgba(255,220,120,.8)) drop-shadow(0 16px 20px rgba(0,0,0,.8))';
+    d.innerHTML = cardSvg(r, { w, uid: `b${i}` });
+    host.appendChild(d);
+  });
+  // 대달무티 카드 위 왕관
+  const crown = document.createElement('div');
+  crown.className = 'c';
+  crown.style.cssText = 'left:440px; top:206px; z-index:50';
+  crown.innerHTML = `<svg viewBox="0 0 120 80" width="120"><path d="M20 76 C16 40 38 24 60 24 C82 24 104 40 100 76 Q60 70 20 76Z" fill="#141418" stroke="#000" stroke-width="3"/><path d="M34 34 C20 4 44 -4 52 26Z M86 34 C100 4 76 -4 68 26Z" fill="#141418" stroke="#000" stroke-width="3"/><path d="M20 70 Q60 62 100 70" stroke="#e0b030" stroke-width="4" fill="none"/></svg>`;
+  host.appendChild(crown);
+</script>
+</body></html>

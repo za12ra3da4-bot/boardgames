@@ -4,7 +4,7 @@ const Game = require('../server/game');
 
 Game.setPace(0.0005);
 const N = Number(process.argv[2]) || 200;
-const st = { done: 0, stuck: 0, revolts: 0, restored: 0, badCards: 0 };
+const st = { done: 0, stuck: 0, revolts: 0, restored: 0, badCards: 0, mapae: 0 };
 
 function play(n, i) {
   return new Promise((resolve) => {
@@ -17,9 +17,9 @@ function play(n, i) {
         // 카드 수 검사: 80장이 손패 + 낸 카드 어딘가에
         if (g.phase === 'play' && g.round && !g._chk) {
           const inHands = g.players.reduce((s, p) => s + p.hand.length, 0);
-          if (inHands > 80) st.badCards++;
+          if (inHands > 82) st.badCards++;
         }
-        for (const e of g.events) if (e.type === 'revolution' && !e._c) { e._c = 1; st.revolts++; }
+        for (const e of g.events) if (!e._c && (e.type === 'revolution' || e.type === 'mapae')) { e._c = 1; st[e.type === 'mapae' ? 'mapae' : 'revolts']++; }
         if (g.phase === 'over' && !g._counted) {
           g._counted = true;
           st.done++;
@@ -29,7 +29,7 @@ function play(n, i) {
       },
       isOnline: () => true,
     };
-    g = new Game(seats, hooks, { rounds: 3 });
+    g = new Game(seats, hooks, { rounds: 3, edition: i % 2 ? 'joseon' : 'classic' });
     if (i % 8 === 3) {
       setTimeout(() => {
         if (g.phase === 'over') return;

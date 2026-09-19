@@ -1,49 +1,7 @@
 /* 왕궁의 달무티 카드 그림: 계급마다 다른 인물 초상 (얼굴 · 옷 · 소품 · 배경 전부 따로 그린다)
    카드 240×360, 초상 창 212×262 */
-const INK = '#1a0e08';
-const o = (d, fill, sw = 2.4) => `<path d="${d}" fill="${fill}" stroke="${INK}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="round"/>`;
-const f = (d, fill, op = 1) => `<path d="${d}" fill="${fill}" opacity="${op}"/>`;
-const l = (d, sw = 2, c = INK, op = 1) => `<path d="${d}" fill="none" stroke="${c}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" opacity="${op}"/>`;
-const c = (x, y, r, fill, sw = 2) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}" stroke="${INK}" stroke-width="${sw}"/>`;
-const dot = (x, y, r, fill, op = 1) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}" opacity="${op}"/>`;
-
-/* ═════════ 얼굴 (정면에서 살짝 비껴 본 3/4, 머리 중심 120,112) ═════════ */
-function face(P) {
-  const { skin, shade, eye = '#4a2a1a', brow = '#3a2418', lips = '#9a4a3a', age = 0, fem = false, mood = 'calm', w = 1 } = P;
-  const sx = (x) => 120 + (x - 120) * w;
-  const faceD = `M${sx(86)} 110 C${sx(86)} 78 ${sx(100)} 62 120 62 C${sx(142)} 62 ${sx(156)} 78 ${sx(155)} 110 C${sx(155)} ${fem ? 138 : 142} ${sx(142)} ${fem ? 160 : 164} 120 ${fem ? 164 : 168} C${sx(98)} ${fem ? 160 : 164} ${sx(86)} ${fem ? 138 : 142} ${sx(86)} 110Z`;
-  let s = `<path d="M${sx(106)} 156 L${sx(108)} 188 L${sx(134)} 188 L${sx(134)} 156Z" fill="${shade}" stroke="${INK}" stroke-width="2.2"/>`;
-  s += o(`M${sx(84)} 104 C${sx(74)} 100 ${sx(74)} 124 ${sx(86)} 128Z`, skin, 2) + o(`M${sx(156)} 104 C${sx(166)} 100 ${sx(166)} 124 ${sx(154)} 128Z`, skin, 2);
-  s += `<path d="${faceD}" fill="url(#skin)" stroke="${INK}" stroke-width="2.6"/>`;
-  // 볼 그늘 (왼쪽이 어둡다) · 턱 밑 그림자
-  s += f(`M${sx(88)} 110 C${sx(88)} 138 ${sx(100)} 158 118 164 C${sx(100)} 150 ${sx(94)} 132 ${sx(96)} 108Z`, shade, 0.55);
-  s += f(`M${sx(100)} 158 Q120 170 ${sx(140)} 158 Q120 176 ${sx(100)} 158Z`, shade, 0.6);
-  // 눈
-  const eyeD = (x) => `<path d="M${x - 11} 110 C${x - 6} 103 ${x + 6} 103 ${x + 11} 110 C${x + 6} 115 ${x - 6} 115 ${x - 11} 110Z" fill="#f6f0e6"/>
-    <circle cx="${x + 1}" cy="109.5" r="4.6" fill="${eye}"/><circle cx="${x + 1}" cy="109.5" r="2.2" fill="#0e0604"/><circle cx="${x + 2.6}" cy="107.8" r="1.4" fill="#fff"/>
-    ${l(`M${x - 12} 109 C${x - 6} ${mood === 'sly' ? 104 : 102} ${x + 6} ${mood === 'sly' ? 104 : 102} ${x + 12} 108`, fem ? 2.6 : 2.2)}
-    ${l(`M${x - 9} 113.5 C${x - 3} 116 ${x + 4} 116 ${x + 9} 113`, 1, '#6a3a28', 0.7)}
-    ${fem ? l(`M${x + 10} 107 l4 -3 M${x + 8} 105 l3 -4`, 1.4) : ''}`;
-  s += eyeD(sx(105)) + eyeD(sx(136));
-  // 눈썹 (표정)
-  const b = { calm: [98, 96], stern: [100, 94], worry: [94, 100], sly: [96, 98], happy: [95, 95] }[mood] || [98, 96];
-  s += l(`M${sx(94)} ${b[0]} Q${sx(104)} ${b[1] - 4} ${sx(115)} ${b[1]}`, fem ? 2.4 : 3.6, brow) + l(`M${sx(126)} ${b[1]} Q${sx(137)} ${b[1] - 4} ${sx(147)} ${b[0]}`, fem ? 2.4 : 3.6, brow);
-  // 코 (오른쪽이 밝고 왼쪽 그늘)
-  s += f(`M${sx(118)} 112 C${sx(116)} 124 ${sx(112)} 130 ${sx(110)} 134 C${sx(116)} 138 ${sx(124)} 138 ${sx(129)} 134 C${sx(124)} 134 ${sx(119)} 128 ${sx(118)} 112Z`, shade, 0.7);
-  s += l(`M${sx(112)} 134 C${sx(116)} 138 ${sx(124)} 138 ${sx(129)} 134`, 1.8, '#6a3a28');
-  // 입
-  const m = { calm: `M${sx(108)} 148 Q120 152 ${sx(133)} 148`, stern: `M${sx(108)} 150 Q120 148 ${sx(133)} 150`, worry: `M${sx(109)} 151 Q120 146 ${sx(132)} 151`, sly: `M${sx(108)} 149 Q122 152 ${sx(135)} 144`, happy: `M${sx(106)} 146 Q120 158 ${sx(135)} 146` }[mood];
-  if (fem) s += o(`M${sx(108)} 148 Q${sx(114)} 144 120 146 Q${sx(126)} 144 ${sx(133)} 148 Q120 156 ${sx(108)} 148Z`, lips, 1.4);
-  else s += l(m, 2.4, '#5a2a1a');
-  if (mood === 'happy') s += f(`M${sx(108)} 147 Q120 156 ${sx(133)} 147 Q120 151 ${sx(108)} 147Z`, '#f4f0ea');
-  // 볼 · 주름
-  s += `<ellipse cx="${sx(100)}" cy="130" rx="9" ry="5" fill="#e07a6a" opacity="${fem ? 0.3 : 0.15}"/><ellipse cx="${sx(142)}" cy="130" rx="9" ry="5" fill="#e07a6a" opacity="${fem ? 0.3 : 0.15}"/>`;
-  if (age > 0) s += l(`M${sx(94)} 118 q4 6 3 12 M${sx(146)} 118 q-4 6 -3 12 M${sx(104)} 92 q16 -4 32 0`, 1.2, '#6a3a28', 0.6 * age);
-  return s;
-}
-/** 몸 (어깨 · 가슴): 옷 색 두 가지 */
-const body = (fill, dark) => `<path d="M24 290 C28 222 60 196 120 188 C180 196 212 222 216 290Z" fill="url(#cloth)" stroke="${INK}" stroke-width="2.6"/>` + f('M24 290 C28 222 60 196 100 190 C74 214 62 250 60 290Z', dark, 0.55);
-const hand = (x, y, skin, shade, rot = 0) => `<g transform="translate(${x} ${y}) rotate(${rot})">${o('M-12 -8 C-16 4 -12 16 -2 18 L10 16 C16 8 14 -4 10 -10 Z', skin, 2)}${l('M-8 2 h14 M-8 8 h13', 1.2, shade)}${o('M8 -8 C16 -12 20 -6 16 0 L10 -2Z', skin, 1.6)}</g>`;
+import { INK, o, f, l, c, dot, face, body, hand, SKIN } from './paint.js';
+import { portraitJoseon, BG_J, backJoseon } from './cards-joseon.js';
 
 /* ═════════ 배경 ═════════ */
 const BG = {
@@ -63,7 +21,6 @@ const BG = {
 };
 
 /* ═════════ 계급별 인물 ═════════ */
-const SKIN = { a: ['#f0c8a8', '#b8826a'], b: ['#e0b090', '#a47050'], c: ['#c89068', '#8a5a3a'], d: ['#a87050', '#6a4028'] };
 function portrait(r) {
   const P = (k, x) => ({ skin: SKIN[k][0], shade: SKIN[k][1], ...x });
   const cloth = (a, b) => `<linearGradient id="cloth" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>`;
@@ -217,16 +174,46 @@ const TIER = {
   bronze: { a: '#f0b878', b: '#9a5a28', c: '#4a2408', band: '#3a1e10', num: '#fff0dc' },
   wood: { a: '#c8a070', b: '#7a5430', c: '#3a2410', band: '#2a3a1a', num: '#f8ecd0' },
   jester: { a: '#f8e070', b: '#c8303a', c: '#2a8a4a', band: '#2a0a3a', num: '#fff8d0' },
+  mapae: { a: '#f8e0a0', b: '#b8303a', c: '#4a0a0e', band: '#1a1a3a', num: '#ffe8a0' },
 };
+/* 지금 판의 확장판: 게임 화면이 정해 주면 카드 그림 · 이름이 그 판으로 바뀐다 */
+let EDITION = 'classic';
+export function setEdition(ed) { EDITION = ed || 'classic'; }
+export function getEdition() { return EDITION; }
 let seq = 0;
-export function cardSvg(r, { w = 120, cls = '', uid = '' } = {}) {
+/* 카드지 결: 필터를 카드마다 돌리면 손패 20장에서 버벅이므로 한 번만 그린 무늬를 같이 쓴다 */
+let paperReady = false;
+function ensurePaper() {
+  if (paperReady || typeof document === 'undefined') return;
+  paperReady = true;
+  const c = document.createElement('canvas');
+  c.width = 96;
+  c.height = 96;
+  const x = c.getContext('2d');
+  const img = x.createImageData(96, 96);
+  for (let i = 0; i < img.data.length; i += 4) {
+    const v = Math.random();
+    img.data[i] = 255; img.data[i + 1] = 242; img.data[i + 2] = 216;
+    img.data[i + 3] = v > 0.5 ? Math.round((v - 0.5) * 60) : 0;
+  }
+  x.putImageData(img, 0, 0);
+  const holder = document.createElement('div');
+  holder.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden';
+  holder.innerHTML = `<svg width="0" height="0"><defs><pattern id="dcPaper" width="96" height="96" patternUnits="userSpaceOnUse"><image href="${c.toDataURL()}" width="96" height="96"/></pattern></defs></svg>`;
+  document.body.appendChild(holder);
+}
+
+/** rich: 크게 볼 때만 손그림 흔들림 필터를 켠다 (기본: 너비 200 이상) */
+export function cardSvg(r, { w = 120, cls = '', uid = '', rich = w >= 200, edition = EDITION } = {}) {
+  ensurePaper();
   const D = window.DALMUTI;
-  const R = D.RANKS[r];
+  const jo = edition === 'joseon';
+  const R = D.ranksOf(edition)[r];
   const T = TIER[R.tier];
   const id = `dc${++seq}${uid}`;
-  const P = portrait(r);
-  const num = r === 13 ? '★' : String(r);
-  const pips = r === 13 ? '아무 숫자' : `${r}장`;
+  const P = jo ? portraitJoseon(r) : portrait(r);
+  const num = r === 13 ? '★' : r === 14 ? '牌' : String(r);
+  const pips = r === 13 ? '아무 숫자' : r === 14 ? '판 엎기' : `${r}장`;
   const art = P.art.replace(/url\(#(cloth|skin|gold|steel)\)/g, (_, k) => `url(#${id}${k})`);
   const defs = P.defs.replace('id="cloth"', `id="${id}cloth"`);
   return `<svg class="dcard ${cls}" viewBox="0 0 240 360" width="${w}" xmlns="http://www.w3.org/2000/svg" data-r="${r}">
@@ -236,15 +223,14 @@ export function cardSvg(r, { w = 120, cls = '', uid = '' } = {}) {
   <linearGradient id="${id}steel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f0f4fa"/><stop offset=".5" stop-color="#9aa0aa"/><stop offset="1" stop-color="#4a4e58"/></linearGradient>
   <linearGradient id="${id}fr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${T.a}"/><stop offset=".5" stop-color="${T.b}"/><stop offset="1" stop-color="${T.c}"/></linearGradient>
   <radialGradient id="${id}vig" cx=".5" cy=".42" r=".75"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".55"/></radialGradient>
-  <filter id="${id}tx" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="${r}"/><feColorMatrix values="0 0 0 0 1  0 0 0 0 .95  0 0 0 0 .85  0 0 0 .1 0"/></filter>
-  <filter id="${id}wob"><feTurbulence type="fractalNoise" baseFrequency=".03" numOctaves="2" seed="${r * 3}"/><feDisplacementMap in="SourceGraphic" scale="2.2"/></filter>
+  ${rich ? `<filter id="${id}wob"><feTurbulence type="fractalNoise" baseFrequency=".03" numOctaves="2" seed="${r * 3}"/><feDisplacementMap in="SourceGraphic" scale="2.2"/></filter>` : ''}
   <clipPath id="${id}win"><rect x="14" y="14" width="212" height="270" rx="10"/></clipPath>
 </defs>
 <rect x="1" y="1" width="238" height="358" rx="16" fill="#1a0e08"/>
 <rect x="4" y="4" width="232" height="352" rx="14" fill="url(#${id}fr)"/>
-<rect x="4" y="4" width="232" height="352" rx="14" filter="url(#${id}tx)"/>
+<rect x="4" y="4" width="232" height="352" rx="14" fill="url(#dcPaper)"/>
 <rect x="9" y="9" width="222" height="342" rx="11" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="1.4"/>
-<g clip-path="url(#${id}win)"><g transform="translate(0 -6)">${BG[P.bg]}</g><g filter="url(#${id}wob)">${art}</g><rect x="14" y="14" width="212" height="270" fill="url(#${id}vig)"/></g>
+<g clip-path="url(#${id}win)"><g transform="translate(0 -6)">${(jo ? BG_J : BG)[P.bg]}</g><g${rich ? ` filter="url(#${id}wob)"` : ''}>${art}</g><rect x="14" y="14" width="212" height="270" fill="url(#${id}vig)"/></g>
 <rect x="14" y="14" width="212" height="270" rx="10" fill="none" stroke="${T.c}" stroke-width="3"/>
 <g transform="translate(40 44)"><circle r="27" fill="${T.band}" stroke="url(#${id}fr)" stroke-width="5"/><text y="${r === 13 ? 10 : 11}" text-anchor="middle" font-family="'Cinzel','Nanum Myeongjo',serif" font-weight="900" font-size="${num.length > 1 ? 28 : 32}" fill="${T.num}">${num}</text></g>
 <path d="M14 290 H226 V334 Q226 346 214 346 H26 Q14 346 14 334Z" fill="${T.band}"/>
@@ -255,8 +241,9 @@ export function cardSvg(r, { w = 120, cls = '', uid = '' } = {}) {
 }
 
 /** 카드 뒷면 */
-export function backSvg({ w = 120, cls = '' } = {}) {
+export function backSvg({ w = 120, cls = '', edition = EDITION } = {}) {
   const id = `db${++seq}`;
+  if (edition === 'joseon') return `<svg class="dcard back ${cls}" viewBox="0 0 240 360" width="${w}" xmlns="http://www.w3.org/2000/svg">${backJoseon(id)}</svg>`;
   return `<svg class="dcard back ${cls}" viewBox="0 0 240 360" width="${w}" xmlns="http://www.w3.org/2000/svg">
 <defs><pattern id="${id}p" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M12 0 L24 12 L12 24 L0 12Z" fill="none" stroke="#c89a30" stroke-width="1.2" opacity=".6"/><circle cx="12" cy="12" r="2" fill="#c89a30" opacity=".6"/></pattern>
 <radialGradient id="${id}g" cx=".5" cy=".5" r=".7"><stop offset="0" stop-color="#8a1a24"/><stop offset="1" stop-color="#3a0610"/></radialGradient></defs>

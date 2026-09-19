@@ -31,6 +31,8 @@ const CONFESS = {
   seo: '위작이라 모욕한 그 입… 다시는 열지 못하게 했을 뿐.',
 };
 const ROOM_KO = (id) => C().ROOM[id].name;
+// 받침이 있으면 '을', 없으면 '를'
+const josa = (w) => { const code = w.charCodeAt(w.length - 1) - 0xac00; return code >= 0 && code % 28 ? '을' : '를'; };
 
 /* ═════════ 배경 ═════════ */
 function mansion() {
@@ -271,37 +273,208 @@ function envelopeShot(D, t0, sol, { sealed = false } = {}) {
   });
 }
 
-/** ④ 그날 밤의 회상: 그 방에서, 그 흉기로 (푸른 기억 필터) */
+/** ④ 그날 밤의 회상: 그 방에서, 그 흉기로 — 흉기마다 다른 범행 (푸른 기억 필터, 피는 보이지 않게) */
+const clamp01 = (x) => Math.max(0, Math.min(1, x));
+const seg = (s, a, b) => clamp01((s - a) / (b - a));
+const SIT = { ...POSE.stand, ...POSE.sit };
+const SLUMP = { chest: 34, neck: 22, head: 30, upperF: 26, foreF: -4, handF: 0, upperB: 20, foreB: -2 };
 function memoryShot(D, t0, sol) {
   D.at(t0, () => {
     D.cut('');
     const { shot, S } = scene(D);
     shot.classList.add('cl-memory');
+    const w = sol.weapon;
+    const poison = w === 'poison';
     S.layer(0.35, BG(svg(memoryRoom(sol.room))));
-    const L = S.layer(1, BG(svg(armchair)));
+    // 안락의자 (+ 독약이면 옆 탁자와 술잔)
+    const table = poison ? `<g transform="translate(1250 860)"><ellipse cx="0" cy="-118" rx="70" ry="16" fill="#5a3a1a" stroke="#1a0e08" stroke-width="5"/><path d="M-8 -110 V0 M-40 0 H40" stroke="#3a2410" stroke-width="10"/></g>
+      <g class="cl-cup" transform="translate(1238 -12)"><path d="M0 850 H24 Q24 876 12 878 Q0 876 0 850Z" fill="#e0b030" stroke="#1a0e08" stroke-width="3"/><path d="M12 878 V890 M4 892 H20" stroke="#e0b030" stroke-width="4"/></g>` : '';
+    const L = S.layer(1, BG(svg(armchair + table)));
     const Cc = cast(L.el);
-    const vic = Cc.add({ look: VICTIM, x: 1010, y: 850, scale: 1.2, rim: '#c8d8ff' });
-    vic.hold('goblet');
-    const mur = Cc.add({ look: LOOK[sol.suspect], x: 160, y: 870, scale: 1.3, rim: '#c8d8ff' });
-    mur.hold(sol.weapon);
+    // 범인을 먼저 세워 피해자 뒤(안쪽)에 서게 한다
+    const fromRight = poison;
+    const mur = Cc.add({ look: LOOK[sol.suspect], x: fromRight ? 1700 : 120, y: 840, scale: 1.22, rim: '#c8d8ff', flip: fromRight, rimSide: fromRight ? -1 : 1 });
+    const vic = Cc.add({ look: VICTIM, x: 1010, y: 860, scale: 1.2, rim: '#c8d8ff' });
+    vic.hold(poison ? 'book' : 'goblet');
+    mur.hold(w);
     mur.brow('angry');
-    const cam = camPath(S.cam, [[0, { x: 700, y: 460, z: 1.15 }], [2.6, { x: 820, y: 440, z: 1.4 }]]);
+    // 효과 층: 밧줄 · 총구 불꽃 · 연기 · 독 방울 · 휘두름 자국
+    L.el.insertAdjacentHTML('beforeend', `<svg viewBox="0 0 1600 900" style="position:absolute;left:0;top:0;width:1600px;height:900px;overflow:visible;pointer-events:none">
+      <path class="fx-rope" d="" fill="none" stroke="#c8a060" stroke-width="9" stroke-linecap="round" opacity="0"/>
+      <path class="fx-swoosh" d="" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity="0"/>
+      <g class="fx-muzzle" opacity="0"><path d="M0 -40 L10 -10 L40 0 L10 10 L0 40 L-10 10 L-40 0 L-10 -10Z" fill="#fff4a0"/><circle r="14" fill="#fff"/></g>
+      <g class="fx-smoke"></g><g class="fx-drops"></g>
+      <g class="fx-stars" opacity="0">${[0, 1, 2].map((i) => `<path transform="rotate(${i * 120})" d="M0 -34 L6 -24 L0 -14 L-6 -24Z" fill="#fff4a0"/>`).join('')}</g></svg>`);
+    const fx = (c) => L.el.querySelector(c);
+    const rope = fx('.fx-rope');
+    const swoosh = fx('.fx-swoosh');
+    const muzzle = fx('.fx-muzzle');
+    const smoke = fx('.fx-smoke');
+    const drops = fx('.fx-drops');
+    const stars = fx('.fx-stars');
+    const cup = L.el.querySelector('.cl-cup');
+    // 흉기마다: 서는 자리 · 결정적 순간(초)
+    const standX = { rope: 880, dagger: 860, candle: 850, wrench: 850, revolver: 540, poison: 1400 }[w] || 860;
+    const HIT = { rope: 2.9, dagger: 3.1, candle: 3.1, wrench: 3.1, revolver: 3.0, poison: 4.6 }[w] || 3;
+    const cam = camPath(S.cam, poison
+      ? [[0, { x: 1000, y: 460, z: 1.2 }], [2.8, { x: 1150, y: 460, z: 1.45 }], [4, { x: 1010, y: 450, z: 1.55 }], [6.2, { x: 1080, y: 600, z: 1.2 }]]
+      : [[0, { x: 700, y: 460, z: 1.15 }], [2.4, { x: (standX + 1010) / 2, y: 440, z: 1.45 }], [HIT, { x: (standX + 1010) / 2 + 20, y: 430, z: 1.7 }], [HIT + 1.6, { x: 900, y: 460, z: 1.3 }]]);
+    const once = {};
+    const at = (k, fn) => { if (!once[k]) { once[k] = 1; fn(); } };
+    const impact = (power = 10) => { lightning(D, shot, { silhouette: L.el }); D.shake(power, 320); D.flash('#ffffff', 160); };
     let last = 0;
     D.tick((s) => {
       const dt = s - last;
       last = s;
       cam(s);
-      vic.set({ ...POSE.stand, ...POSE.sit, upperF: -40, foreF: -70, head: 6 + Math.sin(s * 1.5) * 2, x: 1010 });
-      const x = Math.min(640, 160 + s * 260);
-      const up = ease.back(Math.max(0, Math.min(1, (s - 2) / 0.5)));
-      if (x < 640) mur.set({ ...POSE.stand, ...gait((s * 0.8) % 1), upperF: -40, foreF: -30, x, hipY: 14, chest: 14 });
-      else mur.set({ ...mixPose({ ...POSE.stand, upperF: -40, foreF: -30, hipY: 14, chest: 14 }, { ...POSE.stand, upperF: -150, foreF: -20, head: -6 }, up), x });
+      // 범인 걸음 (살금살금)
+      const walkEnd = poison ? 1.6 : 2.2;
+      const x0 = fromRight ? 1700 : 120;
+      const mx = s < walkEnd ? x0 + (standX - x0) * (s / walkEnd) : standX;
+      const sneak = { hipY: 16, chest: 16, upperF: -40, foreF: -30 };
+      let mp = s < walkEnd ? { ...POSE.stand, ...gait((s * 0.9) % 1), ...sneak } : { ...POSE.stand, ...sneak };
+      let vp = { ...SIT, upperF: -40, foreF: -70, head: 6 + Math.sin(s * 1.5) * 2 };
+      let vrot = 0;
+      let vy = 860;
+      if (w === 'rope') {
+        const lift = seg(s, 2.2, 2.6);
+        const loop = seg(s, 2.6, 2.9);
+        const pull = s > 2.9 && s < 4.6;
+        mp = { ...mp, ...mixPose({ upperF: -40, foreF: -30, upperB: -40, foreB: -30 }, { upperF: -160, foreF: -10, upperB: -150, foreB: -10 }, lift) };
+        if (loop > 0) at('coil', () => mur.hold(null));
+        if (loop > 0) mp = { ...mp, ...mixPose({ upperF: -160, foreF: -10, upperB: -150, foreB: -10 }, { upperF: -70, foreF: -40, upperB: -60, foreB: -50 }, loop) };
+        if (pull) mp = { ...mp, chest: -12 + Math.sin(s * 30) * 3, hipY: 10, upperF: -50 + Math.sin(s * 26) * 6, upperB: -40 };
+        if (s > 2.9) {
+          const fl = s < 4.4 ? 1 : 1 - seg(s, 4.4, 5);
+          vp = mixPose({ ...SIT, ...SLUMP, head: -10 }, { ...SIT, upperF: -130 + Math.sin(s * 22) * 40, foreF: -60, upperB: -120 + Math.cos(s * 20) * 40, foreB: -50, head: -24 + Math.sin(s * 18) * 6, chest: -10, thighF: -90 + Math.sin(s * 16) * 20 }, fl);
+          const a = mur.point('handF', 0, 20);
+          const b = mur.point('handB', 0, 20);
+          const n = vic.point('neck', 4, -8);
+          rope.setAttribute('d', `M${a.x} ${a.y} Q${n.x - 20} ${n.y - 10} ${n.x + 10} ${n.y} Q${n.x - 16} ${n.y + 14} ${b.x} ${b.y}`);
+          rope.setAttribute('opacity', s < 5.4 ? 1 : 0);
+        } else if (loop > 0) {
+          const a = mur.point('handF', 0, 20);
+          const b = mur.point('handB', 0, 20);
+          rope.setAttribute('d', `M${a.x} ${a.y} Q${(a.x + b.x) / 2 + 60} ${Math.max(a.y, b.y) + 60} ${b.x} ${b.y}`);
+          rope.setAttribute('opacity', 1);
+        }
+        if (s > 2.9) at('hit', () => { impact(6); D.sound.alarm && D.sound.alarm(); });
+        if (s > 4.8) at('drop', () => vic.hold(null));
+        if (s > 5.4) mp = { ...POSE.stand, chest: 8 + Math.sin(s * 8) * 3, upperF: 10, foreF: -10, upperB: 0, foreB: -10 };
+      } else if (w === 'revolver') {
+        const aim = seg(s, 2.2, 2.7);
+        const kick = s > HIT && s < HIT + 0.18 ? 1 : 0;
+        mp = { ...POSE.stand, ...mixPose({ upperF: -40, foreF: -30 }, { upperF: -88 - kick * 30, foreF: -2, handF: 0, head: -2 }, aim), chest: -kick * 6 };
+        if (s > HIT) {
+          at('hit', () => {
+            const m = mur.point('handF', 0, 100);
+            muzzle.setAttribute('transform', `translate(${m.x} ${m.y})`);
+            muzzle.animate([{ opacity: 1, transform: `translate(${m.x}px, ${m.y}px) scale(1.4)` }, { opacity: 0, transform: `translate(${m.x}px, ${m.y}px) scale(.6)` }], { duration: 160, fill: 'forwards' });
+            for (let i = 0; i < 6; i++) {
+              const pf = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+              pf.setAttribute('r', 12 + i * 4);
+              pf.setAttribute('fill', '#c8ccd8');
+              smoke.appendChild(pf);
+              pf.animate([{ transform: `translate(${m.x}px, ${m.y}px)`, opacity: 0.7 }, { transform: `translate(${m.x + 40 + i * 14}px, ${m.y - 80 - i * 22}px)`, opacity: 0 }], { duration: 1600 + i * 200, fill: 'forwards', easing: 'ease-out' });
+            }
+            impact(12);
+            D.sound.thunder && D.sound.thunder();
+          });
+          const jolt = 1 - seg(s, HIT, HIT + 0.35);
+          vp = mixPose({ ...SIT, ...SLUMP }, { ...SIT, chest: -18, head: -24, upperF: -110, upperB: -90 }, jolt * (s < HIT + 0.35 ? 1 : 0));
+          if (s > HIT + 0.35) vp = mixPose({ ...SIT, chest: -18, head: -24, upperF: -110, upperB: -90 }, { ...SIT, ...SLUMP }, seg(s, HIT + 0.35, HIT + 1.1));
+          if (s > HIT + 0.5) at('drop', () => vic.hold(null));
+        }
+      } else if (w === 'poison') {
+        // 독: 옆 탁자의 잔에 독을 붓고 사라진다 → 책을 내려놓고 잔을 들어 마신다 → 목을 움켜쥐고 쓰러진다
+        const pour = seg(s, 1.6, 2.0) * (1 - seg(s, 2.8, 3.0));
+        mp = { ...mp, ...mixPose({ upperF: -40, foreF: -30 }, { upperF: -70, foreF: -60, handF: -110 }, pour) };
+        if (s > 1.9 && s < 2.8) at('drip', () => {
+          for (let i = 0; i < 7; i++) {
+            const d0 = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+            d0.setAttribute('rx', 4); d0.setAttribute('ry', 6); d0.setAttribute('fill', '#5aff7a');
+            drops.appendChild(d0);
+            d0.animate([{ transform: 'translate(1250px, 790px)', opacity: 1 }, { transform: 'translate(1250px, 842px)', opacity: 0.2 }], { duration: 420, delay: i * 110, fill: 'forwards', easing: 'ease-in' });
+          }
+        });
+        if (s > 3.0) mp = { ...POSE.stand, ...gait(((s - 3) * 1.1) % 1), x: 0 };
+        const mx2 = s > 3.0 ? standX + (s - 3.0) * 420 : mx;
+        mur.set({ ...mp, x: mx2, flip: s <= 3.0 });
+        const reach = seg(s, 3.3, 3.7);
+        const drink = seg(s, 3.8, 4.2);
+        if (s > 3.3) vp = { ...SIT, head: 6, upperF: -40 - reach * 30, foreF: -70 + reach * 40 };
+        if (s > 3.7) at('take', () => { vic.hold('goblet'); if (cup) cup.style.opacity = 0; });
+        if (s > 3.8) vp = { ...SIT, upperF: -60 - drink * 22, foreF: -70 - drink * 52, handF: -20 * drink, head: -14 * drink, neck: -8 * drink };
+        if (s > HIT) {
+          at('hit', () => { impact(8); D.sound.alarm && D.sound.alarm(); vic.hold(null); });
+          const fall = seg(s, HIT + 0.7, HIT + 1.3);
+          vp = { ...SIT, upperF: -84, foreF: -118 + Math.sin(s * 30) * 8, upperB: -76, foreB: -112, head: 14 + Math.sin(s * 24) * 5, chest: 10 + fall * 30 };
+          vrot = fall * 66;
+          vy = 860 + fall * 8;
+        }
+      } else {
+        // 단검 · 촛대 · 렌치: 머리 위로 들었다가 내리친다
+        const blunt = w !== 'dagger';
+        const raise = seg(s, 2.2, 2.8);
+        const strike = seg(s, HIT - 0.15, HIT);
+        const up = blunt ? { upperF: -175, foreF: -60, upperB: w === 'wrench' ? -165 : -20, foreB: w === 'wrench' ? -60 : -30, chest: -8 } : { upperF: -172, foreF: -24, chest: -6 };
+        const down = blunt ? { upperF: -70, foreF: -10, upperB: w === 'wrench' ? -60 : -10, foreB: -10, chest: 18 } : { upperF: -50, foreF: -8, chest: 16 };
+        mp = { ...POSE.stand, ...mixPose({ upperF: -40, foreF: -30 }, up, raise) };
+        if (s > HIT - 0.15) mp = { ...POSE.stand, ...mixPose(up, down, strike) };
+        if (s > HIT - 0.15 && s < HIT + 0.1) {
+          const a = mur.point('handF', 0, blunt ? 100 : 90);
+          swoosh.setAttribute('d', `M${a.x - 40} ${a.y - 140} Q${a.x + 60} ${a.y - 90} ${a.x} ${a.y}`);
+          swoosh.setAttribute('opacity', 0.8);
+        } else swoosh.setAttribute('opacity', 0);
+        if (s > HIT) {
+          at('hit', () => {
+            impact(w === 'wrench' ? 18 : blunt ? 14 : 10);
+            D.sound.door && D.sound.door();
+            if (blunt) {
+              const h = vic.point('head', 10, -60);
+              stars.animate([{ opacity: 1, transform: `translate(${h.x}px, ${h.y}px) rotate(0deg)` }, { opacity: 0, transform: `translate(${h.x}px, ${h.y - 30}px) rotate(200deg)` }], { duration: 900, fill: 'forwards' });
+            }
+            if (w === 'candle') setTimeout(() => mur.hold('candleOut'), 120);
+          });
+          const hit = 1 - seg(s, HIT, HIT + 0.3);
+          vp = mixPose({ ...SIT, ...SLUMP, head: blunt ? 40 : 30 }, { ...SIT, chest: -20, head: blunt ? 34 : -26, upperF: -100, upperB: -80 }, hit);
+          if (s > HIT + 0.4) at('drop', () => vic.hold(null));
+          if (s > HIT + 0.9) mp = { ...POSE.stand, ...mixPose(down, { upperF: -20, foreF: -20, chest: 4 }, seg(s, HIT + 0.9, HIT + 1.5)), head: 8 };
+        }
+      }
+      if (!poison) mur.set({ ...mp, x: mx });
+      vic.set({ ...vp, x: 1010, y: vy, rot: vrot });
       Cc.update(dt);
       S.render(s);
     });
-    setTimeout(() => say(shot, '', `그날 밤, ${esc(ROOM_KO(sol.room))}에서…`, 2, '#c8d8ff'), 300);
-    setTimeout(() => lightning(D, shot, { silhouette: L.el }), 2500);
-    D.at(t0 + 2.75, () => D.flash('#ffffff', 260));
+    setTimeout(() => say(shot, '', `그날 밤, ${esc(ROOM_KO(sol.room))}에서… ${poison ? '술잔에 독이 떨어졌다' : `${esc(C().WEAPON[sol.weapon].name)}${josa(C().WEAPON[sol.weapon].name)} 쥔 손이 다가왔다`}.`, 2.4, '#c8d8ff'), 200);
+  });
+}
+/** 회상 뒤 짧은 컷: 떨어지는 술잔 · 쏟아지는 술 · 늘어진 손 */
+function dropShot(D, t0, sol) {
+  D.at(t0, () => {
+    const poison = sol.weapon === 'poison';
+    const liquid = poison ? '#3aa85a' : '#6a1a2a';
+    D.cut(STYLE + `<div class="cl-memory" style="position:absolute;inset:0">${svg(`<defs><linearGradient id="dfl" x2="0" y2="1"><stop offset="0" stop-color="#3a2414"/><stop offset="1" stop-color="#1a0e06"/></linearGradient></defs>
+      <rect width="1600" height="900" fill="url(#dfl)"/>${Array.from({ length: 9 }, (_, i) => `<path d="M0 ${120 + i * 100} H1600" stroke="#140a04" stroke-width="5"/>`).join('')}
+      <ellipse class="dr-pool" cx="820" cy="700" rx="10" ry="4" fill="${liquid}" opacity=".9"/>
+      ${poison ? '<g class="dr-fume" opacity="0"><path d="M780 660 C760 600 820 580 800 520 M840 660 C860 600 810 570 840 500" stroke="#7aff9a" stroke-width="10" fill="none" stroke-linecap="round" opacity=".6"/></g>' : ''}
+      <g class="dr-cup"><path d="M-40 -60 H40 Q40 10 0 16 Q-40 10 -40 -60Z" fill="#e0b030" stroke="#1a0e08" stroke-width="6"/><path d="M0 16 V60 M-30 64 H30" stroke="#e0b030" stroke-width="12" stroke-linecap="round"/><path d="M-26 -50 Q-20 -10 -6 4" stroke="#fff4c0" stroke-width="6" fill="none" opacity=".6"/></g>
+      <g class="dr-hand"><path d="M1320 -40 C1316 60 1300 160 1290 240 C1284 290 1320 300 1330 256 C1340 200 1360 100 1380 -40Z" fill="#6a5a40" stroke="#1a0e08" stroke-width="6"/><path d="M1272 250 C1266 300 1286 340 1310 330 C1340 322 1344 280 1330 250Z" fill="#e8c0a0" stroke="#1a0e08" stroke-width="6"/></g>`)}</div>`);
+    const root = D.root();
+    root.querySelector('.dr-cup').animate([
+      { transform: 'translate(1180px, -120px) rotate(-30deg)' },
+      { transform: 'translate(900px, 640px) rotate(80deg)', offset: 0.35, easing: 'ease-out' },
+      { transform: 'translate(860px, 600px) rotate(110deg)', offset: 0.5, easing: 'ease-in' },
+      { transform: 'translate(760px, 660px) rotate(170deg)', offset: 0.75 },
+      { transform: 'translate(700px, 668px) rotate(185deg)' },
+    ], { duration: 1500, fill: 'forwards' });
+    setTimeout(() => { D.sound.card && D.sound.card(); D.shake(4, 160); }, 520);
+    root.querySelector('.dr-pool').animate([{ rx: 10, ry: 4 }, { rx: 220, ry: 44 }], { duration: 1400, delay: 520, fill: 'forwards', easing: 'ease-out' });
+    root.querySelector('.dr-hand').animate([{ transform: 'translate(0, -120px) rotate(-4deg)' }, { transform: 'translate(0, 40px) rotate(4deg)', offset: 0.6 }, { transform: 'translate(0, 24px) rotate(2deg)' }], { duration: 1300, fill: 'forwards', easing: 'ease-in' });
+    const fume = root.querySelector('.dr-fume');
+    if (fume) fume.animate([{ opacity: 0, transform: 'translateY(40px)' }, { opacity: 1, transform: 'translateY(-60px)' }], { duration: 1400, delay: 700, fill: 'forwards' });
+    D.anim('.cl-memory > svg', [{ transform: 'scale(1.18)' }, { transform: 'scale(1.04)' }], { duration: 1800, easing: 'ease-out' });
   });
 }
 
@@ -426,7 +599,7 @@ function exitShot(D, t0, { culprit }) {
 }
 
 // 영상 확인용: 컷 하나만 틀어 본다
-export const _shots = { exteriorShot, accuseShot, envelopeShot, memoryShot, arrestShot, shrugShot, stolenShot, exitShot };
+export const _shots = { exteriorShot, accuseShot, envelopeShot, memoryShot, dropShot, arrestShot, shrugShot, stolenShot, exitShot };
 export { playFilm };
 
 /**
@@ -437,14 +610,15 @@ export function playEnding(host, { kind = 'solved', solution, solver = '탐정',
   const muted = !!(sound && sound.muted);
   const culprit = solution.suspect;
   if (kind === 'solved') {
-    const L = 24;
-    const music = score({ length: L, muted, bpm: 84, cues: [{ at: 6.3 }, { at: 9.2, notes: [48, 55, 60, 63] }, { at: 14.1 }] });
+    const L = 29;
+    const music = score({ length: L, muted, bpm: 84, cues: [{ at: 6.3 }, { at: 9.2, notes: [48, 55, 60, 63] }, { at: 14.5, notes: [43, 50, 55, 58], vol: 0.14 }, { at: 19.3 }] });
     const scene0 = (D) => {
       exteriorShot(D, 0, '폭풍우 치는 밤, 저택의 응접실.');
       accuseShot(D, 3.2, { culprit, solver });
       envelopeShot(D, 8.2, solution);
       memoryShot(D, 11.4, solution);
-      arrestShot(D, 14.6, { culprit, solver });
+      dropShot(D, 17.8, solution);
+      arrestShot(D, 19.4, { culprit, solver });
     };
     return playFilm(host, { scene: scene0, length: L, title: '사건 해결', titleAt: L - 3.2, sub: sub || `${solver}의 추리 적중`, sound: sound || {} }).finally(() => music.stop());
   }
