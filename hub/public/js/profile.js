@@ -1,5 +1,5 @@
 /* 내 캐릭터 꾸미기 (옷 입히기) */
-import { avatarSvg, PARTS, EMOTES } from '/common/avatar.js';
+import { avatarSvg, bgSvg, PARTS, EMOTES } from '/common/avatar.js';
 import { getMe } from '/common/me.js';
 
 const $ = (s) => document.querySelector(s);
@@ -37,8 +37,8 @@ function keepDraft() {
 function paintMirror(emote = '') {
   const bg = PARTS.bg.find((b) => b.id === st.av.bg) || PARTS.bg[0];
   const m = $('#mirror');
-  m.style.background = `repeating-linear-gradient(-45deg, transparent 0 16px, ${bg.ink}33 16px 18px), radial-gradient(ellipse at 50% 40%, #ffffff55, transparent 70%), ${bg.fill}`;
-  m.innerHTML = `<div class="fig">${avatarSvg(st.av, emote ? { emote } : { cls: 'idle' })}</div>`;
+  m.style.background = bg.fill;
+  m.innerHTML = `${bgSvg(st.av.bg)}<div class="fig">${avatarSvg(st.av, emote ? { emote } : { cls: 'idle' })}</div>`;
   $('#pTitle').textContent = st.title;
   $('#pName').textContent = st.nickname || '이름 없음';
   $('#pBio').textContent = st.bio;
@@ -54,9 +54,10 @@ function paintShelf() {
   $('#shelf').innerHTML = list.map((o) => {
     const av = { ...st.av, [t.key]: o.id, ...(t.noHat ? { hat: 'none' } : {}) };
     let pic;
-    if (t.crop === 'bg') pic = avatarSvg(av, { crop: 'head', bg: true });
-    else if (t.crop === 'full') pic = avatarSvg(av, {});
-    else pic = avatarSvg(av, { crop: 'head', expr: t.expr });
+    // 50개씩 그리니 작은 그림은 손떨림 효과 없이 가볍게
+    if (t.crop === 'bg') pic = avatarSvg(av, { crop: 'head', bg: true, flat: true });
+    else if (t.crop === 'full') pic = avatarSvg(av, { flat: true });
+    else pic = avatarSvg(av, { crop: 'head', expr: t.expr, flat: true });
     return `<button type="button" class="item ${t.crop === 'full' ? 'full' : ''} ${st.av[t.key] === o.id ? 'on' : ''}" data-part="${t.key}" data-id="${o.id}">${pic}<span>${esc(o.name)}</span></button>`;
   }).join('');
 }
