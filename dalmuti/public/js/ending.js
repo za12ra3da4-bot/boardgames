@@ -155,18 +155,117 @@ function crownShot(D, t0, noble, music) {
     });
   });
 }
+/* ═════════ 정면을 보고 왕좌에 앉은 왕 (퍼펫은 옆모습 전용이라 따로 그린다) ═════════ */
+function frontKing(host, { x = 800, y = 650, scale = 1.05 } = {}) {
+  const INK = '#1a0e08';
+  const erm = (cx, cy, rx, ry) => `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="#f8f4ea" stroke="${INK}" stroke-width="3"/>` +
+    Array.from({ length: Math.round(rx / 14) }, (_, i) => `<path d="M${cx - rx + 14 + i * 28} ${cy - 3} l3 7 l3 -7" fill="${INK}"/>`).join('');
+  const html = `<svg viewBox="0 0 1600 900" style="position:absolute;left:0;top:0;width:1600px;height:900px;overflow:visible">
+  <defs>
+    <linearGradient id="fkG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff0a0"/><stop offset=".5" stop-color="#e0b030"/><stop offset="1" stop-color="#7a4a08"/></linearGradient>
+    <linearGradient id="fkR" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d8303a"/><stop offset="1" stop-color="#7a0a14"/></linearGradient>
+    <linearGradient id="fkC" x1="0" x2="1"><stop offset="0" stop-color="#5a0610"/><stop offset=".5" stop-color="#9a1420"/><stop offset="1" stop-color="#5a0610"/></linearGradient>
+    <radialGradient id="fkS" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#fbd8bc"/><stop offset=".7" stop-color="#eab694"/><stop offset="1" stop-color="#c88a68"/></radialGradient>
+    <radialGradient id="fkHalo"><stop offset="0" stop-color="#fff0b0" stop-opacity=".55"/><stop offset="1" stop-color="#fff0b0" stop-opacity="0"/></radialGradient>
+  </defs>
+  <g transform="translate(${x} ${y}) scale(${scale})" stroke-linejoin="round">
+    <path d="M-260 140 H260 L290 180 H-290Z" fill="#6a4a2a" stroke="${INK}" stroke-width="4"/><path d="M-300 180 H300 L330 225 H-330Z" fill="#5a3a1a" stroke="${INK}" stroke-width="4"/>
+    <path d="M-240 140 H240" stroke="#c8942a" stroke-width="4"/>
+    <ellipse cx="0" cy="-200" rx="260" ry="240" fill="url(#fkHalo)"/>
+    <path d="M-130 60 V-250 Q-130 -340 0 -362 Q130 -340 130 -250 V60Z" fill="url(#fkG)" stroke="${INK}" stroke-width="6"/>
+    <path d="M-100 50 V-238 Q-100 -312 0 -330 Q100 -312 100 -238 V50Z" fill="url(#fkC)"/>
+    <path d="M-60 -290 Q0 -310 60 -290 M-80 -240 H80" stroke="#e0b030" stroke-width="2" opacity=".35" fill="none"/>
+    <circle cx="0" cy="-352" r="17" fill="#c8202a" stroke="${INK}" stroke-width="4"/><circle cx="-5" cy="-357" r="5" fill="#fff" opacity=".7"/>
+    <circle cx="-130" cy="-250" r="12" fill="url(#fkG)" stroke="${INK}" stroke-width="3"/><circle cx="130" cy="-250" r="12" fill="url(#fkG)" stroke="${INK}" stroke-width="3"/>
+    <path d="M-80 -178 C-138 -120 -150 -10 -140 58 H140 C150 -10 138 -120 80 -178Z" fill="url(#fkC)" stroke="${INK}" stroke-width="5"/>
+    <path d="M-140 58 C-148 -10 -136 -110 -84 -170" stroke="#f8f4ea" stroke-width="14" fill="none"/><path d="M140 58 C148 -10 136 -110 84 -170" stroke="#f8f4ea" stroke-width="14" fill="none"/>
+    <path d="M-168 -78 H-104 V-44 H-168Z M104 -78 H168 V-44 H104Z" fill="url(#fkG)" stroke="${INK}" stroke-width="5"/>
+    <path d="M-164 -44 V120 H-140 V-44Z M140 -44 V120 H164 V-44Z" fill="#b8862a" stroke="${INK}" stroke-width="5"/>
+    <path d="M-104 20 H104 V64 H-104Z" fill="url(#fkG)" stroke="${INK}" stroke-width="5"/>
+    <path d="M-66 -6 Q-70 36 -58 50 H-10 Q-2 36 -6 -6Z M6 -6 Q2 36 10 50 H58 Q70 36 66 -6Z" fill="#4a0a14" stroke="${INK}" stroke-width="5"/>
+    <path d="M-56 48 L-54 118 H-16 L-12 48Z M12 48 L16 118 H54 L56 48Z" fill="#3a0810" stroke="${INK}" stroke-width="5"/>
+    <path d="M-60 112 H-12 L-10 134 Q-40 142 -74 134Z M12 112 H60 L74 134 Q40 142 10 134Z" fill="#3a2410" stroke="${INK}" stroke-width="5"/>
+    <g class="fk-body">
+      <path d="M-70 -170 Q-80 -80 -74 6 H74 Q80 -80 70 -170 Q0 -150 -70 -170Z" fill="url(#fkR)" stroke="${INK}" stroke-width="5"/>
+      <path d="M-24 -166 L0 -110 L24 -166" fill="#f8f0dc" stroke="${INK}" stroke-width="3"/>
+      <path d="M0 -110 V4" stroke="#e0b030" stroke-width="5"/><path d="M-10 -86 h20 M-10 -62 h20" stroke="#e0b030" stroke-width="4"/>
+      <path d="M-74 -40 H74 V-24 H-74Z" fill="url(#fkG)" stroke="${INK}" stroke-width="3"/><rect x="-12" y="-44" width="24" height="24" rx="3" fill="#c8202a" stroke="${INK}" stroke-width="3"/>
+      <path d="M-46 -164 Q0 -104 46 -164" stroke="url(#fkG)" stroke-width="6" fill="none"/><circle cx="0" cy="-128" r="12" fill="url(#fkG)" stroke="${INK}" stroke-width="3"/>
+      ${erm(0, -170, 92, 20)}
+      <path d="M58 -168 C84 -150 100 -110 108 -70 L84 -60 C76 -100 62 -130 46 -150Z" fill="url(#fkR)" stroke="${INK}" stroke-width="5"/>
+      ${erm(98, -64, 18, 9)}<circle cx="116" cy="-62" r="14" fill="url(#fkS)" stroke="${INK}" stroke-width="4"/>
+      <path d="M-15 -196 H15 V-168 H-15Z" fill="#c88a68" stroke="${INK}" stroke-width="4"/>
+      <g class="fk-head">
+        <circle cx="-41" cy="-228" r="10" fill="url(#fkS)" stroke="${INK}" stroke-width="4"/><circle cx="41" cy="-228" r="10" fill="url(#fkS)" stroke="${INK}" stroke-width="4"/>
+        <ellipse cx="0" cy="-228" rx="40" ry="48" fill="url(#fkS)" stroke="${INK}" stroke-width="5"/>
+        <path d="M-43 -232 C-48 -276 -22 -288 0 -288 C24 -288 48 -276 43 -232 C38 -254 26 -262 12 -262 C0 -254 -18 -262 -28 -258 C-36 -254 -40 -246 -43 -232Z" fill="#6a3a1a" stroke="${INK}" stroke-width="4"/>
+        <ellipse cx="-24" cy="-212" rx="8" ry="5" fill="#f08a8a" opacity=".45"/><ellipse cx="24" cy="-212" rx="8" ry="5" fill="#f08a8a" opacity=".45"/>
+        <g class="fk-eyes"><ellipse cx="-15" cy="-230" rx="8.5" ry="6.5" fill="#fff" stroke="${INK}" stroke-width="2.4"/><ellipse cx="15" cy="-230" rx="8.5" ry="6.5" fill="#fff" stroke="${INK}" stroke-width="2.4"/>
+          <circle class="fk-pupil" cx="-14" cy="-230" r="4" fill="${INK}"/><circle class="fk-pupil" cx="16" cy="-230" r="4" fill="${INK}"/></g>
+        <g class="fk-lids" opacity="0"><path d="M-24 -230 Q-15 -226 -6 -230" stroke="${INK}" stroke-width="3" fill="none"/><path d="M6 -230 Q15 -226 24 -230" stroke="${INK}" stroke-width="3" fill="none"/></g>
+        <path d="M-25 -243 Q-15 -250 -5 -245 M5 -245 Q15 -250 25 -243" stroke="#4a2410" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <path d="M-2 -226 Q-7 -208 0 -206 Q5 -206 6 -209" stroke="#a86a4a" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <path class="fk-mouth" d="M-14 -196 Q0 -186 14 -196" stroke="${INK}" stroke-width="3.4" fill="#8a2a2a" stroke-linecap="round"/>
+        <path d="M-42 -268 L-48 -318 L-24 -290 L0 -330 L24 -290 L48 -318 L42 -268 Q0 -278 -42 -268Z" fill="url(#fkG)" stroke="${INK}" stroke-width="4"/>
+        <circle cx="0" cy="-288" r="7" fill="#c8202a" stroke="${INK}" stroke-width="2.4"/><circle cx="-48" cy="-318" r="5" fill="#fff4c0" stroke="${INK}" stroke-width="2"/><circle cx="0" cy="-330" r="5" fill="#fff4c0" stroke="${INK}" stroke-width="2"/><circle cx="48" cy="-318" r="5" fill="#fff4c0" stroke="${INK}" stroke-width="2"/>
+        <path d="M-40 -272 H40" stroke="#2a60c8" stroke-width="3" stroke-dasharray="4 10"/>
+      </g>
+      <g class="fk-arm">
+        <path d="M-58 -168 C-80 -140 -92 -100 -96 -60 L-70 -56 C-68 -96 -60 -128 -46 -150Z" fill="url(#fkR)" stroke="${INK}" stroke-width="5"/>
+        ${erm(-84, -58, 18, 9)}
+        <g class="fk-scep">
+          <path d="M-88 -150 H-80 V40 H-88Z" fill="url(#fkG)" stroke="${INK}" stroke-width="3"/>
+          <path d="M-96 -150 Q-84 -166 -72 -150 L-76 -140 H-92Z" fill="url(#fkG)" stroke="${INK}" stroke-width="3"/>
+          <circle cx="-84" cy="-176" r="17" fill="#c8202a" stroke="${INK}" stroke-width="4"/><circle cx="-90" cy="-182" r="5" fill="#fff" opacity=".7"/>
+          <path d="M-84 -193 V-214 M-94 -204 H-74" stroke="url(#fkG)" stroke-width="6" stroke-linecap="round"/>
+        </g>
+        <circle cx="-84" cy="-42" r="14" fill="url(#fkS)" stroke="${INK}" stroke-width="4"/>
+      </g>
+    </g>
+  </g></svg>`;
+  host.insertAdjacentHTML('beforeend', html);
+  const root = host.lastElementChild;
+  const body = root.querySelector('.fk-body');
+  const head = root.querySelector('.fk-head');
+  const arm = root.querySelector('.fk-arm');
+  const scep = root.querySelector('.fk-scep');
+  const lids = root.querySelector('.fk-lids');
+  const eyes = root.querySelector('.fk-eyes');
+  const mouth = root.querySelector('.fk-mouth');
+  const pupils = root.querySelectorAll('.fk-pupil');
+  let blinkAt = 1.5;
+  return {
+    update(s, { up = 0, talking = false } = {}) {
+      const br = Math.sin(s * 2.2) * 1.6;
+      body.setAttribute('transform', `translate(0 ${br.toFixed(2)})`);
+      head.setAttribute('transform', `rotate(${(Math.sin(s * 0.9) * 3).toFixed(2)} 0 -190)`);
+      // 팔: 무릎 위(-18°)에서 머리 위(150°)로, 홀은 늘 곧게 선다
+      const a = -18 + up * 168;
+      arm.setAttribute('transform', `rotate(${a.toFixed(2)} -58 -164)`);
+      scep.setAttribute('transform', `rotate(${(-a * 0.85).toFixed(2)} -84 -42)`);
+      const blink = s > blinkAt && s < blinkAt + 0.12;
+      if (s > blinkAt + 0.12) blinkAt = s + 2 + Math.random() * 2.5;
+      lids.setAttribute('opacity', blink ? 1 : 0);
+      eyes.setAttribute('opacity', blink ? 0 : 1);
+      const gx = Math.sin(s * 0.7) * 2;
+      pupils[0].setAttribute('cx', (-14 + gx).toFixed(2));
+      pupils[1].setAttribute('cx', (16 + gx).toFixed(2));
+      const open = talking && Math.sin(s * 22) > 0.1;
+      mouth.setAttribute('d', open ? 'M-14 -198 Q0 -200 14 -198 Q12 -182 0 -180 Q-12 -182 -14 -198Z' : 'M-14 -196 Q0 -186 14 -196');
+    },
+  };
+}
 /** ③ 왕좌에 앉아 홀을 든다 · 광대가 춤추고 꼴찌는 바닥을 닦는다 */
 function throneShot(D, t0, champion, peon) {
   D.at(t0, () => {
     D.cut('');
     const { shot, S } = scene(D);
-    S.layer(0.35, BG(svg(hall())));
+    S.layer(0.35, BG(svg(hall({ throne: false }))));
     const L = S.layer(1, '');
+    const king = frontKing(L.el);
     const C = cast(L.el);
-    const king = C.add({ look: 'king', x: 800, y: 700, scale: 1.2, rim: '#fff0b0' });
     const jester = C.add({ look: 'jester', x: 470, y: 860, scale: 1.1, rim: '#ffcf7a' });
     const low = C.add({ look: 'peasant', x: 1140, y: 870, scale: 1.1, rim: '#ffcf7a', flip: true, rimSide: -1 });
-    king.hold('scepter');
     low.hold('broom');
     const cam = camPath(S.cam, [[0, { x: 800, y: 440, z: 1.35 }], [3, { x: 800, y: 470, z: 1.05 }]]);
     let last = 0;
@@ -175,8 +274,7 @@ function throneShot(D, t0, champion, peon) {
       last = s;
       cam(s);
       const up = ease.back(Math.max(0, Math.min(1, (s - 0.6) / 0.6)));
-      king.set({ ...POSE.stand, ...POSE.sit, ...mixPose({ upperF: -20, foreF: -60, handF: 0 }, { upperF: -118, foreF: -34, handF: 20 }, up), head: -4, x: 800 });
-      king.talking = s > 3.4 && s < 5;
+      king.update(s, { up, talking: s > 3.4 && s < 5 });
       // 광대: 폴짝폴짝 · 팔 휘두르기
       const hop = Math.abs(Math.sin(s * 6));
       jester.set({ ...POSE.stand, ...POSE.cheer, upperF: -160 + Math.sin(s * 12) * 30, upperB: -140 - Math.sin(s * 12) * 30, hipY: -hop * 40, thighF: -hop * 30, thighB: hop * 20, x: 470 + Math.sin(s * 2) * 30, flip: Math.sin(s * 2) < 0 });
@@ -209,3 +307,7 @@ export function playEnding(host, { champion, peon, rose, sound, me }) {
   };
   return playFilm(host, { scene: scene0, length: L, title: me ? '당신이 대달무티!' : '대관식', titleAt: L - 3.6, sub: `새 대달무티 ${champion}`, sound: sound || {} }).finally(() => music.stop());
 }
+
+// 영상 확인용: 컷 하나만 틀어 본다
+export const _shots = { throneShot };
+export { playFilm };
