@@ -1,7 +1,7 @@
 // 구룡 살인사건 결말 영상: 비 내리는 네온 골목 누아르 (체포 · 도주 · 목격자 제거)
 import { makeHuman, motion, HUMAN_POSE, runPose } from '/anim/rig2d.js';
 import { rnd, f, svg, playFilm } from '/anim/director.js';
-import { cardSvg } from './art.js';
+import { cardSvg, OBJ } from './art.js';
 import { POSE, gait, mixPose, ease } from '/anim/puppet.js';
 import { stage, camPath, rain, say, cast, score, CINE_CSS } from '/anim/cine.js';
 
@@ -153,66 +153,110 @@ function evidenceShot(D, t0, murder, blowAway) {
   }
 }
 
-/* ═════════ 그날 밤의 회상: 살인 수단마다 다른 범행 (푸른 기억 필터 · 피는 보이지 않게) ═════════ */
+/* ═════════ 그날 밤의 회상: 살인 수단 48가지마다 다른 범행 + 현장에 떨어진 단서 ═════════
+   범인은 카드에 그려진 바로 그 물건을 쥐고, 수단마다 동작이 다르다. 푸른 기억 필터 · 번개 실루엣 */
 const MEM_CSS = `<style>
-.kw-memory .cn-root { filter: saturate(.55) contrast(1.06) brightness(.95); }
-.kw-memory::after { content:''; position:absolute; inset:0; background: radial-gradient(120% 90% at 50% 50%, rgba(40,90,160,.16), rgba(8,16,40,.6)); mix-blend-mode: multiply; pointer-events:none; z-index:12; }
+.kw-memory .cn-root { filter: saturate(.6) contrast(1.06) brightness(.96); }
+.kw-memory::after { content:''; position:absolute; inset:0; background: radial-gradient(120% 90% at 50% 50%, rgba(40,90,160,.14), rgba(8,16,40,.55)); mix-blend-mode: multiply; pointer-events:none; z-index:12; }
 .kw-lightning { position:absolute; inset:0; background:#eef4ff; opacity:0; pointer-events:none; z-index:20; mix-blend-mode:screen; }
 .kw-silh .pp { filter: brightness(0) !important; }
+.kw-clue-tag { position:absolute; left:50%; top:16%; transform:translateX(-50%); z-index:25; padding:8px 22px; border:2px solid #ffd23a; border-radius:6px; background:rgba(10,8,4,.8);
+  font: 700 clamp(15px,2vw,24px) 'Noto Sans KR',sans-serif; color:#fff4c8; letter-spacing:.06em; opacity:0; white-space:nowrap; box-shadow:0 0 30px rgba(255,210,58,.4); }
+.kw-clue-tag b { color:#ffd23a; }
 </style>`;
-/** 수단 카드 → 범행 방식 */
-function killStyle(id) {
-  const c = K.CARD[id] || {};
-  const tg = new Set(c.tags || []);
-  const has = (...xs) => xs.some((x) => tg.has(x));
-  if (has('gun')) return 'shoot';
-  if (has('choke') || has('rope')) return 'strangle';
-  if (has('poison', 'drink', 'food', 'animal')) return 'poison';
-  if (has('electric')) return 'shock';
-  if (has('fire')) return 'burn';
-  if (has('vehicle', 'fall', 'accident')) return 'push';
-  if (has('sharp')) return 'stab';
-  return 'bash';
-}
-const CORD = { m_chain: '#9aa0aa', m_wire: '#c8ccd4', m_cable: '#1a1a1a', m_necktie: '#8a1a22', m_scarf: '#c83a5a', m_fishline: '#dde8f0' };
+// 손에 쥐는 법: [회전, 손잡이 x, 손잡이 y, 크기] — 카드 그림(100×100)을 손목 기준으로
+const GRIP = {
+  knife: [134, 20, 80, 0.8], axe: [146, 30, 84, 0.95], hammer: [180, 50, 86, 0.85], pistol: [90, 22, 70, 0.75], shotgun: [-90, 70, 44, 1.1],
+  syringe: [-47, 72, 30, 0.7], golf: [-33, 70, 18, 1.1], bat: [136, 24, 82, 1.05], scissors: [132, 36, 72, 0.7], bottle: [0, 50, 18, 0.85],
+  shard: [180, 58, 80, 0.7], brick: [0, 50, 50, 0.75], pot: [0, 50, 60, 0.8], candle: [180, 50, 74, 0.8], trophy: [180, 50, 86, 0.8],
+  ice: [0, 50, 50, 0.75], crowbar: [136, 26, 82, 1.05], pan: [-90, 86, 34, 0.9], harpoon: [135, 30, 70, 1.2], chainsaw: [90, 24, 40, 1],
+  bow: [90, 24, 52, 1], sword: [180, 50, 84, 1.05], dumbbell: [0, 50, 50, 0.85], match: [150, 32, 84, 0.6], gas: [0, 48, 22, 0.85],
+  firecracker: [0, 50, 40, 0.6], poison: [0, 50, 18, 0.7], pills: [0, 50, 40, 0.6], wine: [0, 70, 50, 0.7], acid: [0, 50, 20, 0.7],
+  dryer: [180, 32, 80, 0.8], choco: [0, 50, 50, 0.7], mushroom: [0, 50, 60, 0.6], rope: [0, 50, 50, 0.7], cable: [0, 50, 50, 0.7],
+  wire: [0, 50, 50, 0.7], fishline: [135, 20, 80, 1], chain: [0, 50, 50, 0.8], necktie: [0, 50, 10, 0.8], scarf: [0, 50, 20, 0.8],
+  pillow: [0, 50, 50, 0.9], bag: [0, 50, 20, 0.8], snake: [0, 50, 50, 0.6], bee: [0, 50, 50, 0.6],
+};
+const objAt = (key, x, y, sc = 1, rot = 0) => `<g transform="translate(${x} ${y}) rotate(${rot}) scale(${sc}) translate(-50 -50)">${OBJ[key] || ''}</g>`;
+// 수단마다 동작 (kind) 과 세부
+const MOVE = {
+  knife: { kind: 'thrust' }, scissors: { kind: 'thrust', n: 2 }, syringe: { kind: 'jab' }, shard: { kind: 'slash' }, sword: { kind: 'slash', wide: 1 },
+  axe: { kind: 'chop' }, chainsaw: { kind: 'saw' }, harpoon: { kind: 'throwSpear' }, bow: { kind: 'arrow' },
+  hammer: { kind: 'smash', n: 2 }, crowbar: { kind: 'smash' }, trophy: { kind: 'smash' }, candle: { kind: 'smash', out: 1 }, dumbbell: { kind: 'smash', two: 1 },
+  brick: { kind: 'smash', debris: '#a8502a' }, pot: { kind: 'smash', debris: '#5a3a1a', leaf: 1 }, ice: { kind: 'smash', debris: '#dff4ff' }, bottle: { kind: 'smash', debris: '#6ab07a' },
+  bat: { kind: 'swing' }, golf: { kind: 'swing', up: 1 }, pan: { kind: 'swing', clang: 1 },
+  pistol: { kind: 'shoot' }, shotgun: { kind: 'shoot', big: 1 },
+  poison: { kind: 'table', how: 'pour' }, pills: { kind: 'table', how: 'drop' }, mushroom: { kind: 'table', how: 'soup' },
+  wine: { kind: 'offer' }, choco: { kind: 'offer', eat: 1 }, acid: { kind: 'splash' },
+  snake: { kind: 'snake' }, bee: { kind: 'bees' },
+  car: { kind: 'vehicle' }, bike: { kind: 'vehicle', small: 1 }, stairs: { kind: 'stairs' }, bathtub: { kind: 'tub' },
+  pillow: { kind: 'smother' }, bag: { kind: 'smother' },
+  rope: { kind: 'cord', color: '#c8a060', w: 8 }, cable: { kind: 'cord', color: '#1a1a1a', w: 6 }, wire: { kind: 'cord', color: '#c8ccd4', w: 3 },
+  fishline: { kind: 'cord', color: '#e8f0f8', w: 2 }, chain: { kind: 'cord', color: '#8a929e', w: 9, dash: '7 3' }, necktie: { kind: 'cord', color: '#b8303a', w: 12 },
+  scarf: { kind: 'cord', color: '#6a2a8a', w: 14 },
+  match: { kind: 'fire' }, gas: { kind: 'fire', pour: 1 }, firecracker: { kind: 'boom' }, dryer: { kind: 'shock' },
+};
 const VICTIM_K = { skin: '#e2b08a', skinD: '#a8765a', hair: '#3a2a20', coat: '#4a5a6a', coatD: '#2a3440', coat2: '#8a8a8a', shirt: '#e8e4dc', tie: '#2a3a5a', pants: '#2a2e36', pantsD: '#16181e', shoe: '#1a1410', hat: 'none', hairStyle: 'short', brow: '#3a2a20' };
 function flashbackShot(D, t0, murder) {
   D.at(t0, () => {
     D.cut('');
     const { S, shot } = scene(D, MEM_CSS);
     shot.classList.add('kw-memory');
-    const style = killStyle(murder.means);
-    const means = murder.means;
+    const mk = (K.CARD[murder.means] || {}).key || 'knife';
+    const ck = (K.CARD[murder.clue] || {}).key || 'lipstick';
+    const M = MOVE[mk] || { kind: 'smash' };
+    const kind = M.kind;
     S.layer(0.3, BG(svg(alley({ seed: 17, fog: 0.35 }))));
-    const table = style === 'poison' ? `<g transform="translate(1110 830)"><rect x="-60" y="-96" width="120" height="14" fill="#5a3a1a" stroke="#1a0e08" stroke-width="4"/><path d="M-50 -82 V0 M50 -82 V0" stroke="#3a2410" stroke-width="8"/></g>
-      <g class="kw-cup" transform="translate(1100 716)"><path d="M0 0 H22 V30 Q11 36 0 30Z" fill="#dfe8f0" opacity=".85" stroke="#1a0e08" stroke-width="3"/><path d="M2 10 H20 V28 Q11 32 2 28Z" fill="#c8a040" opacity=".8"/></g>` : '';
-    const L = S.layer(1, `<svg viewBox="0 0 1600 900" style="position:absolute;inset:0;width:1600px;height:900px">${table}<ellipse cx="1000" cy="846" rx="230" ry="18" fill="#9ab8e8" opacity=".14"/></svg>`);
+    // 무대 소품: 탁자와 잔 · 계단 · 욕조
+    let set = '<ellipse cx="1000" cy="846" rx="230" ry="18" fill="#9ab8e8" opacity=".14"/>';
+    if (kind === 'table') set += `<g transform="translate(1110 830)"><rect x="-60" y="-96" width="120" height="14" fill="#5a3a1a" stroke="#1a0e08" stroke-width="4"/><path d="M-50 -82 V0 M50 -82 V0" stroke="#3a2410" stroke-width="8"/></g>
+      <g class="kw-cup" transform="translate(1098 704)">${M.how === 'soup' ? '<path d="M-10 12 Q12 40 34 12Z" fill="#f4f0e6" stroke="#1a0e08" stroke-width="3"/><path d="M-4 14 H28" stroke="#c89040" stroke-width="5"/><path d="M4 4 q-4 -10 2 -18 M16 4 q-4 -10 2 -18" stroke="#dfe8f0" stroke-width="2" fill="none" opacity=".7"/>' : '<path d="M0 0 H22 V30 Q11 36 0 30Z" fill="#dfe8f0" opacity=".85" stroke="#1a0e08" stroke-width="3"/><path d="M2 10 H20 V28 Q11 32 2 28Z" fill="#c8a040" opacity=".8"/>'}</g>`;
+    if (kind === 'stairs') set += '<path d="M1060 846 H1600 V900 H1060Z" fill="#0e1018"/>' + Array.from({ length: 6 }, (_, i) => `<path d="M${1060 + i * 70} ${846 + i * 40} h70 v40" fill="none" stroke="#6a7488" stroke-width="5"/>`).join('') + '<path d="M1060 846 L1480 1086" stroke="#3a4050" stroke-width="3"/>';
+    if (kind === 'tub') set += objAt('bathtub', 1060, 800, 2.3);
+    const L = S.layer(1, `<svg viewBox="0 0 1600 900" style="position:absolute;inset:0;width:1600px;height:900px;overflow:visible">${set}</svg>`);
     const C = cast(L.el);
-    const fromRight = style === 'poison';
-    const mur = C.add({ look: 'murderer', x: fromRight ? 1750 : 80, y: 818, scale: 1.18, rim: '#c8d8ff', flip: fromRight, rimSide: fromRight ? -1 : 1 });
-    const vic = C.add({ look: VICTIM_K, x: 1000, y: 832, scale: 1.24, rim: '#c8d8ff' });
-    const prop = { stab: 'dagger', bash: means === 'm_candle' ? 'candle' : 'club', shoot: 'revolver', poison: 'poison', burn: 'match', shock: 'dryer', strangle: null, push: null }[style];
-    if (prop) mur.hold(prop);
-    mur.brow('angry');
-    if (style === 'poison') vic.hold(null);
+    const fromRight = kind === 'table';
+    const faceOff = kind === 'offer';
+    const vehicle = kind === 'vehicle';
+    const mur = vehicle ? null : C.add({ look: 'murderer', x: fromRight ? 1750 : 80, y: 818, scale: 1.18, rim: '#c8d8ff', flip: fromRight, rimSide: fromRight ? -1 : 1 });
+    const vic = C.add({ look: VICTIM_K, x: 1000, y: 832, scale: 1.24, rim: '#c8d8ff', flip: faceOff, rimSide: faceOff ? -1 : 1 });
+    const grip = (key) => { const g = GRIP[key] || [0, 50, 50, 0.8]; return `<g transform="scale(${g[3]}) rotate(${g[0]}) translate(${-g[1]} ${-g[2]})">${OBJ[key] || ''}</g>`; };
+    if (mur && !['stairs', 'tub', 'smother'].includes(kind) && !(kind === 'cord')) mur.hold(grip(mk));
+    if (mur && kind === 'cord') mur.hold(grip(mk));
+    if (mur && kind === 'smother') mur.hold(null);
+    if (mur && kind === 'fire' && M.pour) mur.hold(grip('gas'));
+    if (mur) mur.brow('angry');
+    // 효과 층
     L.el.insertAdjacentHTML('beforeend', `<svg viewBox="0 0 1600 900" style="position:absolute;left:0;top:0;width:1600px;height:900px;overflow:visible;pointer-events:none">
-      <path class="fx-cord" d="" fill="none" stroke="${CORD[means] || '#c8a060'}" stroke-width="8" stroke-linecap="round" opacity="0"/>
-      <ellipse class="fx-cover" rx="34" ry="28" fill="${means === 'm_bag' ? '#dfe8f0' : means === 'm_bathtub' ? '#6a9ad8' : '#f4f0e6'}" opacity="0"/>
-      <path class="fx-swoosh" d="" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity="0"/>
+      <path class="fx-cord" d="" fill="none" stroke="${M.color || '#c8a060'}" stroke-width="${M.w || 8}" ${M.dash ? `stroke-dasharray="${M.dash}"` : ''} stroke-linecap="round" opacity="0"/>
+      <g class="fx-cover" opacity="0">${objAt(mk === 'bag' ? 'bag' : 'pillow', 0, 0, 0.9)}</g>
+      <path class="fx-swoosh" d="" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity="0"/>
       <g class="fx-muzzle" opacity="0"><path d="M0 -40 L10 -10 L40 0 L10 10 L0 40 L-10 10 L-40 0 L-10 -10Z" fill="#fff4a0"/><circle r="14" fill="#fff"/></g>
-      <g class="fx-smoke"></g><g class="fx-drops"></g>
+      <g class="fx-parts"></g>
       <g class="fx-stars" opacity="0">${[0, 1, 2].map((i) => `<path transform="rotate(${i * 120})" d="M0 -34 L6 -24 L0 -14 L-6 -24Z" fill="#fff4a0"/>`).join('')}</g>
-      <ellipse class="fx-fire" cx="0" cy="0" rx="90" ry="120" fill="#ff8a2a" opacity="0"/>
-      <g class="fx-zap" opacity="0"><path d="M0 -120 L-20 -60 L10 -50 L-14 20 L30 -60 L0 -70 L20 -120Z" fill="#dff4ff" stroke="#8ad8ff" stroke-width="3"/></g></svg>`);
+      <ellipse class="fx-fire" rx="90" ry="120" fill="#ff8a2a" opacity="0"/>
+      <g class="fx-zap" opacity="0"><path d="M0 -120 L-20 -60 L10 -50 L-14 20 L30 -60 L0 -70 L20 -120Z" fill="#dff4ff" stroke="#8ad8ff" stroke-width="3"/></g>
+      <g class="fx-proj" opacity="0"></g>
+      <g class="fx-veh" opacity="0">${vehicle ? `<path d="M0 0 L-700 -80 L-700 80Z" fill="#fff8d0" opacity=".35" transform="translate(-60 -60)"/>${objAt(mk, 0, -60, M.small ? 2.4 : 4.2)}` : ''}</g>
+      <text class="fx-text" x="0" y="0" font-family="'Black Han Sans',sans-serif" font-size="64" fill="#fff4a0" stroke="#1a0e08" stroke-width="4" paint-order="stroke" opacity="0" text-anchor="middle"></text>
+      <g class="fx-clue" opacity="0">${objAt(ck, 0, 0, 0.9)}</g>
+      <ellipse class="fx-spot" rx="120" ry="34" fill="#ffe8a0" opacity="0"/></svg>`);
     const q = (c) => L.el.querySelector(c);
-    const cord = q('.fx-cord'), cover = q('.fx-cover'), swoosh = q('.fx-swoosh'), muzzle = q('.fx-muzzle'), smoke = q('.fx-smoke'), drops = q('.fx-drops'), stars = q('.fx-stars'), fire = q('.fx-fire'), zap = q('.fx-zap');
+    const cord = q('.fx-cord'), cover = q('.fx-cover'), swoosh = q('.fx-swoosh'), muzzle = q('.fx-muzzle'), parts = q('.fx-parts'), stars = q('.fx-stars');
+    const fire = q('.fx-fire'), zap = q('.fx-zap'), proj = q('.fx-proj'), veh = q('.fx-veh'), txt = q('.fx-text'), clueEl = q('.fx-clue'), spot = q('.fx-spot');
     const cup = L.el.querySelector('.kw-cup');
     const rn = rain(shot, { groundY: 0.8 });
-    const standX = { shoot: 520, poison: 1300, push: 860, burn: 600, shock: 700 }[style] || 870;
-    const HIT = { strangle: 2.9, poison: 4.6, shoot: 3.0, burn: 3.2, shock: 3.0, push: 2.9 }[style] || 3.1;
-    const cam = camPath(S.cam, style === 'poison'
-      ? [[0, { x: 1050, y: 470, z: 1.2 }], [2.8, { x: 1150, y: 470, z: 1.45 }], [4, { x: 1020, y: 450, z: 1.55 }], [5.4, { x: 1050, y: 560, z: 1.2 }]]
-      : [[0, { x: 640, y: 470, z: 1.12 }], [2.4, { x: (standX + 1000) / 2, y: 450, z: 1.42 }], [HIT, { x: (standX + 1000) / 2 + 20, y: 440, z: 1.65 }], [HIT + 1.8, { x: 900, y: 520, z: 1.25 }]]);
+    const standX = { shoot: M.big ? 560 : 520, table: 1300, arrow: 380, throwSpear: 420, fire: 620, boom: 600, shock: 700, splash: 820, snake: 640, bees: 700, offer: 860, stairs: 870, tub: 900, saw: 840, swing: 850, chop: 860 }[kind] || 870;
+    const HIT = { table: 4.6, offer: 4.4, cord: 2.9, snake: 3.4, bees: 3.2, vehicle: 2.6, arrow: 3.1, throwSpear: 3.0 }[kind] || 3.1;
+    const END = 4.4; // 이 뒤로는 범인이 달아나고 단서가 떨어진다
+    const clueX = kind === 'vehicle' ? 900 : 860;
+    const cam = camPath(S.cam, [
+      [0, { x: kind === 'table' ? 1050 : 660, y: 470, z: 1.12 }],
+      [2.3, { x: (standX + 1000) / 2, y: 450, z: 1.4 }],
+      [HIT, { x: (standX + 1000) / 2 + 20, y: 440, z: 1.6 }],
+      [END + 0.4, { x: 940, y: 520, z: 1.3 }],
+      [END + 1.2, { x: clueX, y: 760, z: 2.3 }],
+      [END + 2.2, { x: clueX, y: 770, z: 2.5 }],
+    ]);
     const once = {};
     const at = (k, fn) => { if (!once[k]) { once[k] = 1; fn(); } };
     const flashL = () => {
@@ -221,170 +265,353 @@ function flashbackShot(D, t0, murder) {
       shot.appendChild(l);
       l.animate([{ opacity: 0 }, { opacity: 0.9, offset: 0.1 }, { opacity: 0.1, offset: 0.25 }, { opacity: 0.7, offset: 0.35 }, { opacity: 0 }], { duration: 700 });
       L.el.classList.add('kw-silh');
-      setTimeout(() => L.el.classList.remove('kw-silh'), 380);
+      setTimeout(() => L.el.classList.remove('kw-silh'), 360);
     };
-    const impact = (power = 10) => { flashL(); D.shake(power, 320); D.flash('#ffffff', 150); D.sound.thunder && D.sound.thunder(); };
+    const impact = (power = 10, light = true) => { if (light) flashL(); D.shake(power, 320); D.flash('#ffffff', 140); D.sound.thunder && D.sound.thunder(); };
+    const burst = (x, y, color, n = 12, spread = 140, size = 5, up = 80) => {
+      for (let i = 0; i < n; i++) {
+        const d = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        d.setAttribute('width', size); d.setAttribute('height', size * 0.7); d.setAttribute('fill', color);
+        parts.appendChild(d);
+        const a = (Math.random() - 0.5) * Math.PI;
+        d.animate([{ transform: `translate(${x}px, ${y}px) rotate(0deg)`, opacity: 1 }, { transform: `translate(${x + Math.sin(a) * spread}px, ${y - up * Math.random() + 60}px) rotate(${Math.random() * 720}deg)`, opacity: 0 }], { duration: 700 + Math.random() * 500, fill: 'forwards', easing: 'cubic-bezier(.2,.6,.4,1)' });
+      }
+    };
+    const say2 = (x, y, word) => { txt.textContent = word; txt.setAttribute('x', x); txt.setAttribute('y', y); txt.animate([{ opacity: 0, transform: 'scale(.4)' }, { opacity: 1, transform: 'scale(1.1)', offset: 0.3 }, { opacity: 0 }], { duration: 900, fill: 'forwards' }); txt.style.transformOrigin = `${x}px ${y}px`; };
     const seg = (s, a, b) => Math.max(0, Math.min(1, (s - a) / (b - a)));
     const STAND = { ...POSE.stand };
     const FALL = { chest: 30, neck: 20, head: 26, upperF: 40, foreF: -10, upperB: 30, foreB: -10, thighF: -20, thighB: 10 };
+    const mid = () => vic.point('chest', 0, -40);
+    const head = () => vic.point('head', 10, -50);
     let last = 0;
     D.tick((s) => {
       const dt = s - last;
       last = s;
       cam(s);
       rn(dt);
-      const walkEnd = style === 'poison' ? 1.6 : 2.2;
+      const walkEnd = kind === 'table' ? 1.6 : 2.2;
       const x0 = fromRight ? 1750 : 80;
-      const mx = s < walkEnd ? x0 + (standX - x0) * (s / walkEnd) : standX;
+      let mx = s < walkEnd ? x0 + (standX - x0) * (s / walkEnd) : standX;
       const sneak = { hipY: 14, chest: 14, upperF: -40, foreF: -30 };
       let mp = s < walkEnd ? { ...STAND, ...gait((s * 0.9) % 1), ...sneak } : { ...STAND, ...sneak };
+      let mflip = fromRight;
       // 피해자: 네온을 올려다보며 담배를 문다
       let vp = { ...STAND, upperF: -70, foreF: -120, head: -8 + Math.sin(s * 1.3) * 2 };
       let vrot = 0;
       let vx = 1000;
       let vy = 832;
-      const fell = (a, b) => { const k = ease.inOut(seg(s, a, b)); vrot = k * 82; vy = 832 + k * 6; vp = mixPose(vp, { ...STAND, ...FALL }, k); };
-      if (style === 'strangle') {
-        const lift = seg(s, 2.2, 2.6);
-        const loop = seg(s, 2.6, 2.9);
-        mp = { ...mp, ...mixPose({ upperF: -40, foreF: -30, upperB: -40, foreB: -30 }, { upperF: -160, foreF: -10, upperB: -150, foreB: -10 }, lift) };
-        if (loop > 0) mp = { ...mp, ...mixPose({ upperF: -160, foreF: -10, upperB: -150, foreB: -10 }, { upperF: -70, foreF: -40, upperB: -60, foreB: -50 }, loop) };
-        if (s > 2.9 && s < 4.6) mp = { ...mp, chest: -12 + Math.sin(s * 30) * 3, hipY: 10, upperF: -50 + Math.sin(s * 26) * 6, upperB: -40 };
-        if (s > 2.9) {
-          const fl = s < 4.4 ? 1 : 1 - seg(s, 4.4, 5);
-          vp = mixPose({ ...STAND, ...FALL }, { ...STAND, upperF: -130 + Math.sin(s * 22) * 40, foreF: -60, upperB: -120 + Math.cos(s * 20) * 40, foreB: -50, head: -24 + Math.sin(s * 18) * 6, chest: -12 }, fl);
-          if (s > 4.8) fell(4.8, 5.4);
-          const a = mur.point('handF', 0, 20);
-          const b = mur.point('handB', 0, 20);
-          const n = vic.point('neck', 4, -8);
-          if (CORD[means] || !['m_pillow', 'm_bag', 'm_bathtub'].includes(means)) {
-            cord.setAttribute('d', `M${a.x} ${a.y} Q${n.x - 20} ${n.y - 10} ${n.x + 10} ${n.y} Q${n.x - 16} ${n.y + 14} ${b.x} ${b.y}`);
-            cord.setAttribute('opacity', s < 5 ? 1 : 0);
-          } else {
-            const h = vic.point('head', 20, -40);
-            cover.setAttribute('cx', h.x); cover.setAttribute('cy', h.y);
-            cover.setAttribute('opacity', s < 5 ? 0.9 : 0);
+      const fall = (a, b, dir = 1) => { const k = ease.inOut(seg(s, a, b)); vrot = dir * k * 82; vy = 832 + k * 6; vp = mixPose(vp, { ...STAND, ...FALL }, k); };
+      const raise = (from, to, a, b) => mixPose(from, to, seg(s, a, b));
+      const UP1 = { upperF: -172, foreF: -24, chest: -6 };
+      const UP2 = { upperF: -175, foreF: -50, upperB: -170, foreB: -50, chest: -10 };
+      const DOWN1 = { upperF: -50, foreF: -8, chest: 16 };
+      const DOWN2 = { upperF: -60, foreF: -10, upperB: -55, foreB: -10, chest: 22 };
+      const swooshAt = (on) => {
+        if (!on || !mur) { swoosh.setAttribute('opacity', 0); return; }
+        const a = mur.point('handF', 0, 90);
+        swoosh.setAttribute('d', `M${a.x - 40} ${a.y - 140} Q${a.x + 60} ${a.y - 90} ${a.x} ${a.y}`);
+        swoosh.setAttribute('opacity', 0.8);
+      };
+      switch (kind) {
+        case 'thrust': case 'jab': {
+          const n = M.n || 1;
+          const pull = { upperF: -60, foreF: -100, chest: -4 };
+          const hit = { upperF: kind === 'jab' ? -110 : -84, foreF: kind === 'jab' ? -10 : -4, chest: 14 };
+          if (s > 2.2) mp = { ...STAND, ...raise({ upperF: -40, foreF: -30 }, pull, 2.2, 2.7) };
+          for (let i = 0; i < n; i++) {
+            const h = HIT + i * 0.45;
+            if (s > h - 0.12 && s < h + 0.3) mp = { ...STAND, ...mixPose(pull, hit, seg(s, h - 0.12, h)) };
+            if (s > h) at(`hit${i}`, () => impact(i ? 7 : 10, i === 0));
           }
-          at('hit', () => impact(6));
+          if (s > HIT) { vp = { ...STAND, chest: -20, head: -26, upperF: -110, upperB: -90 }; fall(HIT + 0.3 + (n - 1) * 0.45, HIT + 1 + (n - 1) * 0.45); }
+          break;
         }
-        if (s > 5.1) mp = { ...STAND, chest: 8 + Math.sin(s * 8) * 3 };
-      } else if (style === 'shoot') {
-        const aim = seg(s, 2.2, 2.7);
-        const kick = s > HIT && s < HIT + 0.18 ? 1 : 0;
-        mp = { ...STAND, ...mixPose({ upperF: -40, foreF: -30 }, { upperF: -88 - kick * 30, foreF: -2, head: -2 }, aim), chest: -kick * 6 };
-        if (s > HIT) {
-          at('hit', () => {
-            const m = mur.point('handF', 0, 100);
-            muzzle.animate([{ opacity: 1, transform: `translate(${m.x}px, ${m.y}px) scale(1.4)` }, { opacity: 0, transform: `translate(${m.x}px, ${m.y}px) scale(.6)` }], { duration: 160, fill: 'forwards' });
-            for (let i = 0; i < 6; i++) {
-              const pf = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-              pf.setAttribute('r', 12 + i * 4); pf.setAttribute('fill', '#c8ccd8');
-              smoke.appendChild(pf);
-              pf.animate([{ transform: `translate(${m.x}px, ${m.y}px)`, opacity: 0.7 }, { transform: `translate(${m.x + 40 + i * 14}px, ${m.y - 80 - i * 22}px)`, opacity: 0 }], { duration: 1600 + i * 200, fill: 'forwards', easing: 'ease-out' });
-            }
-            impact(12);
-          });
-          vp = { ...STAND, chest: -18, head: -24, upperF: -110, upperB: -90 };
-          fell(HIT + 0.3, HIT + 1.1);
+        case 'slash': {
+          const from = { upperF: 30, foreF: -40, chest: -10 };
+          const to = { upperF: M.wide ? -150 : -120, foreF: -10, chest: 18 };
+          if (s > 2.2) mp = { ...STAND, ...raise({ upperF: -40, foreF: -30 }, from, 2.2, 2.8) };
+          if (s > HIT - 0.15) mp = { ...STAND, ...mixPose(from, to, seg(s, HIT - 0.15, HIT)) };
+          swooshAt(s > HIT - 0.15 && s < HIT + 0.1);
+          if (s > HIT) { at('hit', () => impact(11)); vp = { ...STAND, chest: -14, head: -20, upperF: -120, upperB: -100 }; fall(HIT + 0.3, HIT + 1); }
+          break;
         }
-      } else if (style === 'poison') {
-        const pour = seg(s, 1.6, 2.0) * (1 - seg(s, 2.8, 3.0));
-        mp = { ...mp, ...mixPose({ upperF: -40, foreF: -30 }, { upperF: -70, foreF: -60, handF: -110 }, pour) };
-        if (s > 1.9 && s < 2.8) at('drip', () => {
-          for (let i = 0; i < 7; i++) {
-            const d0 = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
-            d0.setAttribute('rx', 4); d0.setAttribute('ry', 6); d0.setAttribute('fill', '#5aff7a');
-            drops.appendChild(d0);
-            d0.animate([{ transform: 'translate(1111px, 660px)', opacity: 1 }, { transform: 'translate(1111px, 712px)', opacity: 0.2 }], { duration: 420, delay: i * 110, fill: 'forwards', easing: 'ease-in' });
+        case 'chop': case 'smash': {
+          const two = kind === 'chop' || M.two;
+          const n = M.n || 1;
+          const up = two ? UP2 : UP1;
+          const down = two ? DOWN2 : DOWN1;
+          if (s > 2.2) mp = { ...STAND, ...raise({ upperF: -40, foreF: -30 }, up, 2.2, 2.8) };
+          for (let i = 0; i < n; i++) {
+            const h = HIT + i * 0.55;
+            if (s > h - 0.15) mp = { ...STAND, ...mixPose(up, down, seg(s, h - 0.15, h)) };
+            if (i < n - 1 && s > h + 0.1 && s < h + 0.4) mp = { ...STAND, ...mixPose(down, up, seg(s, h + 0.1, h + 0.4)) };
+            if (s > h) at(`hit${i}`, () => {
+              impact(two ? 16 : 12, i === 0);
+              const hp = head();
+              stars.animate([{ opacity: 1, transform: `translate(${hp.x}px, ${hp.y}px) rotate(0deg)` }, { opacity: 0, transform: `translate(${hp.x}px, ${hp.y - 30}px) rotate(200deg)` }], { duration: 900, fill: 'forwards' });
+              if (M.debris) { burst(hp.x, hp.y + 20, M.debris, 18, 180, 7); if (i === n - 1 && mur) mur.hold(null); }
+              if (M.leaf) burst(hp.x, hp.y, '#3a8a3a', 6, 120, 9);
+              if (M.out) setTimeout(() => mur && mur.hold(grip('candle').replace(/#ffcf5a|#ffd070|#ffe08a|#f8b040/g, 'none')), 120);
+            });
           }
-        });
-        const mx2 = s > 3.0 ? standX + (s - 3.0) * 420 : mx;
-        if (s > 3.0) mp = { ...STAND, ...gait(((s - 3) * 1.1) % 1) };
-        mur.set({ ...mp, x: mx2, flip: s <= 3.0 });
-        vp = { ...STAND, head: 4 };
-        const reach = seg(s, 3.3, 3.7);
-        const drink = seg(s, 3.8, 4.2);
-        if (s > 3.3) vp = { ...STAND, upperF: -40 - reach * 30, foreF: -70 + reach * 40 };
-        if (s > 3.7) at('take', () => { vic.hold('goblet'); if (cup) cup.style.opacity = 0; });
-        if (s > 3.8) vp = { ...STAND, upperF: -60 - drink * 22, foreF: -70 - drink * 52, handF: -20 * drink, head: -14 * drink, neck: -8 * drink };
-        if (s > HIT) {
-          at('hit', () => { impact(8); vic.hold(null); });
-          vp = { ...STAND, upperF: -84, foreF: -118 + Math.sin(s * 30) * 8, upperB: -76, foreB: -112, head: 14 + Math.sin(s * 24) * 5, chest: 10 };
-          fell(HIT + 0.5, HIT + 1.1);
+          swooshAt(s > HIT - 0.15 && s < HIT + 0.08);
+          const last2 = HIT + (n - 1) * 0.55;
+          if (s > HIT) { vp = { ...STAND, chest: -18, head: 32, upperF: -100, upperB: -80 }; fall(last2 + 0.3, last2 + 1); }
+          break;
         }
-      } else if (style === 'push') {
-        const shove = seg(s, 2.6, 2.9);
-        mp = { ...STAND, ...mixPose({ upperF: -40, foreF: -30, upperB: -40, foreB: -30 }, { upperF: -86, foreF: -4, upperB: -80, foreB: -6, chest: 20, hipY: 6 }, shove) };
-        if (s > HIT) {
-          at('hit', () => impact(12));
-          const k = seg(s, HIT, HIT + 0.9) ** 2;
-          vx = 1000 + k * 260;
-          vrot = k * 88;
-          vy = 832 + k * 60;
-          vp = { ...STAND, upperF: -150, upperB: -140, head: -20, chest: -10 };
+        case 'swing': {
+          const back = M.up ? { upperF: 40, foreF: -10, upperB: 50, foreB: -10, chest: 16 } : { upperF: 60, foreF: -20, upperB: 70, foreB: -20, chest: -10 };
+          const thru = M.up ? { upperF: -170, foreF: -10, upperB: -160, foreB: -10, chest: -14 } : { upperF: -100, foreF: -10, upperB: -95, foreB: -10, chest: 16 };
+          if (s > 2.2) mp = { ...STAND, ...raise({ upperF: -40, foreF: -30 }, back, 2.2, 2.9) };
+          if (s > HIT - 0.15) mp = { ...STAND, ...mixPose(back, thru, seg(s, HIT - 0.15, HIT + 0.05)) };
+          swooshAt(s > HIT - 0.15 && s < HIT + 0.1);
+          if (s > HIT) {
+            at('hit', () => { impact(14); if (M.clang) { const hp = head(); say2(hp.x + 40, hp.y - 40, '쾅!'); } });
+            vp = { ...STAND, chest: -16, head: M.up ? -34 : 34, upperF: -110, upperB: -90 };
+            fall(HIT + 0.3, HIT + 1);
+          }
+          break;
         }
-      } else if (style === 'burn') {
-        const strike = seg(s, 2.2, 2.6);
-        mp = { ...STAND, ...mixPose({ upperF: -40, foreF: -30 }, { upperF: -120, foreF: -40 }, strike) };
-        if (s > HIT - 0.3) mp = { ...STAND, upperF: -60, foreF: -10, chest: 12 };
-        if (s > HIT) {
-          at('hit', () => { impact(8); mur.hold(null); });
-          const v = vic.point('chest', 0, -60);
-          const k = seg(s, HIT, HIT + 0.6);
-          fire.setAttribute('cx', v.x); fire.setAttribute('cy', v.y);
-          fire.setAttribute('opacity', (0.25 + k * 0.35) * (0.8 + Math.sin(s * 30) * 0.2));
-          vp = { ...STAND, upperF: -150 + Math.sin(s * 20) * 30, upperB: -140 - Math.sin(s * 22) * 30, head: -10, chest: -8 };
-          fell(HIT + 1.2, HIT + 1.8);
-          if (s > HIT + 1.8) fire.setAttribute('opacity', Math.max(0, 0.6 - (s - HIT - 1.8)));
+        case 'saw': {
+          if (s > 2.2) mp = { ...STAND, upperF: -82, foreF: -6, upperB: -78, foreB: -8, chest: 10 + Math.sin(s * 60) * 1.5 };
+          if (s > 2.4 && s < HIT + 0.9 && Math.random() < 0.6) { const a = mur.point('handF', 0, 120); burst(a.x, a.y, '#ffd070', 2, 80, 3, 60); }
+          if (s > HIT) { at('hit', () => impact(12)); vp = { ...STAND, chest: -20, head: -24, upperF: -130, upperB: -120 }; fall(HIT + 0.8, HIT + 1.5); }
+          break;
         }
-      } else if (style === 'shock') {
-        const toss = seg(s, 2.3, 2.7);
-        mp = { ...STAND, ...mixPose({ upperF: -40, foreF: -30 }, { upperF: -110, foreF: -10 }, toss) };
-        if (s > 2.7) at('toss', () => mur.hold(null));
-        if (s > HIT) {
-          at('hit', () => impact(10));
-          const v = vic.point('chest', 0, -40);
-          const on = s < HIT + 1 && Math.sin(s * 60) > 0;
-          zap.setAttribute('transform', `translate(${v.x} ${v.y})`);
-          zap.setAttribute('opacity', on ? 1 : 0);
-          vp = { ...STAND, upperF: -120 + (on ? 20 : -20), upperB: -110, chest: on ? -12 : -4, head: on ? -18 : -6 };
-          fell(HIT + 1.1, HIT + 1.7);
-        }
-      } else {
-        // 찌르기 · 때리기: 머리 위로 들었다가 내리친다
-        const blunt = style === 'bash';
-        const raise = seg(s, 2.2, 2.8);
-        const strike = seg(s, HIT - 0.15, HIT);
-        const up = blunt ? { upperF: -175, foreF: -60, upperB: -20, foreB: -30, chest: -8 } : { upperF: -172, foreF: -24, chest: -6 };
-        const down = blunt ? { upperF: -70, foreF: -10, upperB: -10, foreB: -10, chest: 18 } : { upperF: -50, foreF: -8, chest: 16 };
-        mp = { ...STAND, ...mixPose({ upperF: -40, foreF: -30 }, up, raise) };
-        if (s > HIT - 0.15) mp = { ...STAND, ...mixPose(up, down, strike) };
-        if (s > HIT - 0.15 && s < HIT + 0.1) {
-          const a = mur.point('handF', 0, 100);
-          swoosh.setAttribute('d', `M${a.x - 40} ${a.y - 140} Q${a.x + 60} ${a.y - 90} ${a.x} ${a.y}`);
-          swoosh.setAttribute('opacity', 0.8);
-        } else swoosh.setAttribute('opacity', 0);
-        if (s > HIT) {
-          at('hit', () => {
-            impact(blunt ? 14 : 10);
-            D.sound.stamp && D.sound.stamp();
-            if (blunt) {
-              const h = vic.point('head', 10, -60);
-              stars.animate([{ opacity: 1, transform: `translate(${h.x}px, ${h.y}px) rotate(0deg)` }, { opacity: 0, transform: `translate(${h.x}px, ${h.y - 30}px) rotate(200deg)` }], { duration: 900, fill: 'forwards' });
-            }
-            if (means === 'm_candle') setTimeout(() => mur.hold('candleOut'), 120);
+        case 'throwSpear': case 'arrow': {
+          if (kind === 'arrow') { if (s > 2.2) mp = { ...STAND, upperF: -90, foreF: 0, upperB: -86, foreB: s < HIT ? -140 * seg(s, 2.4, 2.9) : 0, chest: -4 }; }
+          else if (s > 2.2) mp = { ...STAND, ...raise({ upperF: -40, foreF: -30 }, { upperF: -160, foreF: -40, chest: -12 }, 2.2, 2.8) };
+          if (kind === 'throwSpear' && s > HIT - 0.15) mp = { ...STAND, upperF: -90, foreF: 0, chest: 18 };
+          if (s > HIT - 0.12) at('fly', () => {
+            const a = mur.point('handF', 0, 60);
+            const b = mid();
+            if (kind === 'throwSpear') mur.hold(null);
+            proj.innerHTML = objAt(kind === 'arrow' ? 'harpoon' : 'harpoon', 0, 0, kind === 'arrow' ? 0.8 : 1.2, 45);
+            proj.animate([{ opacity: 1, transform: `translate(${a.x}px, ${a.y}px)` }, { opacity: 1, transform: `translate(${b.x}px, ${b.y}px)` }], { duration: 160, fill: 'forwards' });
           });
-          vp = { ...STAND, chest: -20, head: blunt ? 30 : -26, upperF: -100, upperB: -80 };
-          fell(HIT + 0.3, HIT + 1);
-          if (s > HIT + 0.9) mp = { ...STAND, ...mixPose(down, { upperF: -20, foreF: -20, chest: 4 }, seg(s, HIT + 0.9, HIT + 1.5)), head: 8 };
+          if (s > HIT) { at('hit', () => impact(11)); vp = { ...STAND, chest: -18, head: -22, upperF: -120, upperB: -110 }; fall(HIT + 0.35, HIT + 1.05); }
+          break;
         }
+        case 'shoot': {
+          const aim = seg(s, 2.2, 2.7);
+          const kick = s > HIT && s < HIT + (M.big ? 0.3 : 0.18) ? 1 : 0;
+          mp = { ...STAND, ...mixPose({ upperF: -40, foreF: -30 }, { upperF: -88 - kick * (M.big ? 40 : 30), foreF: -2, upperB: M.big ? -84 : -10, foreB: M.big ? -30 : -20, head: -2 }, aim), chest: -kick * (M.big ? 14 : 6), hipX: -kick * (M.big ? 20 : 0) };
+          if (s > HIT) {
+            at('hit', () => {
+              const m = mur.point('handF', 0, M.big ? 130 : 100);
+              muzzle.animate([{ opacity: 1, transform: `translate(${m.x}px, ${m.y}px) scale(${M.big ? 2.2 : 1.4})` }, { opacity: 0, transform: `translate(${m.x}px, ${m.y}px) scale(.6)` }], { duration: M.big ? 260 : 160, fill: 'forwards' });
+              burst(m.x, m.y, '#c8ccd8', M.big ? 14 : 8, 120, 10, 160);
+              impact(M.big ? 20 : 12);
+            });
+            vp = { ...STAND, chest: -18, head: -24, upperF: -110, upperB: -90 };
+            if (M.big) vx = 1000 + ease.out(seg(s, HIT, HIT + 0.4)) * 120;
+            fall(HIT + 0.3, HIT + 1.1);
+          }
+          break;
+        }
+        case 'table': {
+          const pour = seg(s, 1.6, 2.0) * (1 - seg(s, 2.8, 3.0));
+          mp = { ...mp, ...mixPose({ upperF: -40, foreF: -30 }, { upperF: -70, foreF: -60, handF: -110 }, pour) };
+          if (s > 1.9 && s < 2.8) at('drip', () => {
+            const color = M.how === 'drop' ? '#f4f0e6' : M.how === 'soup' ? '#c8302a' : '#5aff7a';
+            for (let i = 0; i < (M.how === 'drop' ? 4 : 7); i++) {
+              const d0 = document.createElementNS('http://www.w3.org/2000/svg', M.how === 'soup' ? 'circle' : 'ellipse');
+              if (M.how === 'soup') d0.setAttribute('r', 7); else { d0.setAttribute('rx', 4); d0.setAttribute('ry', 6); }
+              d0.setAttribute('fill', color); d0.setAttribute('stroke', '#1a0e08');
+              parts.appendChild(d0);
+              d0.animate([{ transform: 'translate(1111px, 650px)', opacity: 1 }, { transform: 'translate(1111px, 712px)', opacity: 0.2 }], { duration: 420, delay: i * 120, fill: 'forwards', easing: 'ease-in' });
+            }
+          });
+          if (s > 3.0) { mp = { ...STAND, ...gait(((s - 3) * 1.1) % 1) }; mx = standX + (s - 3.0) * 420; }
+          mflip = s <= 3.0;
+          vp = { ...STAND, head: 4 };
+          const reach = seg(s, 3.3, 3.7);
+          const drink = seg(s, 3.8, 4.2);
+          if (s > 3.3) vp = { ...STAND, upperF: -40 - reach * 30, foreF: -70 + reach * 40 };
+          if (s > 3.7) at('take', () => { vic.hold('goblet'); if (cup) cup.style.opacity = 0; });
+          if (s > 3.8) vp = { ...STAND, upperF: -60 - drink * 22, foreF: -70 - drink * 52, handF: -20 * drink, head: -14 * drink, neck: -8 * drink };
+          if (s > HIT) { at('hit', () => { impact(8); vic.hold(null); }); vp = { ...STAND, upperF: -84, foreF: -118 + Math.sin(s * 30) * 8, upperB: -76, foreB: -112, head: 14 + Math.sin(s * 24) * 5, chest: 10 }; fall(HIT + 0.5, HIT + 1.1); }
+          break;
+        }
+        case 'offer': {
+          // 마주 서서 건넨다 → 받아 먹거나 마신다 → 쓰러진다
+          if (s > 2.2) mp = { ...STAND, ...raise({ upperF: -40, foreF: -30 }, { upperF: -80, foreF: -10, head: -4 }, 2.2, 2.8) };
+          if (s > 3.0) at('give', () => { mur.hold(null); vic.hold(grip(mk)); });
+          if (s > 3.0) mp = { ...STAND, ...POSE.pockets, head: -4 };
+          mp.brow = 0;
+          if (s < 3.0) vp = { ...STAND, upperF: -20, foreF: -40, head: 4 };
+          else { const d = seg(s, 3.2, 3.7); vp = { ...STAND, upperF: -60 - d * 22, foreF: -70 - d * 52, handF: -20 * d, head: -14 * d }; }
+          if (s > HIT) { at('hit', () => { impact(8); vic.hold(null); }); vp = { ...STAND, upperF: -84, foreF: -118 + Math.sin(s * 30) * 8, upperB: -76, foreB: -112, head: 14 + Math.sin(s * 24) * 5, chest: 10 }; fall(HIT + 0.5, HIT + 1.1, -1); }
+          break;
+        }
+        case 'splash': {
+          if (s > 2.2) mp = { ...STAND, ...raise({ upperF: -40, foreF: -30 }, { upperF: 20, foreF: -30 }, 2.2, 2.8) };
+          if (s > HIT - 0.15) mp = { ...STAND, upperF: -100, foreF: -10, handF: -60, chest: 14 };
+          if (s > HIT - 0.1) at('throw', () => { const a = mur.point('handF', 0, 60); const b = head(); for (let i = 0; i < 16; i++) { const d0 = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); d0.setAttribute('r', 5 + Math.random() * 5); d0.setAttribute('fill', '#b8f070'); parts.appendChild(d0); d0.animate([{ transform: `translate(${a.x}px, ${a.y}px)`, opacity: 1 }, { transform: `translate(${b.x + (Math.random() - 0.5) * 60}px, ${b.y + (Math.random() - 0.5) * 60}px)`, opacity: 0.1 }], { duration: 260 + i * 12, fill: 'forwards' }); } });
+          if (s > HIT) { at('hit', () => impact(9)); vp = { ...STAND, upperF: -150, foreF: -140, upperB: -140, foreB: -130, head: 20 + Math.sin(s * 30) * 6, chest: 10 }; fall(HIT + 0.8, HIT + 1.4); }
+          break;
+        }
+        case 'snake': case 'bees': {
+          if (s > 2.2) mp = { ...STAND, hipY: 60, chest: 40, upperF: -30, foreF: -20 };
+          if (s > 2.4) at('release', () => {
+            mur.hold(null);
+            const a = mur.point('handF', 0, 20);
+            const b = kind === 'snake' ? { x: 960, y: 830 } : head();
+            if (kind === 'snake') { proj.innerHTML = objAt('snake', 0, 0, 1); proj.animate([{ opacity: 1, transform: `translate(${a.x}px, 820px)` }, { opacity: 1, transform: `translate(${b.x}px, ${b.y}px)` }], { duration: 900, fill: 'forwards', easing: 'ease-in' }); }
+            else for (let i = 0; i < 14; i++) { const d0 = document.createElementNS('http://www.w3.org/2000/svg', 'g'); d0.innerHTML = '<ellipse rx="7" ry="5" fill="#f0c020" stroke="#1a0e08" stroke-width="2"/><path d="M-2 -5 v10 M2 -5 v10" stroke="#1a0e08" stroke-width="1.6"/><ellipse cx="-2" cy="-6" rx="5" ry="3" fill="#fff" opacity=".7"/>'; parts.appendChild(d0); d0.animate(Array.from({ length: 6 }, (_, k) => ({ transform: `translate(${(k === 0 ? a.x : b.x + Math.cos(k * 1.7 + i) * 60)}px, ${(k === 0 ? a.y : b.y + Math.sin(k * 1.3 + i) * 50)}px)` })), { duration: 1800, delay: i * 40, fill: 'forwards' }); }
+          });
+          if (s > 3.0) mp = { ...STAND, ...gait(((s - 3) * 1.1) % 1) };
+          if (s > 3.0) mx = standX - (s - 3.0) * 300;
+          mflip = s > 3.0;
+          if (s > HIT) { at('hit', () => impact(7, false)); vp = { ...STAND, upperF: -150 + Math.sin(s * 25) * 30, upperB: -140 - Math.sin(s * 23) * 30, head: -10, chest: -6, thighF: kind === 'snake' ? -30 : 0 }; fall(HIT + 0.8, HIT + 1.3); }
+          break;
+        }
+        case 'vehicle': {
+          // 헤드라이트가 비치더니 달려와 들이받는다
+          const k = seg(s, 1.6, HIT);
+          const vxp = 1900 - k * 900;
+          veh.setAttribute('opacity', s > 1.4 ? 1 : 0);
+          veh.setAttribute('transform', `translate(${s < HIT ? vxp : 1000 - (s - HIT) * 1400} 830)`);
+          if (s > 1.5 && s < HIT) vp = { ...STAND, upperF: -140, foreF: -30, upperB: -130, head: 10, chest: -6 };
+          if (s > HIT) {
+            at('hit', () => impact(22));
+            const f2 = ease.out(seg(s, HIT, HIT + 0.8));
+            vx = 1000 - f2 * 380; vy = 832 - Math.sin(f2 * Math.PI) * 180; vrot = -f2 * 260;
+            vp = { ...STAND, ...FALL };
+          }
+          break;
+        }
+        case 'stairs': {
+          const shove = seg(s, 2.6, 2.9);
+          mp = { ...STAND, ...mixPose({ upperF: -40, foreF: -30, upperB: -40, foreB: -30 }, { upperF: -86, foreF: -4, upperB: -80, foreB: -6, chest: 20, hipY: 6 }, shove) };
+          if (s > HIT) {
+            at('hit', () => impact(12));
+            const k = seg(s, HIT, HIT + 1.3);
+            vx = 1000 + k * 380; vy = 832 + k * 230 - Math.abs(Math.sin(k * Math.PI * 3)) * 40; vrot = k * 400;
+            vp = { ...STAND, upperF: -150, upperB: -140, head: -20, chest: -10 };
+          }
+          break;
+        }
+        case 'tub': {
+          vp = { ...STAND, ...POSE.kneel, chest: 30, head: 20, upperF: -60, foreF: -40 };
+          vx = 960;
+          if (s > 2.2) mp = { ...STAND, ...raise({ upperF: -40, foreF: -30 }, { upperF: -80, foreF: -30, upperB: -70, foreB: -30, chest: 30, hipY: 10 }, 2.4, 2.9) };
+          if (s > HIT) {
+            at('hit', () => { impact(8); const hp = head(); burst(hp.x, hp.y, '#bfe0ff', 20, 160, 6, 120); });
+            vp = { ...STAND, ...POSE.kneel, chest: 60, neck: 30, head: 40, upperF: -130 + Math.sin(s * 22) * 30, foreF: -40, upperB: -120 };
+            if (s > HIT + 1.1) vp = { ...STAND, ...POSE.kneel, chest: 64, neck: 34, head: 44, upperF: 20, foreF: 0, upperB: 20 };
+          }
+          break;
+        }
+        case 'smother': {
+          if (s > 2.2) mp = { ...STAND, ...raise({ upperF: -40, foreF: -30 }, { upperF: -120, foreF: -20, upperB: -110, foreB: -20 }, 2.2, 2.8) };
+          if (s > HIT) {
+            at('hit', () => impact(6));
+            mp = { ...STAND, upperF: -84 + Math.sin(s * 20) * 4, foreF: -20, upperB: -80, foreB: -24, chest: -8, hipY: 8 };
+            const hp = head();
+            cover.setAttribute('transform', `translate(${hp.x} ${hp.y + 20})`);
+            cover.setAttribute('opacity', s < END ? 1 : 0);
+            vp = { ...STAND, upperF: -130 + Math.sin(s * 22) * 40, foreF: -60, upperB: -120 + Math.cos(s * 20) * 40, head: -20, chest: -12 };
+            fall(HIT + 1.2, HIT + 1.7);
+          }
+          break;
+        }
+        case 'cord': {
+          const lift = seg(s, 2.2, 2.6);
+          const loop = seg(s, 2.6, 2.9);
+          mp = { ...mp, ...mixPose({ upperF: -40, foreF: -30, upperB: -40, foreB: -30 }, { upperF: -160, foreF: -10, upperB: -150, foreB: -10 }, lift) };
+          if (loop > 0) { at('coil', () => mur.hold(null)); mp = { ...mp, ...mixPose({ upperF: -160, foreF: -10, upperB: -150, foreB: -10 }, { upperF: -70, foreF: -40, upperB: -60, foreB: -50 }, loop) }; }
+          if (s > 2.9 && s < END) mp = { ...mp, chest: -12 + Math.sin(s * 30) * 3, hipY: 10, upperF: -50 + Math.sin(s * 26) * 6, upperB: -40 };
+          if (loop > 0) {
+            const a = mur.point('handF', 0, 20);
+            const b = mur.point('handB', 0, 20);
+            const n = vic.point('neck', 4, -8);
+            cord.setAttribute('d', s > 2.9 ? `M${a.x} ${a.y} Q${n.x - 20} ${n.y - 10} ${n.x + 10} ${n.y} Q${n.x - 16} ${n.y + 14} ${b.x} ${b.y}` : `M${a.x} ${a.y} Q${(a.x + b.x) / 2 + 60} ${Math.max(a.y, b.y) + 60} ${b.x} ${b.y}`);
+            cord.setAttribute('opacity', s < END ? 1 : 0);
+          }
+          if (s > 2.9) {
+            at('hit', () => impact(6));
+            vp = { ...STAND, upperF: -130 + Math.sin(s * 22) * 40, foreF: -60, upperB: -120 + Math.cos(s * 20) * 40, foreB: -50, head: -24 + Math.sin(s * 18) * 6, chest: -12 };
+            fall(END - 0.2, END + 0.4);
+          }
+          break;
+        }
+        case 'fire': case 'boom': {
+          if (kind === 'fire' && M.pour && s > 2.2 && s < 2.9) {
+            mp = { ...STAND, upperF: -70, foreF: -30, handF: -100, chest: 10 };
+            at('gas', () => { const a = mur.point('handF', 0, 60); for (let i = 0; i < 10; i++) { const d0 = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse'); d0.setAttribute('rx', 5); d0.setAttribute('ry', 3); d0.setAttribute('fill', '#e8d060'); parts.appendChild(d0); d0.animate([{ transform: `translate(${a.x}px, ${a.y}px)`, opacity: 1 }, { transform: `translate(${900 + i * 20}px, 840px)`, opacity: 0.6 }], { duration: 400, delay: i * 50, fill: 'forwards' }); } });
+          }
+          if (s > 2.9) at('light', () => mur.hold(grip(kind === 'boom' ? 'firecracker' : 'match')));
+          if (s > 2.9) mp = { ...STAND, ...raise({ upperF: -40, foreF: -30 }, { upperF: 10, foreF: -40 }, 2.9, HIT - 0.2) };
+          if (s > HIT - 0.2) mp = { ...STAND, upperF: -100, foreF: -10, chest: 12 };
+          if (s > HIT - 0.15) at('toss', () => { mur.hold(null); const a = mur.point('handF', 0, 40); const b = { x: 980, y: 820 }; proj.innerHTML = objAt(kind === 'boom' ? 'firecracker' : 'match', 0, 0, 0.5); proj.animate([{ opacity: 1, transform: `translate(${a.x}px, ${a.y}px) rotate(0deg)` }, { opacity: 1, transform: `translate(${b.x}px, ${b.y}px) rotate(540deg)` }], { duration: 260, fill: 'forwards' }); });
+          if (s > HIT) {
+            if (kind === 'boom') {
+              for (let i = 0; i < 4; i++) if (s > HIT + i * 0.22) at(`pop${i}`, () => { impact(9, i === 0); burst(960 + (i % 2) * 60, 800 - i * 20, i % 2 ? '#ff5a3a' : '#ffd23a', 14, 160, 6, 140); say2(980, 700 - i * 30, i % 2 ? '팡!' : '펑!'); });
+              vp = { ...STAND, upperF: -150, foreF: -40, upperB: -140, head: -20, chest: -16 };
+              fall(HIT + 0.9, HIT + 1.5, -1);
+            } else {
+              at('hit', () => impact(9));
+              const v = mid();
+              const k = seg(s, HIT, HIT + 0.6);
+              fire.setAttribute('cx', v.x); fire.setAttribute('cy', v.y);
+              fire.setAttribute('opacity', (0.25 + k * 0.4) * (0.8 + Math.sin(s * 30) * 0.2) * (s > END + 0.2 ? Math.max(0, 1 - (s - END - 0.2) * 1.5) : 1));
+              vp = { ...STAND, upperF: -150 + Math.sin(s * 20) * 30, upperB: -140 - Math.sin(s * 22) * 30, head: -10, chest: -8 };
+              fall(HIT + 1.0, HIT + 1.5);
+            }
+          }
+          break;
+        }
+        case 'shock': {
+          if (s > 2.2) mp = { ...STAND, ...raise({ upperF: -40, foreF: -30 }, { upperF: -110, foreF: -10 }, 2.3, 2.7) };
+          if (s > 2.7) at('toss', () => { mur.hold(null); const a = mur.point('handF', 0, 40); proj.innerHTML = objAt('dryer', 0, 0, 0.7); proj.animate([{ opacity: 1, transform: `translate(${a.x}px, ${a.y}px) rotate(0deg)` }, { opacity: 1, transform: `translate(990px, 836px) rotate(200deg)` }], { duration: 300, fill: 'forwards' }); });
+          if (s > HIT) {
+            at('hit', () => impact(10));
+            const v = mid();
+            const on = s < HIT + 1 && Math.sin(s * 60) > 0;
+            zap.setAttribute('transform', `translate(${v.x} ${v.y})`);
+            zap.setAttribute('opacity', on ? 1 : 0);
+            vp = { ...STAND, upperF: -120 + (on ? 20 : -20), upperB: -110, chest: on ? -12 : -4, head: on ? -18 : -6 };
+            fall(HIT + 1.1, HIT + 1.7);
+          }
+          break;
+        }
+        default: break;
       }
-      if (style !== 'poison') mur.set({ ...mp, x: mx });
+      // 범행 뒤: 범인이 달아나다 주머니에서 단서가 떨어진다
+      if (mur && kind !== 'table' && kind !== 'snake' && kind !== 'bees' && s > END + 0.3) {
+        mp = { ...STAND, ...gait(((s - END) * 1.3) % 1, true) };
+        mx = standX - (s - END - 0.3) * 520;
+        mflip = true;
+        if (kind !== 'offer' && kind !== 'splash') mur.hold(null);
+      }
+      if (s > END + 0.3) at('clue', () => {
+        const from = mur ? mur.point('hips', 0, -40) : { x: clueX + 40, y: 700 };
+        clueEl.animate([
+          { opacity: 1, transform: `translate(${from.x}px, ${from.y}px) rotate(0deg)` },
+          { opacity: 1, transform: `translate(${(from.x + clueX) / 2}px, ${from.y - 60}px) rotate(160deg)`, offset: 0.35 },
+          { opacity: 1, transform: `translate(${clueX}px, 830px) rotate(330deg)`, offset: 0.8 },
+          { opacity: 1, transform: `translate(${clueX}px, 824px) rotate(345deg)` },
+        ], { duration: 800, fill: 'forwards', easing: 'ease-in' });
+        D.sound.card && D.sound.card();
+      });
+      if (s > END + 1.1) at('spot', () => {
+        spot.setAttribute('cx', clueX); spot.setAttribute('cy', 846);
+        spot.animate([{ opacity: 0 }, { opacity: 0.35 }], { duration: 400, fill: 'forwards' });
+        clueEl.animate([{ filter: 'drop-shadow(0 0 0 #ffd23a)' }, { filter: 'drop-shadow(0 0 12px #ffd23a)' }, { filter: 'drop-shadow(0 0 4px #ffd23a)' }], { duration: 900, fill: 'forwards' });
+        const tag = document.createElement('div');
+        tag.className = 'kw-clue-tag';
+        tag.innerHTML = `현장에 떨어진 단서 · <b>${esc((K.CARD[murder.clue] || {}).name || '')}</b>`;
+        shot.appendChild(tag);
+        tag.animate([{ opacity: 0, transform: 'translate(-50%, 12px)' }, { opacity: 1, transform: 'translate(-50%, 0)' }], { duration: 400, fill: 'forwards' });
+        D.sound.stamp && D.sound.stamp();
+      });
+      if (mur) mur.set({ ...mp, x: mx, flip: mflip });
       vic.set({ ...vp, x: vx, y: vy, rot: vrot });
       C.update(dt);
       S.render(s);
     });
-    setTimeout(() => say(shot, '', `그날 밤, 이 골목에서… ${esc((K.CARD[means] || {}).name || '')}.`, 2.2, '#c8d8ff'), 200);
+    setTimeout(() => say(shot, '', `그날 밤, 이 골목에서… ${esc((K.CARD[murder.means] || {}).name || '')}.`, 2.2, '#c8d8ff'), 200);
   });
 }
 
@@ -685,7 +912,7 @@ function runShot(D, t0) {
 }
 
 // 회상 컷(5.8초)이 들어간 길이
-const FB = 5.8;
+const FB = 7.4;
 const FILMS = {
   solved: { length: 32.5 + FB, titleAt: 28.4 + FB, title: '사건 해결' },
   escaped: { length: 18.5 + FB, titleAt: 14.8 + FB, title: '미제 사건' },
