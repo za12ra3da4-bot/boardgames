@@ -97,10 +97,19 @@ class Game {
   say(p, text) { if (this.hooks.chat && p) this.hooks.chat(p.pid, text); }
   cardName(id) { return K.CARD[id] ? K.CARD[id].name : '?'; }
   fsOnline() { return this.fs.isBot || this.hooks.isOnline(this.fs.pid); }
+  /** 법의학자 시간: 접속해 있으면 전체 시간, 나갔으면 잠깐 뒤 AI (돌아오면 다시 전체 시간) */
+  armFs() {
+    const on = this.fsOnline();
+    this.fsArmedOnline = on;
+    const full = this.phase === 'forensic' ? T.forensic : T.swap;
+    this.schedule(on ? full : T.offline, () => (this.phase === 'forensic' ? this.autoForensic() : this.autoSwap()));
+  }
   onPresence() {
-    // 법의학자가 나갔으면 AI 가 대신 한다
-    if (!this.fs.isBot && !this.hooks.isOnline(this.fs.pid) && (this.phase === 'forensic' || this.phase === 'swap')) {
-      if (this.deadline - Date.now() > T.offline) this.schedule(T.offline, () => (this.phase === 'forensic' ? this.autoForensic() : this.autoSwap()));
+    if (!this.fs.isBot && (this.phase === 'forensic' || this.phase === 'swap') && this.fsOnline() !== this.fsArmedOnline) this.armFs();
+    // 밤에 살인자가 나가면 잠깐 뒤 AI 가 고른다
+    if (this.phase === 'night' && !this.murder) {
+      const m = this.byRole('murderer');
+      if (!m.isBot && !this.hooks.isOnline(m.pid)) this.later(T.offline, () => { if (this.phase === 'night' && !this.hooks.isOnline(m.pid)) this.autoMurder(); });
     }
     this.changed();
   }
@@ -109,7 +118,8 @@ class Game {
   botNight() {
     const m = this.byRole('murderer');
     if (m.isBot) this.later(1500 + rand(2500), () => this.autoMurder());
-    else if (!this.hooks.isOnline(m.pid)) this.later(T.offline, () => this.autoMurder());
+    // 나간 살인자는 잠깐 기다렸다 AI 가 대신 · 그 사이 돌아오면 본인이 고른다
+    else if (!this.hooks.isOnline(m.pid)) this.later(T.offline, () => { if (!this.hooks.isOnline(m.pid)) this.autoMurder(); });
   }
   autoMurder() {
     if (this.phase !== 'night') return;
@@ -133,7 +143,7 @@ class Game {
     for (let i = 0; i < 4; i++) this.tiles.push({ id: this.pool.pop(), pick: null });
     this.event({ type: 'forensic' });
     if (this.fs.isBot) this.later(2500 + rand(2000), () => this.autoForensic());
-    this.schedule(this.fsOnline() ? T.forensic : T.offline, () => this.autoForensic());
+    this.armFs();
   }
   /** 법의학자 AI (또는 시간 초과): 태그가 가장 잘 맞는 칸에 */
   autoForensic() {
@@ -228,7 +238,7 @@ class Game {
     this.event({ type: 'swap' });
     this.addLog('forensic', '법의학자가 현장 타일 한 장을 새 타일로 바꿉니다.');
     if (this.fs.isBot) this.later(2000 + rand(1500), () => this.autoSwap());
-    this.schedule(this.fsOnline() ? T.swap : T.offline, () => this.autoSwap());
+    this.armFs();
   }
   /** 가장 쓸모없는(두루뭉술한) 현장 타일을 빼고 새로 */
   autoSwap() {
@@ -272,7 +282,7 @@ class Game {
     this.event({ type: 'witnessHunt' });
     this.addLog('bad', '살인자가 잡혔습니다! 하지만… 살인자는 목격자를 찾아 입을 막을 마지막 기회가 있습니다.');
     const m = this.byRole('murderer');
-    if (m.isBot || !this.hooks.isOnline(m.pid)) this.later(3500 + rand(2500), () => this.autoWitness());
+    if (m.isBot || !this.hooks.isOnline(m.pid)) this.later(3500 + rand(2500), () => { if (m.isBot || !this.hooks.isOnline(m.pid)) this.autoWitness(); });
     this.schedule(T.witness, () => this.autoWitness());
   }
   autoWitness() {

@@ -1,6 +1,7 @@
 import { bindName } from '/common/me.js';
 import { mountEmotes } from '/common/emote.js';
 import { roomKeeper } from '/common/keep.js';
+import { watchConnection } from '/common/net.js';
 import { faceChip } from '/common/avatar.js';
 // 바람섬 개척기 - 브라우저 쪽 전체 화면과 조작
 const I = window.ISLE;
@@ -66,6 +67,7 @@ const S = {
 // 서버가 다시 켜져도 하던 게임이 이어지게: 서버가 맡긴 방 사본을 접속할 때 같이 보낸다
 const keeper = roomKeeper('isle');
 const socket = io('/isle', { auth: (cb) => cb({ token: token(), save: keeper.get() }), transports: ['websocket', 'polling'] });
+watchConnection(socket);
 keeper.attach(socket);
 const conn = $('#conn');
 let connTimer = null;

@@ -3,6 +3,7 @@ import { rulesPanelHtml, rulesModalHtml, currentStep } from './rules.js';
 import { bindName } from '/common/me.js';
 import { mountEmotes } from '/common/emote.js';
 import { roomKeeper } from '/common/keep.js';
+import { watchConnection } from '/common/net.js';
 import { faceChip } from '/common/avatar.js';
 import { cardSvg, backSvg } from './cards.js';
 import { playEnding } from './ending.js';
@@ -60,6 +61,7 @@ const S = {
 const keeper = roomKeeper('clue');
 const clueToken = await claimToken();
 const socket = io('/clue', { auth: (cb) => cb({ token: clueToken, save: keeper.get() }), reconnectionDelay: 800, reconnectionDelayMax: 4000 });
+watchConnection(socket);
 keeper.attach(socket);
 
 const player = (pid) => (S.game ? S.game.players.find((p) => p.pid === pid) : null);

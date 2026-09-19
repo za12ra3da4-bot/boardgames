@@ -1,6 +1,7 @@
 import { bindName } from '/common/me.js';
 import { mountEmotes } from '/common/emote.js';
 import { roomKeeper } from '/common/keep.js';
+import { watchConnection } from '/common/net.js';
 import { memberFace } from '/common/avatar.js';
 import { cardSvg } from './art.js';
 import { playEnding } from './ending.js';
@@ -34,6 +35,7 @@ const S = { me: null, room: null, g: null, gameId: null, seenSeq: 0, tab: 'log',
 /* ── 소켓 */
 const keeper = roomKeeper('kowloon');
 const socket = io('/kowloon', { auth: (cb) => cb({ token: token(), save: keeper.get() }), transports: ['websocket', 'polling'] });
+watchConnection(socket);
 keeper.attach(socket);
 const conn = $('#conn');
 let connTimer = null;

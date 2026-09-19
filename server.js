@@ -235,6 +235,9 @@ app.get('/api/art/:id', (req, res) => {
   return res.json({ id: g.id, title: g.title, base: g.base, ...slots });
 });
 
+// 게임 중 브라우저가 가끔 불러 서버가 잠들지 않게 한다
+app.get('/api/ping', (_req, res) => { res.set('Cache-Control', 'no-store'); res.json({ ok: true, t: Date.now() }); });
+
 app.get('/api/games', (req, res) => {
   res.set('Cache-Control', 'no-store');
   const links = readLinks();
