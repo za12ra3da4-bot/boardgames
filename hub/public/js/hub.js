@@ -184,7 +184,10 @@ document.getElementById('filmList').addEventListener('click', async (e) => {
       // 카드 데이터가 필요하다
       if (!window.KOWLOON) await new Promise((res) => { const s = document.createElement('script'); s.src = '/kowloon/shared/kowloon.js'; s.onload = res; s.onerror = res; document.head.appendChild(s); });
       const m = await import('/kowloon/js/ending.js');
-      await m.playEnding(host, { kind, murder: { means: 'm_knife', clue: 'c_lipstick' }, murderer: '미리 보기', solver: '진 형사', sound: X });
+      // 볼 때마다 다른 수단 · 단서
+      const all = Object.values(window.KOWLOON.CARD);
+      const pick = (kd) => { const xs = all.filter((c) => c.kind === kd); return xs[Math.floor(Math.random() * xs.length)].id; };
+      await m.playEnding(host, { kind, murder: { means: pick('m'), clue: pick('c') }, murderer: '미리 보기', solver: '진 형사', sound: X });
     }
   } catch (err) {
     console.error(err);

@@ -464,7 +464,7 @@ async function showFilm(force) {
   S.filmShown = g.id;
   const o = g.over;
   const kind = o.reason === 'witness' ? 'witness' : o.winner === 'good' ? 'solved' : 'escaped';
-  await playEnding($('#film'), { kind, murder: o.murder, murderer: nameOf(o.murderer), solver: o.solver ? nameOf(o.solver) : '', sound: SFX });
+  await playEnding($('#film'), { kind, murder: o.murder, murderer: nameOf(o.murderer), solver: o.solver ? nameOf(o.solver) : '', witness: o.witness ? nameOf(o.witness) : '', sound: SFX });
   showResult();
 }
 function showResult() {

@@ -163,6 +163,8 @@ const MEM_CSS = `<style>
 .kw-clue-tag { position:absolute; left:50%; top:16%; transform:translateX(-50%); z-index:25; padding:8px 22px; border:2px solid #ffd23a; border-radius:6px; background:rgba(10,8,4,.8);
   font: 700 clamp(15px,2vw,24px) 'Noto Sans KR',sans-serif; color:#fff4c8; letter-spacing:.06em; opacity:0; white-space:nowrap; box-shadow:0 0 30px rgba(255,210,58,.4); }
 .kw-clue-tag b { color:#ffd23a; }
+.kw-solve-stamp { position:absolute; left:50%; top:84%; z-index:26; padding:.06em .45em; border:.1em solid #ff3a4a; border-radius:8px; color:#ff3a4a;
+  font: 900 clamp(28px,5vw,68px) 'Black Han Sans',sans-serif; letter-spacing:.12em; opacity:0; mix-blend-mode: screen; text-shadow: 0 0 18px rgba(255,58,74,.6); }
 </style>`;
 // 손에 쥐는 법: [회전, 손잡이 x, 손잡이 y, 크기] — 카드 그림(100×100)을 손목 기준으로
 const GRIP = {
@@ -196,7 +198,7 @@ const MOVE = {
   match: { kind: 'fire' }, gas: { kind: 'fire', pour: 1 }, firecracker: { kind: 'boom' }, dryer: { kind: 'shock' },
 };
 const VICTIM_K = { skin: '#e2b08a', skinD: '#a8765a', hair: '#3a2a20', coat: '#4a5a6a', coatD: '#2a3440', coat2: '#8a8a8a', shirt: '#e8e4dc', tie: '#2a3a5a', pants: '#2a2e36', pantsD: '#16181e', shoe: '#1a1410', hat: 'none', hairStyle: 'short', brow: '#3a2a20' };
-function flashbackShot(D, t0, murder) {
+function flashbackShot(D, t0, murder, { watcher = '', outcome = 'solved' } = {}) {
   D.at(t0, () => {
     D.cut('');
     const { S, shot } = scene(D, MEM_CSS);
@@ -212,8 +214,25 @@ function flashbackShot(D, t0, murder) {
       <g class="kw-cup" transform="translate(1098 704)">${M.how === 'soup' ? '<path d="M-10 12 Q12 40 34 12Z" fill="#f4f0e6" stroke="#1a0e08" stroke-width="3"/><path d="M-4 14 H28" stroke="#c89040" stroke-width="5"/><path d="M4 4 q-4 -10 2 -18 M16 4 q-4 -10 2 -18" stroke="#dfe8f0" stroke-width="2" fill="none" opacity=".7"/>' : '<path d="M0 0 H22 V30 Q11 36 0 30Z" fill="#dfe8f0" opacity=".85" stroke="#1a0e08" stroke-width="3"/><path d="M2 10 H20 V28 Q11 32 2 28Z" fill="#c8a040" opacity=".8"/>'}</g>`;
     if (kind === 'stairs') set += '<path d="M1060 846 H1600 V900 H1060Z" fill="#0e1018"/>' + Array.from({ length: 6 }, (_, i) => `<path d="M${1060 + i * 70} ${846 + i * 40} h70 v40" fill="none" stroke="#6a7488" stroke-width="5"/>`).join('') + '<path d="M1060 846 L1480 1086" stroke="#3a4050" stroke-width="3"/>';
     if (kind === 'tub') set += objAt('bathtub', 1060, 800, 2.3);
-    const L = S.layer(1, `<svg viewBox="0 0 1600 900" style="position:absolute;inset:0;width:1600px;height:900px;overflow:visible">${set}</svg>`);
+    // 맞은편 아파트: 불 켜진 창 하나에서 누군가 내려다본다
+    const WX = 202; // 아파트 창 가운데 (격자 창 4번 자리)
+    const WY = 191;
+    const apt = watcher ? `<g><rect x="40" y="30" width="330" height="420" fill="#141a2a"/>${Array.from({ length: 12 }, (_, i) => `<rect x="${70 + (i % 3) * 100}" y="${60 + Math.floor(i / 3) * 96}" width="64" height="70" fill="${i === 4 ? '#ffd890' : i % 5 === 3 ? '#3a3020' : '#0a0e18'}"/>`).join('')}
+      <path d="M${WX - 32} ${WY - 35} h20 C${WX - 18} ${WY - 5} ${WX - 22} ${WY + 20} ${WX - 32} ${WY + 35}Z M${WX + 32} ${WY - 35} h-20 C${WX + 18} ${WY - 5} ${WX + 22} ${WY + 20} ${WX + 32} ${WY + 35}Z" fill="#b8503a" opacity=".8"/>
+      <rect x="${WX - 50}" y="${WY - 60}" width="100" height="120" fill="url(#aptGlow)" opacity=".5"/></g>` : '';
+    const L = S.layer(1, `<svg viewBox="0 0 1600 900" style="position:absolute;inset:0;width:1600px;height:900px;overflow:visible"><defs><radialGradient id="aptGlow"><stop offset="0" stop-color="#ffd890" stop-opacity=".8"/><stop offset="1" stop-color="#ffd890" stop-opacity="0"/></radialGradient></defs>${apt}${set}</svg>`);
     const C = cast(L.el);
+    // 창 안의 사람 (창틀 · 벽이 아랫몸을 가린다)
+    let watcherP = null;
+    if (watcher) {
+      watcherP = C.add({ look: 'detective', x: WX - 6, y: WY + 150, scale: 0.36, rim: '#ffd890', shadow: false });
+      L.el.insertAdjacentHTML('beforeend', `<svg viewBox="0 0 1600 900" style="position:absolute;left:0;top:0;width:1600px;height:900px;overflow:visible;pointer-events:none">
+        <path fill-rule="evenodd" fill="#141a2a" d="M40 30 H370 V450 H40Z M${WX - 32} ${WY - 35} H${WX + 32} V${WY + 35} H${WX - 32}Z"/>
+        ${Array.from({ length: 12 }, (_, i) => i === 4 ? '' : `<rect x="${70 + (i % 3) * 100}" y="${60 + Math.floor(i / 3) * 96}" width="64" height="70" fill="${i % 5 === 3 ? '#3a3020' : '#0a0e18'}"/>`).join('')}
+        <rect x="${WX - 34}" y="${WY - 37}" width="68" height="74" fill="none" stroke="#3a2a1a" stroke-width="5"/><path d="M${WX} ${WY - 35} V${WY + 35}" stroke="#3a2a1a" stroke-width="3"/>
+        <rect x="${WX - 40}" y="${WY + 35}" width="80" height="7" fill="#5a4a3a"/>
+        <text class="kw-watch-name" x="${WX}" y="${WY - 46}" text-anchor="middle" font-family="'Noto Sans KR',sans-serif" font-weight="900" font-size="15" fill="#ffd890" stroke="#0a0806" stroke-width="3" paint-order="stroke" opacity="0">${esc(watcher)}</text></svg>`);
+    }
     const fromRight = kind === 'table';
     const faceOff = kind === 'offer';
     const vehicle = kind === 'vehicle';
@@ -256,6 +275,7 @@ function flashbackShot(D, t0, murder) {
       [END + 0.4, { x: 940, y: 520, z: 1.3 }],
       [END + 1.2, { x: clueX, y: 760, z: 2.3 }],
       [END + 2.2, { x: clueX, y: 770, z: 2.5 }],
+      ...(watcher ? [[END + 2.8, { x: 600, y: 420, z: 1.05 }], [END + 3.8, { x: WX + 4, y: WY + 6, z: 3.4 }], [END + 5.2, { x: WX + 4, y: WY + 8, z: 3.6 }]] : []),
     ]);
     const once = {};
     const at = (k, fn) => { if (!once[k]) { once[k] = 1; fn(); } };
@@ -606,6 +626,32 @@ function flashbackShot(D, t0, murder) {
         tag.animate([{ opacity: 0, transform: 'translate(-50%, 12px)' }, { opacity: 1, transform: 'translate(-50%, 0)' }], { duration: 400, fill: 'forwards' });
         D.sound.stamp && D.sound.stamp();
       });
+      if (watcherP) {
+        // 범행을 보고 놀라 입을 막았다가, 마지막에 굳은 얼굴로 고개를 든다
+        const shock = s > HIT && s < END + 2.6;
+        watcherP.set({ ...STAND, ...(shock ? { upperF: -150, foreF: -140, head: 6 } : { upperF: -20, foreF: -40, head: 10 }), x: WX - 6, y: WY + 150 });
+        if (s > END + 2.9) at('wlook', () => { watcherP.brow('angry'); watcherP.mouth('grit'); const tg = shot.querySelector('.kw-clue-tag'); if (tg) tg.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 400, fill: 'forwards' }); });
+        if (s > END + 3.8) at('wname', () => {
+          const nm = L.el.querySelector('.kw-watch-name');
+          if (nm) nm.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, fill: 'forwards' });
+        });
+        if (s > END + 4.5) at('wstamp', () => {
+          const st = document.createElement('div');
+          st.className = 'kw-solve-stamp';
+          // 수사팀이 이겼을 때만 '사건 해결'. 목격자가 들켰으면 실패 쪽 도장과 함께 창의 불이 꺼진다
+          st.textContent = outcome === 'solved' ? '사건 해결' : '목격자 발각';
+          if (outcome !== 'solved') {
+            st.style.color = '#ffb020';
+            st.style.borderColor = '#ffb020';
+            L.el.querySelectorAll('rect[fill="#ffd890"]').forEach((w) => w.animate([{ fill: '#ffd890' }, { fill: '#0a0e18' }], { duration: 250, delay: 700, fill: 'forwards' }));
+            setTimeout(() => watcherP && (watcherP.svg.style.opacity = '0.15'), 950);
+          }
+          shot.appendChild(st);
+          st.animate([{ opacity: 0, transform: 'translate(-50%,-50%) rotate(-12deg) scale(2.6)' }, { opacity: 0.94, transform: 'translate(-50%,-50%) rotate(-12deg) scale(1)' }], { duration: 280, fill: 'forwards', easing: 'cubic-bezier(.3,1.6,.5,1)' });
+          D.shake(12, 300);
+          D.sound.stamp && D.sound.stamp();
+        });
+      }
       if (mur) mur.set({ ...mp, x: mx, flip: mflip });
       vic.set({ ...vp, x: vx, y: vy, rot: vrot });
       C.update(dt);
@@ -913,31 +959,32 @@ function runShot(D, t0) {
 
 // 회상 컷(5.8초)이 들어간 길이
 const FB = 7.4;
+const FBW = 10.6; // 아파트 줌인까지
 const FILMS = {
-  solved: { length: 32.5 + FB, titleAt: 28.4 + FB, title: '사건 해결' },
+  solved: { length: 32.5 + FBW, titleAt: 28.4 + FBW, title: '사건 해결' },
   escaped: { length: 18.5 + FB, titleAt: 14.8 + FB, title: '미제 사건' },
-  witness: { length: 14.5 + FB, titleAt: 10.6 + FB, title: '목격자는 말이 없다' },
+  witness: { length: 14.5 + FBW, titleAt: 10.6 + FBW, title: '목격자는 말이 없다' },
 };
 
 /**
  * @param {HTMLElement} host
  * @param {{kind:'solved'|'escaped'|'witness', murder:{means,clue}, murderer:string, solver:string, sound:object}} o
  */
-export function playEnding(host, { kind, murder, murderer, solver, sound }) {
+export function playEnding(host, { kind, murder, murderer, solver, witness, sound }) {
   const F = FILMS[kind];
   const muted = !!(sound && sound.muted);
-  const music = score({ length: F.length, muted, bpm: kind === 'solved' ? 96 : 84, cues: kind === 'solved' ? [{ at: 12.9 }, { at: 15.8 + 3.1, notes: [43, 50, 55, 58], vol: 0.14 }, { at: 24.1 + FB, notes: [50, 57, 62, 66] }, { at: 27.7 + FB, notes: [50, 54, 57, 62] }] : [{ at: 3.5 }, { at: (kind === 'escaped' ? 6.8 : 7.6) + 3.1, notes: [43, 50, 55, 58], vol: 0.14 }] });
+  const music = score({ length: F.length, muted, bpm: kind === 'solved' ? 96 : 84, cues: kind === 'solved' ? [{ at: 12.9 }, { at: 15.8 + 3.1, notes: [43, 50, 55, 58], vol: 0.14 }, { at: 15.8 + 8.2, notes: [50, 57, 62, 66] }, { at: 24.1 + FBW, notes: [50, 57, 62, 66] }, { at: 27.7 + FBW, notes: [50, 54, 57, 62] }] : [{ at: 3.5 }, { at: (kind === 'escaped' ? 6.8 : 7.6) + 3.1, notes: [43, 50, 55, 58], vol: 0.14 }] });
   const scene = (D) => {
     openShot(D, 0);
     if (kind === 'solved') {
       arriveShot(D, 3.6);
       eyesShot(D, 11.2, 'detective');
       evidenceShot(D, 12.8, murder, false);
-      flashbackShot(D, 15.8, murder);
-      accuseShot(D, 15.8 + FB, murderer, music);
-      runShot(D, 20.4 + FB);
-      cuffShot(D, 23.4 + FB, murderer);
-      paperShot(D, 27.6 + FB, `구룡 살인사건<br>범인 체포`, `범인은 ${esc(murderer)} — ${esc(K.CARD[murder.means].name)}, 그리고 ${esc(K.CARD[murder.clue].name)}`, `${solver ? `${esc(solver)} 수사관의 한 수가 사건을 끝냈다. ` : ''}비 내리는 밤, 네온 아래 골목에서 벌어진 사건은 법의학자의 말없는 증언과 수사관들의 추리로 막을 내렸다. 범인은 끝까지 태연했지만 증거는 거짓말을 하지 않았다.`);
+      flashbackShot(D, 15.8, murder, { watcher: solver ? `정답을 맞힌 ${solver}` : '목격자' });
+      accuseShot(D, 15.8 + FBW, murderer, music);
+      runShot(D, 20.4 + FBW);
+      cuffShot(D, 23.4 + FBW, murderer);
+      paperShot(D, 27.6 + FBW, `구룡 살인사건<br>범인 체포`, `범인은 ${esc(murderer)} — ${esc(K.CARD[murder.means].name)}, 그리고 ${esc(K.CARD[murder.clue].name)}`, `${solver ? `${esc(solver)} 수사관의 한 수가 사건을 끝냈다. ` : ''}비 내리는 밤, 네온 아래 골목에서 벌어진 사건은 법의학자의 말없는 증언과 수사관들의 추리로 막을 내렸다. 범인은 끝까지 태연했지만 증거는 거짓말을 하지 않았다.`);
     } else if (kind === 'escaped') {
       evidenceShot(D, 3.4, murder, true);
       flashbackShot(D, 6.8, murder);
@@ -946,9 +993,9 @@ export function playEnding(host, { kind, murder, murderer, solver, sound }) {
       emptyAlleyShot(D, 13.2 + FB, murder);
     } else {
       boothShot(D, 3.4);
-      flashbackShot(D, 7.6, murder);
-      eyesShot(D, 7.6 + FB, 'murderer');
-      receiverShot(D, 9.2 + FB);
+      flashbackShot(D, 7.6, murder, { watcher: witness ? `목격자 ${witness}` : '목격자', outcome: 'witness' });
+      eyesShot(D, 7.6 + FBW, 'murderer');
+      receiverShot(D, 9.2 + FBW);
     }
   };
   const sub = kind === 'solved' ? `범인: ${murderer}` : `범인은 ${murderer} 였다`;
