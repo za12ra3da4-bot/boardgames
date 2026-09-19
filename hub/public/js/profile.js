@@ -1,5 +1,5 @@
 /* 내 캐릭터 꾸미기 (옷 입히기) */
-import { avatarSvg, bgSvg, PARTS, EMOTES } from '/common/avatar.js';
+import { avatarSvg, partSvg, bgSvg, PARTS, EMOTES } from '/common/avatar.js';
 import { getMe } from '/common/me.js';
 
 const $ = (s) => document.querySelector(s);
@@ -61,11 +61,13 @@ function paintShelf() {
     return;
   }
   $('#shelf').innerHTML = list.map((o) => {
-    const av = { ...st.av, [t.key]: o.id, ...(t.noHat ? { hat: 'none' } : {}) };
+    const av = { ...st.av, [t.key]: o.id };
     let pic;
     // 50개씩 그리니 작은 그림은 손떨림 효과 없이 가볍게
     const swatch = o.fill ? `<i class="swatch" style="background:${o.fill}"></i>` : (t.key.endsWith('Color') ? '<i class="swatch auto"></i>' : '');
-    if (t.crop === 'bg') pic = avatarSvg(av, { crop: 'head', bg: true, flat: true });
+    // 부위 탭은 그 부위만 보여 준다 (피부 · 배경은 얼굴 전체가 필요)
+    if (!['skin', 'bg'].includes(t.key)) pic = partSvg(t.key, av);
+    else if (t.crop === 'bg') pic = avatarSvg(av, { crop: 'head', bg: true, flat: true });
     else if (t.crop === 'full') pic = avatarSvg(av, { flat: true });
     else pic = avatarSvg(av, { crop: t.crop, expr: t.expr, flat: true });
     return `<button type="button" class="item ${t.crop === 'full' ? 'full' : ''} ${st.av[t.key] === o.id ? 'on' : ''}" data-part="${t.key}" data-id="${o.id}">${pic}<span>${swatch}${esc(o.name)}</span></button>`;

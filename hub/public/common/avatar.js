@@ -234,6 +234,62 @@ ${back}${shadow}<g ${o.flat ? '' : `filter="url(#${uid})"`}><g class="av-all">${
     + `</g></g>${fx(emote)}</g></svg>`;
 }
 
+/**
+ * 고르는 칸 미리보기: 그 부위만 (전체 캐릭터가 나오면 헷갈리니까)
+ * key: hair · eyes · mouth · hat · acc · outfit (… 색 탭도 같은 부위)
+ */
+const FACE = 'M54 88 C54 52 76 40 100 40 C124 40 146 52 146 88 C146 118 126 136 100 136 C74 136 54 118 54 88Z';
+const ghost = (d) => `<path d="${d}" fill="#00000008" stroke="#2a1d14" stroke-width="1.6" stroke-dasharray="4 4" opacity=".45"/>`;
+export function partSvg(key, av) {
+  av = P.clean(av);
+  const skin = find(P.skin, av.skin);
+  const hc = find(P.hairColor, av.hairColor);
+  const cloth = find(P.cloth, av.cloth);
+  const uid = `pv${++uidSeq}`;
+  let vb;
+  let inner;
+  const part = key.replace(/Color$/, '').replace(/^cloth$|^pattern$/, 'outfit');
+  switch (part) {
+    case 'eyes': {
+      const E = find(P.eyes, av.eyes);
+      vb = '62 62 76 44';
+      inner = `<rect x="0" y="0" width="200" height="200" fill="${skin.fill}"/>${brow(E.brow)}${eyes(E.shape, find(P.eyeColor, av.eyeColor).fill)}`;
+      break;
+    }
+    case 'mouth': {
+      const M = find(P.mouth, av.mouth);
+      vb = '78 82 44 46';
+      inner = `<rect x="0" y="0" width="200" height="200" fill="${skin.fill}"/>${nose(M.nose, skin)}${mouthOf(M.shape)}`;
+      break;
+    }
+    case 'hair': {
+      const H = find(P.hair, av.hair);
+      vb = '28 -8 144 184';
+      inner = hairBack(H.back, hc) + F('M56 84 C44 80 42 102 56 104Z', skin.fill, 2.6) + F('M144 84 C156 80 158 102 144 104Z', skin.fill, 2.6) + F(FACE, skin.fill) + hairFront(H.front, hc);
+      break;
+    }
+    case 'hat':
+      vb = '6 -30 188 150';
+      inner = ghost(FACE) + (HATS[av.hat] || HATS.none)(find(P.hatColor, av.hatColor), hc);
+      break;
+    case 'acc': {
+      const A = ACCS[av.acc] || ACCS.none;
+      vb = A.layer === 'neck' ? '50 100 100 100' : '40 50 120 100';
+      inner = ghost(FACE) + ghost(TORSO) + A.f(find(P.accColor, av.accColor), hc);
+      break;
+    }
+    default: {
+      const o = (OUTFITS[av.outfit] || OUTFITS.tee)(cloth, { clip: `${uid}c`, skin });
+      const pat = av.pattern !== 'plain' ? `${uid}p` : '';
+      const { armL, armR } = arms(o, skin, cloth, '');
+      vb = '24 118 152 138';
+      inner = `<defs><clipPath id="${uid}c"><path d="${TORSO}"/></clipPath>${pat ? patternDef(pat, av.pattern) : ''}</defs>`
+        + legs(o) + (o.back || '') + o.t + (pat ? `<path d="${TORSO}" fill="url(#${pat})"/>` : '') + armL + armR;
+    }
+  }
+  return `<svg class="av av-crop av-part" viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${inner}</svg>`;
+}
+
 export const EMOTES = P.EMOTES;
 
 /* ───── 방 사람 얼굴 (로그인한 사람은 꾸민 캐릭터, 손님 · AI 는 아이디마다 정해진 캐릭터) */
