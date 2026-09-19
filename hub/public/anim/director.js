@@ -157,7 +157,7 @@ export function director(stage, sound) {
   const tick = (fn) => { const t0 = performance.now() / 1000; ticks.push((s) => fn(performance.now() / 1000 - t0, s)); };
   const cut0 = cut;
   const cut2 = (html, cls) => { ticks = []; return cut0(html, cls); };
-  return { at, cut: cut2, add, anim, shake, flash, impact, sound, world, tick, stop: () => { timers.forEach(clearTimeout); tickStop(); } };
+  return { at, cut: cut2, add, anim, shake, flash, impact, sound, world, tick, root: () => current, stop: () => { timers.forEach(clearTimeout); tickStop(); } };
 }
 
 

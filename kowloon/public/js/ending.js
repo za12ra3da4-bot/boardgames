@@ -2,8 +2,11 @@
 import { makeHuman, motion, HUMAN_POSE, runPose } from '/anim/rig2d.js';
 import { rnd, f, svg, playFilm } from '/anim/director.js';
 import { cardSvg } from './art.js';
+import { POSE, gait, mixPose, ease } from '/anim/puppet.js';
+import { stage, camPath, rain, say, cast, score, CINE_CSS } from '/anim/cine.js';
 
 const K = window.KOWLOON;
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 /* ═════════ 배경: 구룡 골목 ═════════ */
 const NEON = [['酒', '#ff3a5a'], ['藥', '#3af0e0'], ['當', '#ffd23a'], ['麻雀', '#ff5ae0'], ['茶', '#5aff8a'], ['旅館', '#ff8a3a']];
@@ -176,14 +179,75 @@ function chaseShot(D, t0) {
     }, 2000);
   });
 }
-function cuffShot(D, t0) {
+/** 체포 ① 손목 초근접: 등 뒤로 모은 두 손목에 수갑이 감기며 딸깍 · ② 뒤로 빠지며 형사가 범인을 붙잡는다 */
+function cuffShot(D, t0, murderer) {
   D.at(t0, () => {
-    const cuff = (x, rot) => `<g transform="translate(${x} 470) rotate(${rot})"><circle r="92" fill="none" stroke="#1a1c22" stroke-width="30"/><circle r="92" fill="none" stroke="#c8ccd6" stroke-width="18"/><path d="M-60 -70 A92 92 0 0 1 60 -70" stroke="#eef0f6" stroke-width="5" fill="none"/></g>`;
-    D.cut(STYLE + svg(`<rect width="1600" height="900" fill="#08070c"/>
-      <path d="M-100 560 Q400 520 760 500 L760 640 Q400 660 -100 700Z" fill="#6a4a3a"/><path d="M-100 560 Q400 520 760 500" stroke="#8a6a5a" stroke-width="6" fill="none"/>
-      <g class="cuffA">${cuff(700, 0)}</g><path d="M792 470 h120" stroke="#c8ccd6" stroke-width="14" stroke-dasharray="20 8"/><g class="cuffB">${cuff(1010, 0)}</g>`) + '<div class="kw-sirens"></div>' + RAIN);
-    D.anim('.cuffA', [{ transform: 'rotate(-60deg)', transformOrigin: '700px 470px' }, { transform: 'rotate(0deg)', transformOrigin: '700px 470px' }], { duration: 380, delay: 500, easing: 'cubic-bezier(.3,1.8,.5,1)' });
-    setTimeout(() => { D.sound.cuffs && D.sound.cuffs(); D.shake(8, 240); D.flash('#ffffff', 120); }, 870);
+    // 등 뒤로 겹친 두 팔 (왼쪽 팔은 위, 오른쪽 팔은 아래로 겹친다). 손목에 수갑 고리가 앞뒤로 감긴다.
+    //  왼팔: 소매(왼쪽 끝→x 620) · 셔츠 소맷부리 620~668 · 손목 668~720 · 주먹 720~840
+    const armL = `<path d="M-60 400 C200 410 460 420 620 438 L620 548 C460 560 200 600 -60 620Z" fill="url(#sleeve)" stroke="#050404" stroke-width="5"/>
+      <path d="M60 470 C260 474 440 482 600 490" stroke="#3a3a46" stroke-width="3" fill="none" opacity=".6"/>
+      <path d="M620 436 L668 440 L668 548 L620 552Z" fill="#e8e4dc" stroke="#050404" stroke-width="4"/>
+      <path d="M666 452 C690 450 712 452 726 456 L726 536 C712 542 690 544 666 542Z" fill="url(#skinA)" stroke="#050404" stroke-width="4"/>
+      <path d="M720 448 C770 436 820 444 846 470 C862 488 860 520 842 536 C816 556 770 556 722 540Z" fill="url(#skinA)" stroke="#050404" stroke-width="4"/>
+      <path d="M780 452 C800 470 804 500 796 528 M810 456 C826 474 828 502 820 526" stroke="#8a5040" stroke-width="3" fill="none"/>`;
+    //  오른팔: 거울 대칭, 조금 아래 (손이 왼손 아래로 겹친다)
+    const armR = `<g transform="translate(1600 110) scale(-1 1)">${armL}</g>`;
+    const ring = (cx, cy, cls) => ({
+      back: `<ellipse cx="${cx}" cy="${cy}" rx="24" ry="62" fill="none" stroke="#4a4e58" stroke-width="14"/>`,
+      front: `<g class="${cls}"><path class="arc" d="M${cx} ${cy - 62} A24 62 0 0 1 ${cx} ${cy + 62}" fill="none" stroke="#14161c" stroke-width="20" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/>
+        <path class="arc" d="M${cx} ${cy - 62} A24 62 0 0 1 ${cx} ${cy + 62}" fill="none" stroke="#d8dce6" stroke-width="11" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/>
+        <path class="arc" d="M${cx + 6} ${cy - 50} A20 50 0 0 1 ${cx + 20} ${cy - 8}" fill="none" stroke="#fff" stroke-width="3.4" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100"/></g>
+        <rect x="${cx - 13}" y="${cy + 50}" width="26" height="30" rx="5" fill="#9aa0ac" stroke="#14161c" stroke-width="4"/><circle cx="${cx}" cy="${cy + 65}" r="4.6" fill="#2a2c34"/>`,
+    });
+    const rL = ring(694, 494, 'cfA');
+    const rR = ring(906, 604, 'cfB');
+    D.cut(STYLE + CINE_CSS + svg(`<defs>
+        <linearGradient id="sleeve" x2="0" y2="1"><stop offset="0" stop-color="#34343e"/><stop offset=".5" stop-color="#1c1c24"/><stop offset="1" stop-color="#0a0a0e"/></linearGradient>
+        <linearGradient id="skinA" x2="0" y2="1"><stop offset="0" stop-color="#e8b894"/><stop offset="1" stop-color="#8a5a40"/></linearGradient>
+        <linearGradient id="backG" x2="0" y2="1"><stop offset="0" stop-color="#22222c"/><stop offset="1" stop-color="#0a0a10"/></linearGradient></defs>
+      <rect width="1600" height="900" fill="url(#backG)"/>
+      <path d="M800 0V900" stroke="#050508" stroke-width="8" opacity=".6"/><path d="M0 250 Q800 300 1600 250" stroke="#2a2a36" stroke-width="12" fill="none"/>
+      <path d="M200 300 L180 360 M1400 300 L1420 360" stroke="#050508" stroke-width="5" opacity=".5"/>
+      ${rL.back}${rR.back}${armR}${armL}
+      <path d="M694 574 Q740 640 800 628 Q860 616 906 684" fill="none" stroke="#9aa0ac" stroke-width="11" stroke-dasharray="14 6"/>
+      ${rR.front}${rL.front}`) + '<div class="kw-sirens"></div>' + RAIN);
+    // 형사의 손이 들어와 한쪽씩 채운다
+    const close = (sel, at) => setTimeout(() => {
+      D.root().querySelectorAll(`${sel} .arc`).forEach((p) => p.animate([{ strokeDashoffset: 100 }, { strokeDashoffset: 0 }], { duration: 260, fill: 'forwards', easing: 'cubic-bezier(.5,0,.2,1)' }));
+      setTimeout(() => { D.sound.cuffs && D.sound.cuffs(); D.shake(6, 200); D.flash('#ffffff', 90); }, 240);
+    }, at);
+    close('.cfB', 500);
+    close('.cfA', 1150);
+    D.anim('.an-shot > svg', [{ transform: 'scale(1.12)' }, { transform: 'scale(1.02)' }], { duration: 2400, easing: 'ease-out' });
+  });
+  // ② 뒤로 빠진 장면: 형사가 수갑 찬 범인의 어깨를 잡고, 경찰차 불빛이 번쩍인다
+  D.at(t0 + 2.2, () => {
+    D.cut('');
+    const { S, shot } = scene(D, '<div class="kw-sirens" style="z-index:5"></div>');
+    S.layer(0.3, BG(svg(alley({ seed: 31, fog: 0.3 }))));
+    const L = S.layer(1, '');
+    const C = cast(L.el);
+    const mur = C.add({ look: 'murderer', x: 900, y: 840, scale: 1.45, rim: '#ff3a5a', flip: true, rimSide: -1 });
+    const det = C.add({ look: 'detective', x: 1040, y: 845, scale: 1.45, rim: '#46f2e4', flip: true, rimSide: -1 });
+    const cop = C.add({ look: 'cop', x: 560, y: 830, scale: 1.3, rim: '#3a8aff' });
+    mur.brow('angry');
+    mur.mouth('grit');
+    const rn = rain(shot, { groundY: 0.8 });
+    const cam = camPath(S.cam, [[0, { x: 900, y: 460, z: 1.5 }], [2.2, { x: 860, y: 470, z: 1.15 }]]);
+    let last = 0;
+    D.tick((s) => {
+      const dt = s - last;
+      last = s;
+      cam(s);
+      mur.set({ ...POSE.stand, ...POSE.cuffed, head: 10 + Math.sin(s * 2) * 3, x: 900 });
+      det.set({ ...POSE.stand, upperF: -52, foreF: -20, handF: 0, head: 6, x: 1040 });
+      cop.set({ ...POSE.stand, upperF: -30, foreF: -40, x: 560 });
+      det.talking = s > 0.4 && s < 2;
+      C.update(dt);
+      S.render(s);
+      rn(dt);
+    });
+    setTimeout(() => say(shot, '진 형사', `${esc(murderer)}, 당신을 살인 혐의로 체포한다.`, 1.7), 350);
   });
 }
 function paperShot(D, t0, head, sub, body) {
@@ -270,8 +334,123 @@ function receiverShot(D, t0) {
   });
 }
 
+/* ═════════ 인물 장면 (컷아웃 인형 · 카메라 · 대사) ═════════ */
+const BG = (svgHtml, wide = false) => `<div class="cn-bg" style="position:absolute;left:0;top:0;display:flex">${svgHtml}${wide ? svgHtml : ''}</div>`;
+const BGCSS = '<style>.cn-bg > svg { width:1600px; height:900px; display:block; flex:none; }</style>';
+/** 한 컷 공통: 무대 + 비 + 매 프레임 갱신 */
+function scene(D, html = '') {
+  D.add(STYLE + CINE_CSS + BGCSS + html);
+  const shot = D.root();
+  const S = stage(shot);
+  return { S, shot };
+}
+
+/** 형사 둘이 골목으로 걸어 들어와 분필 윤곽 앞에 쭈그려 앉는다 */
+function arriveShot(D, t0) {
+  D.at(t0, () => {
+    D.cut('');
+    const { S, shot } = scene(D);
+    S.layer(0.3, BG(svg(alley({ seed: 9, fog: 0.3 }))));
+    const ground = S.layer(1, `<svg viewBox="0 0 1600 900" style="position:absolute;inset:0;width:1600px;height:900px"><g transform="translate(980 800) scale(1 .35)" fill="none" stroke="#f4f4f0" stroke-width="7" stroke-dasharray="18 10" opacity=".8"><path d="M-40 -170 a40 40 0 1 1 80 0 a40 40 0 1 1 -80 0 M-30 -130 L-60 -20 L-150 60 M30 -130 L90 -40 L170 -60 M-40 -20 L-10 120 L-60 240 M-10 -10 L60 110 L40 240"/></g></svg>`);
+    const C = cast(ground.el);
+    const det = C.add({ look: 'detective', x: 120, y: 820, scale: 1.25, rim: '#46f2e4' });
+    const wom = C.add({ look: 'woman', x: -60, y: 830, scale: 1.2, rim: '#ff3a5a', rimSide: -1 });
+    const rn = rain(shot, { groundY: 0.78 });
+    const cam = camPath(S.cam, [[0, { x: 600, y: 470, z: 1.05 }], [2.6, { x: 820, y: 480, z: 1.12 }], [5.2, { x: 900, y: 500, z: 1.3 }]]);
+    let last = 0;
+    D.tick((s) => {
+      const dt = s - last;
+      last = s;
+      cam(s);
+      // 걸어 들어온다 → 형사는 멈춰서 쭈그려 앉고, 여자는 턱을 괸다
+      if (s < 2.4) det.set({ ...POSE.stand, ...gait((s * 1.1) % 1), x: 120 + s * 280 });
+      else { const k = ease.inOut(Math.min(1, (s - 2.4) / 0.7)); det.set({ ...mixPose({ ...POSE.stand, hipY: 0 }, { ...POSE.stand, ...POSE.crouch, ...POSE.lookDown }, k), x: 792 }); }
+      if (s < 2.9) wom.set({ ...POSE.stand, ...gait((s * 1.1 + 0.4) % 1), x: -60 + s * 250 });
+      else { const k = ease.inOut(Math.min(1, (s - 2.9) / 0.6)); wom.set({ ...mixPose(POSE.stand, { ...POSE.stand, ...POSE.chinHand }, k), x: 665 }); }
+      det.talking = s > 3.2 && s < 4.6;
+      wom.talking = s > 5.2;
+      C.update(dt);
+      S.render(s);
+      rn(dt);
+    });
+    setTimeout(() => say(shot, '진 형사', '비 때문에 흔적이 다 씻겨 나갔군…', 1.9), 3200);
+    setTimeout(() => say(shot, '메이 탐정', '아니요. 법의학자가 다 말해 줬어요.', 2.2, '#ff7a8a'), 5300);
+  });
+}
+
+/** 범인 지목: 형사가 손가락으로 가리키고, 범인은 웃다가 달아난다 */
+function accuseShot(D, t0, murderer, music) {
+  D.at(t0, () => {
+    D.cut('');
+    const { S, shot } = scene(D);
+    S.layer(0.3, BG(svg(alley({ seed: 13, fog: 0.35 }))));
+    const L = S.layer(1, '');
+    const C = cast(L.el);
+    const det = C.add({ look: 'detective', x: 420, y: 830, scale: 1.4, rim: '#46f2e4' });
+    const mur = C.add({ look: 'murderer', x: 1180, y: 830, scale: 1.4, rim: '#ff3a5a', flip: true, rimSide: -1 });
+    mur.brow('sly');
+    mur.mouth('smirk');
+    const rn = rain(shot, { groundY: 0.8 });
+    const cam = camPath(S.cam, [[0, { x: 800, y: 470, z: 1 }], [1.6, { x: 560, y: 440, z: 1.35 }], [2.8, { x: 1080, y: 430, z: 1.5 }], [4.2, { x: 1000, y: 460, z: 1.1 }]]);
+    let last = 0;
+    let fled = false;
+    D.tick((s) => {
+      const dt = s - last;
+      last = s;
+      cam(s);
+      const pk = ease.back(Math.min(1, s / 0.5));
+      det.set({ ...mixPose(POSE.stand, { ...POSE.stand, ...POSE.point }, pk), x: 420 });
+      det.talking = s > 0.5 && s < 2.4;
+      if (s < 3.2) {
+        mur.set({ ...POSE.stand, ...POSE.pockets, head: Math.sin(s * 3) * 2, x: 1180 });
+        if (s > 2.4 && s < 3.2) { mur.brow('angry'); mur.mouth('grit'); }
+      } else {
+        if (!fled) { fled = true; mur.set({ flip: false }); S.cam.shake = 8; setTimeout(() => { S.cam.shake = 0; }, 350); music.hit([50, 56, 62, 65]); D.sound.alarm && D.sound.alarm(); }
+        mur.set({ ...POSE.stand, ...gait(((s - 3.2) * 1.8) % 1, true), x: 1180 + (s - 3.2) * 520, flip: false });
+      }
+      C.update(dt);
+      S.render(s);
+      rn(dt);
+    });
+    setTimeout(() => say(shot, '진 형사', `범인은 당신이야, ${esc(murderer)}.`, 1.9), 500);
+    setTimeout(() => say(shot, murderer, '…증거라도 있나?', 1.1, '#ff7a8a'), 2400);
+  });
+}
+
+/** 추격: 카메라가 범인을 따라 달리고, 앞에서 경찰이 막아선다 */
+function runShot(D, t0) {
+  D.at(t0, () => {
+    D.cut('');
+    const { S, shot } = scene(D);
+    S.layer(0.45, BG(svg(alley({ seed: 21, fog: 0.3 })), true));
+    const L = S.layer(1, '');
+    const C = cast(L.el);
+    const mur = C.add({ look: 'murderer', x: 300, y: 830, scale: 1.3, rim: '#ff3a5a' });
+    const det = C.add({ look: 'detective', x: 20, y: 840, scale: 1.3, rim: '#46f2e4' });
+    const cop = C.add({ look: 'cop', x: 1900, y: 830, scale: 1.35, rim: '#3a8aff', flip: true, rimSide: -1 });
+    const rn = rain(shot, { groundY: 0.8, wind: -5 });
+    let last = 0;
+    D.tick((s) => {
+      const dt = s - last;
+      last = s;
+      const mx = s < 2.6 ? 300 + s * 480 : 1548 + Math.max(0, 0.3 - (s - 2.6)) * 60;
+      S.cam.x = Math.min(1500, 700 + s * 380);
+      S.cam.z = 1.05;
+      S.cam.rot = Math.sin(s * 9) * 0.6;
+      if (s < 2.6) mur.set({ ...POSE.stand, ...gait((s * 1.9) % 1, true), x: mx });
+      else mur.set({ ...mixPose({ ...POSE.stand, ...gait(0.25, true) }, { ...POSE.stand, ...POSE.armsUp, chest: -10 }, ease.out(Math.min(1, (s - 2.6) / 0.4))), x: 1548 });
+      det.set({ ...POSE.stand, ...gait((s * 1.9 + 0.5) % 1, true), x: Math.min(1330, 20 + s * 470) });
+      cop.set({ ...POSE.stand, ...(s > 2.2 ? POSE.point : {}), x: Math.max(1760, 1900 - s * 80) });
+      C.update(dt);
+      S.render(s);
+      rn(dt);
+    });
+    setTimeout(() => { D.sound.siren && D.sound.siren(); say(shot, '경찰', '꼼짝 마! 경찰이다!', 1.4, '#8ab8ff'); }, 2300);
+  });
+}
+
 const FILMS = {
-  solved: { length: 19.5, titleAt: 15.6, title: '사건 해결' },
+  solved: { length: 32.5, titleAt: 28.4, title: '사건 해결' },
   escaped: { length: 18.5, titleAt: 14.8, title: '미제 사건' },
   witness: { length: 14.5, titleAt: 10.6, title: '목격자는 말이 없다' },
 };
@@ -282,15 +461,18 @@ const FILMS = {
  */
 export function playEnding(host, { kind, murder, murderer, solver, sound }) {
   const F = FILMS[kind];
-  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const muted = !!(sound && sound.muted);
+  const music = score({ length: F.length, muted, bpm: kind === 'solved' ? 96 : 84, cues: kind === 'solved' ? [{ at: 12.9 }, { at: 24.1, notes: [50, 57, 62, 66] }, { at: 27.7, notes: [50, 54, 57, 62] }] : [{ at: 3.5 }] });
   const scene = (D) => {
     openShot(D, 0);
     if (kind === 'solved') {
-      eyesShot(D, 3.4, 'detective');
-      evidenceShot(D, 5.2, murder, false);
-      chaseShot(D, 8.4);
-      cuffShot(D, 12.2);
-      paperShot(D, 14.4, `구룡 살인사건<br>범인 체포`, `범인은 ${esc(murderer)} — ${esc(K.CARD[murder.means].name)}, 그리고 ${esc(K.CARD[murder.clue].name)}`, `${solver ? `${esc(solver)} 수사관의 한 수가 사건을 끝냈다. ` : ''}비 내리는 밤, 네온 아래 골목에서 벌어진 사건은 법의학자의 말없는 증언과 수사관들의 추리로 막을 내렸다. 범인은 끝까지 태연했지만 증거는 거짓말을 하지 않았다.`);
+      arriveShot(D, 3.6);
+      eyesShot(D, 11.2, 'detective');
+      evidenceShot(D, 12.8, murder, false);
+      accuseShot(D, 15.8, murderer, music);
+      runShot(D, 20.4);
+      cuffShot(D, 23.4, murderer);
+      paperShot(D, 27.6, `구룡 살인사건<br>범인 체포`, `범인은 ${esc(murderer)} — ${esc(K.CARD[murder.means].name)}, 그리고 ${esc(K.CARD[murder.clue].name)}`, `${solver ? `${esc(solver)} 수사관의 한 수가 사건을 끝냈다. ` : ''}비 내리는 밤, 네온 아래 골목에서 벌어진 사건은 법의학자의 말없는 증언과 수사관들의 추리로 막을 내렸다. 범인은 끝까지 태연했지만 증거는 거짓말을 하지 않았다.`);
     } else if (kind === 'escaped') {
       evidenceShot(D, 3.4, murder, true);
       walkAwayShot(D, 6.8);
@@ -303,5 +485,5 @@ export function playEnding(host, { kind, murder, murderer, solver, sound }) {
     }
   };
   const sub = kind === 'solved' ? `범인: ${murderer}` : `범인은 ${murderer} 였다`;
-  return playFilm(host, { scene, length: F.length, title: F.title, titleAt: F.titleAt, sub, sound: sound || {} });
+  return playFilm(host, { scene, length: F.length, title: F.title, titleAt: F.titleAt, sub, sound: sound || {} }).finally(() => music.stop());
 }
