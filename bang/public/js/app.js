@@ -4,6 +4,7 @@ import { cardHtml, zoomCardHtml, chCardHtml, boardHtml, esc, ic } from './cards.
 import { playEnding } from './ending.js';
 import { bindName } from '/common/me.js';
 import { mountEmotes } from '/common/emote.js';
+import { roomKeeper } from '/common/keep.js';
 import { faceChip } from '/common/avatar.js';
 
 const B = window.BANG;
@@ -53,7 +54,10 @@ const S = {
 /* ═════════════════════════ 소켓 ═════════════════════════ */
 
 // 사이트 하나에 게임이 여러 개라 네임스페이스로 나눈다
-const socket = io('/bang', { auth: { token: token() }, transports: ['websocket', 'polling'] });
+// 서버가 다시 켜져도 하던 게임이 이어지게: 서버가 맡긴 방 사본을 접속할 때 같이 보낸다
+const keeper = roomKeeper('bang');
+const socket = io('/bang', { auth: (cb) => cb({ token: token(), save: keeper.get() }), transports: ['websocket', 'polling'] });
+keeper.attach(socket);
 const conn = $('#conn');
 let connLost = null;
 

@@ -2,6 +2,7 @@ import { Board } from './board3d.js';
 import { rulesPanelHtml, rulesModalHtml, currentStep } from './rules.js';
 import { bindName } from '/common/me.js';
 import { mountEmotes } from '/common/emote.js';
+import { roomKeeper } from '/common/keep.js';
 import { faceChip } from '/common/avatar.js';
 
 const C = window.CLUE;
@@ -54,7 +55,11 @@ const S = {
   seq: 0, seqGid: null, lastLogN: -1, handKey: '', diceTurn: null, overSeen: {},
 };
 // 사이트 하나에 게임이 여러 개라 네임스페이스로 나눈다
-const socket = io('/clue', { auth: { token: await claimToken() }, reconnectionDelay: 800, reconnectionDelayMax: 4000 });
+// 서버가 다시 켜져도 하던 게임이 이어지게: 서버가 맡긴 방 사본을 접속할 때 같이 보낸다
+const keeper = roomKeeper('clue');
+const clueToken = await claimToken();
+const socket = io('/clue', { auth: (cb) => cb({ token: clueToken, save: keeper.get() }), reconnectionDelay: 800, reconnectionDelayMax: 4000 });
+keeper.attach(socket);
 
 const player = (pid) => (S.game ? S.game.players.find((p) => p.pid === pid) : null);
 const pname = (pid) => {

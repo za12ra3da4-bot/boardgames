@@ -65,7 +65,9 @@ for (const sig of ['SIGINT', 'SIGTERM']) {
  *   getNsp()    socket.io 네임스페이스
  */
 function createSaver(o) {
-  const file = path.join(DATA_DIR, `rooms-${o.id}.json`);
+  // 같은 컴퓨터에서 서버를 여러 개(포트별로) 켜도 저장 파일이 섞이지 않게
+  const port = String(process.env.PORT || process.argv[2] || 3000).replace(/\D/g, '');
+  const file = path.join(DATA_DIR, `rooms-${o.id}-${port}.json`);
   const dirty = new Set();
 
   /** 방 하나 → 저장본 (게임 엔진이 지금 저장할 수 없으면 직전 저장본을 쓴다) */

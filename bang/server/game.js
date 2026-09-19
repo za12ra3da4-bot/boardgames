@@ -10,6 +10,7 @@ const T_OFFLINE = 5_000;
 const T_SETUP = 30_000;   // 캐릭터 고르는 시간
 const LOG_MAX = 220;
 
+const { dehydrate, rebuild } = require('../../hub/persist');
 let PACE = 1;
 const rand = (n) => crypto.randomInt(n);
 const botDelay = (type) => (type === 'play' ? 850 + rand(650) : 550 + rand(500));
@@ -226,6 +227,8 @@ class Game {
 
   ask(p, type, data = {}, ms = T_RESP) {
     if (this.dead) return Promise.reject(new Abort());
+    // 카드 낼 차례 = 진행 중인 효과가 없는 안전한 순간 → 여기서 저장해 둔다
+    if (type === 'play') this.safeSnap = { ...dehydrate(this, ['prompt', 'setupTimer', 'safeSnap']), resumeAt: 'play' };
     return new Promise((resolve, reject) => {
       this.prompt = { id: ++this.promptSeq, pid: p.pid, type, data, ms, resolve, reject, timer: null, deadline: null, online: null };
       this.armPrompt();
@@ -304,7 +307,7 @@ class Game {
 
   // ───────────────────────── 게임 진행
 
-  async run() {
+  async run(resumeAt) {
     this.changed();
     try {
       for (;;) {
@@ -312,7 +315,10 @@ class Game {
         const p = this.players[this.turnIdx];
         if (p.alive) {
           try {
-            await this.takeTurn(p);
+            if (resumeAt === 'play') {
+              resumeAt = null;
+              await this.playStage(p);
+            } else await this.takeTurn(p);
           } catch (e) {
             if (e instanceof GameOver || e instanceof Abort) throw e;
             console.error('[차례 진행 중 오류 - 다음 사람으로 넘어갑니다]', e);
@@ -374,6 +380,11 @@ class Game {
 
     this.turn.stage = 'draw';
     await this.drawPhase(p);
+    await this.playStage(p);
+  }
+
+  /** 카드 내기 → 손패 정리 (되살릴 때는 여기서부터 이어 한다) */
+  async playStage(p) {
     this.turn.stage = 'play';
     this.changed();
     while (p.alive) {
@@ -1139,5 +1150,30 @@ class Game {
 }
 
 Game.setPace = (x) => { PACE = x; };
+
+/* ── 서버가 다시 켜져도 이어 하기 */
+Game.prototype.snapshot = function snapshot() {
+  if (this.phase === 'setup') return { ...dehydrate(this, ['prompt', 'setupTimer', 'safeSnap']), resumeAt: 'setup' };
+  if (this.over) return { ...dehydrate(this, ['prompt', 'setupTimer', 'safeSnap']), resumeAt: 'over' };
+  return this.safeSnap || null;
+};
+Game.restore = function restore(data, hooks) {
+  const g = rebuild(Game, data);
+  const at = g.resumeAt;
+  delete g.resumeAt;
+  g.hooks = hooks;
+  g.prompt = null;
+  g.dead = false;
+  g.safeSnap = null;
+  if (at === 'setup') {
+    const left = Math.max(4000, (g.setupDeadline || 0) - Date.now());
+    g.setupDeadline = Date.now() + left;
+    g.setupTimer = setTimeout(() => g.finishSetup(), left);
+    for (const p of g.players) if (p.isBot && !p.char) setTimeout(() => g.pickChar(p.pid, g.botPickChar(p)), 600 + rand(900));
+  } else if (at === 'play') {
+    setImmediate(() => g.run('play'));
+  }
+  return g;
+};
 
 module.exports = Game;

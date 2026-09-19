@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const G = require('../public/shared/gem');
 
 const { COLORS, CARD, NOBLE } = G;
+const { dehydrate, rebuild } = require('../../hub/persist');
 let PACE = 1;
 const TURN_MS = 90000;
 const DISCARD_MS = 30000;
@@ -314,6 +315,17 @@ class Game {
   destroy() {
     this.dead = true;
     clearTimeout(this.timer);
+  }
+
+  /* ── 서버가 다시 켜져도 이어 하기 */
+  snapshot() { return dehydrate(this, ['timer']); }
+  static restore(data, hooks) {
+    const g = rebuild(Game, data);
+    g.hooks = hooks;
+    g.timer = null;
+    g.dead = false;
+    g.arm();
+    return g;
   }
 }
 

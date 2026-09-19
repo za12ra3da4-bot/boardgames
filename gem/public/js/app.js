@@ -1,5 +1,6 @@
 import { bindName } from '/common/me.js';
 import { mountEmotes } from '/common/emote.js';
+import { roomKeeper } from '/common/keep.js';
 import { memberFace } from '/common/avatar.js';
 // 찬란한 보석상 - 브라우저 쪽 화면과 조작
 const G = window.GEM;
@@ -30,7 +31,10 @@ const chipImg = (c, w) => `<img src="assets/chip/${c}.svg" alt="" style="width:$
 const S = { me: null, room: null, g: null, gameId: null, seenSeq: 0, sel: {}, tab: 'log', unread: 0, chatLog: [], links: [], overShown: false, receivedAt: 0 };
 
 /* ── 소켓 */
-const socket = io('/gem', { auth: { token: token() }, transports: ['websocket', 'polling'] });
+// 서버가 다시 켜져도 하던 게임이 이어지게: 서버가 맡긴 방 사본을 접속할 때 같이 보낸다
+const keeper = roomKeeper('gem');
+const socket = io('/gem', { auth: (cb) => cb({ token: token(), save: keeper.get() }), transports: ['websocket', 'polling'] });
+keeper.attach(socket);
 const conn = $('#conn');
 let connTimer = null;
 socket.on('connect', () => { clearTimeout(connTimer); conn.hidden = true; });

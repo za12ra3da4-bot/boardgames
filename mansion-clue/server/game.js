@@ -7,6 +7,7 @@ const SHOW_MS = 45_000;
 const OFFLINE_TURN_MS = 12_000;
 const LOG_MAX = 150;
 
+const { dehydrate, rebuild } = require('../../hub/persist');
 const rand = (n) => crypto.randomInt(n);
 const pick = (a) => a[rand(a.length)];
 let botDelay = () => 1000 + rand(900);
@@ -575,6 +576,18 @@ class Game {
   destroy() {
     this.clearTimers();
     this.phase = 'over';
+  }
+
+  /* ── 서버가 다시 켜져도 이어 하기 */
+  snapshot() { return this.phase === 'over' && !this.winner ? null : dehydrate(this, ['timer', 'botTimer']); }
+  static restore(data, hooks) {
+    const g = rebuild(Game, data);
+    g.hooks = hooks;
+    g.timer = null;
+    g.botTimer = null;
+    for (const b of g.brains.values()) Object.setPrototypeOf(b, Brain.prototype);
+    g.arm();
+    return g;
   }
 }
 

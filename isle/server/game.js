@@ -10,6 +10,7 @@ const T = { setup: 60_000, roll: 25_000, discard: 45_000, robber: 30_000, steal:
 const T_OFFLINE = 6_000;
 const LOG_MAX = 250;
 
+const { dehydrate, rebuild } = require('../../hub/persist');
 let PACE = 1;
 const rand = (n) => crypto.randomInt(n);
 function shuffle(a) {
@@ -1027,6 +1028,19 @@ class Game {
     this.dead = true;
     clearTimeout(this.timer);
     clearTimeout(this.botTimer);
+  }
+
+  /* ── 서버가 다시 켜져도 이어 하기 (맵 모양은 이름으로 다시 만든다) */
+  snapshot() { return dehydrate(this, ['timer', 'botTimer', 'M']); }
+  static restore(data, hooks) {
+    const g = rebuild(Game, data);
+    g.hooks = hooks;
+    g.M = I.map(g.mapId || 'random');
+    g.timer = null;
+    g.botTimer = null;
+    g.dead = false;
+    g.arm();
+    return g;
   }
 }
 

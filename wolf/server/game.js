@@ -5,6 +5,7 @@ const W = require('../public/shared/wolf');
 
 const { ROLES, NIGHT_ORDER, CENTER } = W;
 
+const { dehydrate, rebuild } = require('../../hub/persist');
 let PACE = 1; // 시뮬레이션에서 0 으로 줄인다
 const T = {
   look: 9000,          // 내 카드 확인
@@ -529,6 +530,27 @@ class Game {
     clearTimeout(this.timer);
     this.botTimers.forEach(clearTimeout);
   }
+  /* ── 서버가 다시 켜져도 이어 하기 */
+  snapshot() { return dehydrate(this, ['timer', 'botTimers']); }
+  static restore(data, hooks) {
+    const g = rebuild(Game, data);
+    g.hooks = hooks;
+    g.timer = null;
+    g.botTimers = [];
+    g.dead = false;
+    const left = Math.max(1500, (g.deadline || 0) - Date.now()) / (PACE || 1);
+    if (g.phase === 'look') g.schedule(left, () => g.startNight());
+    else if (g.phase === 'night') {
+      const role = g.step;
+      g.schedule(left, () => (role === 'dusk' ? g.nextStep() : g.endStep(role)));
+    } else if (g.phase === 'day') g.schedule(left, () => g.startVote());
+    else if (g.phase === 'vote') {
+      for (const p of g.players) if (p.isBot && !p.vote) g.later(1500 + rand(6000), () => g.botVote(p));
+      g.schedule(left, () => g.resolve());
+    }
+    return g;
+  }
+
 }
 
 Game.setPace = (v) => { PACE = v; };
