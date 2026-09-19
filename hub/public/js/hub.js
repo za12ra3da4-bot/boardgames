@@ -130,6 +130,7 @@ const filmBtn = document.getElementById('filmBtn');
 const filmDialog = document.getElementById('filmDialog');
 const FILMS = [
   { game: '황야의 뱅', list: [['무법자 승리', 'bang', 'outlaw'], ['보안관 승리', 'bang', 'sheriff'], ['배신자 승리', 'bang', 'renegade']] },
+  { game: '밤의 저택', list: [['사건 해결', 'clue', 'solved'], ['미제 사건', 'clue', 'unsolved']] },
   { game: '왕궁의 달무티', list: [['대관식', 'dalmuti', 'crown'], ['혁명 후 대관식', 'dalmuti', 'rose']] },
   { game: '구룡 살인사건', list: [['사건 해결', 'kowloon', 'solved'], ['미제 사건', 'kowloon', 'escaped'], ['목격자 제거', 'kowloon', 'witness']] },
   { game: '보름밤의 늑대인간', list: [['늑대인간 승리', 'wolf', 'wolf'], ['마을 승리', 'wolf', 'village'], ['무두장이 승리', 'wolf', 'tanner'], ['모두 패배', 'wolf', 'none']] },
@@ -163,6 +164,10 @@ document.getElementById('filmList').addEventListener('click', async (e) => {
     } else if (id === 'wolf') {
       const m = await import('/wolf/js/cutscene.js');
       await m.playCutscene(host, kind, { sub: '미리 보기', sound });
+    } else if (id === 'clue') {
+      if (!window.CLUE) await new Promise((res) => { const s = document.createElement('script'); s.src = '/clue/shared/data.js'; s.onload = res; s.onerror = res; document.head.appendChild(s); });
+      const m = await import('/clue/js/ending.js');
+      await m.playEnding(host, { kind, solution: { suspect: 'baek', weapon: 'candle', room: 'library' }, solver: '미리 보기', sound: X });
     } else if (id === 'dalmuti') {
       if (!window.DALMUTI) await new Promise((res) => { const s = document.createElement('script'); s.src = '/dalmuti/shared/dalmuti.js'; s.onload = res; s.onerror = res; document.head.appendChild(s); });
       const m = await import('/dalmuti/js/ending.js');

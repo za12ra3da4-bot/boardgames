@@ -4,6 +4,8 @@ import { bindName } from '/common/me.js';
 import { mountEmotes } from '/common/emote.js';
 import { roomKeeper } from '/common/keep.js';
 import { faceChip } from '/common/avatar.js';
+import { cardSvg, backSvg } from './cards.js';
+import { playEnding } from './ending.js';
 
 const C = window.CLUE;
 const $ = (s, r = document) => r.querySelector(s);
@@ -21,7 +23,6 @@ const typeOf = (id) => C.CARDS[id].type;
 const artOf = (id) => `assets/${typeOf(id) === 'suspect' ? 'char' : typeOf(id)}/${id}.svg`;
 const charImg = (id) => `assets/face/${id}.svg`;
 const thumbOf = (id) => (typeOf(id) === 'suspect' ? charImg(id) : artOf(id));
-const EMBLEM = { suspect: 'hat', weapon: 'dagger', room: 'key' };
 const colorOf = (char) => (C.SUSPECT[char] ? C.SUSPECT[char].color : '#8a7f78');
 
 function newToken() {
@@ -153,13 +154,14 @@ function syncMute() {
 
 // ───────────────────────── 카드 조각
 
-const cardInner = (id) => `<div class="card-art"><img src="${artOf(id)}" alt=""></div><img class="card-frame" src="assets/card-frame.svg" alt=""><div class="card-type">${C.TYPE_NAME[typeOf(id)]}</div><span class="card-emblem">${ic(EMBLEM[typeOf(id)])}</span><div class="card-name"><span>${esc(C.CARDS[id].name)}</span></div>`;
+// 인쇄 카드 (js/cards.js): 큰 카드는 이름판 전체, 작은 칸은 이름을 크게
+const cardInner = (id, mini = false) => cardSvg(id, { mini });
 const bigCard = (id) => `<div class="card t-${typeOf(id)}">${cardInner(id)}</div>`;
-const miniCard = (id) => `<div class="card mcard t-${typeOf(id)}">${cardInner(id)}</div>`;
+const miniCard = (id) => `<div class="card mcard t-${typeOf(id)}">${cardInner(id, true)}</div>`;
 function pickCard(id, { fixed = false, plain = false } = {}) {
   const known = !plain && NB.data ? NB.data.has[id] : null;
   const tag = known === S.pid ? '<em class="tag">내 카드</em>' : known ? '<em class="tag seen">확인됨</em>' : '';
-  return `<button type="button" class="card pcard t-${typeOf(id)} ${fixed ? 'fixed sel' : ''} ${known ? 'dim' : ''}" data-card="${id}">${cardInner(id)}${tag}</button>`;
+  return `<button type="button" class="card pcard t-${typeOf(id)} ${fixed ? 'fixed sel' : ''} ${known ? 'dim' : ''}" data-card="${id}">${cardInner(id, !fixed && typeOf(id) === 'room')}${tag}</button>`;
 }
 const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
 const die = (v) => `<div class="die">${Array.from({ length: 9 }, (_, i) => `<i class="${PIPS[v].includes(i) ? 'pip' : ''}"></i>`).join('')}</div>`;
@@ -522,10 +524,12 @@ function handleEvent(e, g) {
       setTimeout(() => {
         SFX.thunder();
         flash();
-        const w = S.game && S.game.over && S.game.over.winner;
-        if (w && w.pid === S.pid) SFX.win(); else SFX.lose();
         S.overSeen[g.id] = true;
-        openOver();
+        playOverFilm(g).then(() => {
+          const w = S.game && S.game.over && S.game.over.winner;
+          if (w && w.pid === S.pid) SFX.win(); else SFX.lose();
+          openOver();
+        });
       }, 700);
       break;
     default:
@@ -866,7 +870,7 @@ function openReveal() {
   if (!sg || !sg.card) return;
   openModal('reveal', `<div class="reveal"><h3 class="m-title" style="justify-content:center">${ic('eye')} 몰래 받은 카드</h3>
     <p class="m-sub">${who(sg.shownBy)}님이 당신에게만 보여준 카드입니다</p>
-    <div class="flip"><div class="flip-inner"><div class="card card-back"></div>${bigCard(sg.card)}</div></div>
+    <div class="flip"><div class="flip-inner"><div class="card card-back">${backSvg()}</div>${bigCard(sg.card)}</div></div>
     <p class="hint">탐정 수첩에 자동으로 기록되었습니다</p>
     <div class="m-actions" style="justify-content:center"><button class="btn btn-gold btn-lg" data-m="close">확인</button></div></div>`);
 }
@@ -881,6 +885,21 @@ function openIntro() {
     ${s ? `<div class="intro-me" style="--c:${s.color}"><img src="${charImg(s.id)}" alt=""><div>당신은 <b>${s.name}</b> (${s.title})<br><small>손에 든 카드는 사건과 무관합니다. 수첩에 자동 표시됩니다.</small></div></div>
     <div class="intro-hand">${g.me.hand.map(bigCard).join('')}</div>` : ''}
     <div class="m-actions" style="justify-content:center"><button class="btn btn-gold btn-lg" data-m="close">${ic('search')}수사 시작</button></div></div>`, { wide: true });
+}
+
+/** 결말 영상: 적중이면 지목 · 봉투 · 회상 · 체포, 아니면 미제 사건. 한 판에 한 번만 */
+async function playOverFilm(g, force = false) {
+  const o = g && g.over;
+  if (!o) return;
+  if (!force && SS.get('clue.film.' + g.id)) return;
+  SS.set('clue.film.' + g.id, '1');
+  const w = o.winner;
+  const solved = w.reason === 'solved';
+  const solver = w.pid ? pname(w.pid) : '탐정';
+  const sub = solved ? `${solver}의 추리 적중` : w.reason === 'last' ? `최후의 탐정 ${solver} 승리` : '범인은 어둠 속으로';
+  try {
+    await playEnding($('#film'), { kind: solved ? 'solved' : 'unsolved', solution: o.solution, solver, sub, sound: SFX });
+  } catch (err) { console.error(err); }
 }
 
 function openOver() {
@@ -901,6 +920,7 @@ function openOver() {
     ${acc ? `<div class="acc-list">${acc}</div>` : ''}
     <div class="m-actions" style="justify-content:center">
       ${isHost ? `<button class="btn btn-gold btn-lg" data-m="restart">${ic('refresh')}다시 하기</button><button class="btn btn-dark" data-m="toLobby">대기실로</button>` : '<span class="hint">방장이 새 게임을 시작할 수 있습니다</span>'}
+      <button class="btn btn-dark" data-m="replayFilm">${ic('eye')}영상 다시 보기</button>
       <button class="btn btn-dark" data-m="close">보드 보기</button></div></div>`, { wide: true });
 }
 
@@ -955,6 +975,9 @@ $('#modal').addEventListener('click', (e) => {
     act({ type: 'accuse', suspect: S.sel.suspect, weapon: S.sel.weapon, room: S.sel.room }).then((r) => { if (r.ok) closeModal(); else m.disabled = false; });
   } else if (a === 'restart') {
     send('room:start').then((r) => { if (r.ok) closeModal(); });
+  } else if (a === 'replayFilm') {
+    closeModal();
+    playOverFilm(S.game, true).then(openOver);
   } else if (a === 'toLobby') {
     send('room:lobby').then((r) => { if (r.ok) closeModal(); });
   } else if (a === 'reconnect') {

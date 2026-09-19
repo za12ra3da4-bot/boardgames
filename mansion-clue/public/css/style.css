@@ -391,7 +391,10 @@ li.on .rs-num { background: var(--gold); color: #2a1c0c; }
   .card-type, .card-emblem { display: none; }
   .card-name { font-size: 10px; }
 }
-.card-back { background: url(../assets/card-back.svg) center / cover; }
+.card-back { background: none; }
+/* 인쇄 카드 (js/cards.js) */
+.card:has(> .ccard) { background: none; border-radius: 5.6% / 4%; box-shadow: 0 10px 22px rgba(0, 0, 0, .55); }
+.ccard { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .hand-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .hand-grid .card { animation: dealIn .5s both; transition: transform .18s; }
 .hand-grid .card:hover { transform: translateY(-4px) rotate(-1deg); }
@@ -581,3 +584,6 @@ li.on .rs-num { background: var(--gold); color: #2a1c0c; }
 .back-hub .ic { transform: rotate(180deg); color: var(--gold); }
 .back-hub:hover { opacity: 1; color: var(--gold2); transform: translateY(-2px); }
 @media (max-width: 760px) { .back-hub { left: 8px; bottom: 8px; padding: 8px 12px; font-size: 12px; } }
+
+/* 결말 영상 */
+#film { position: fixed; inset: 0; z-index: 9500; background: #000; }
