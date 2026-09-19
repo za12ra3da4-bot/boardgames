@@ -348,6 +348,10 @@ export const PROPS = {
   candleOut: `<path d="M-3 -10 H3 V40 H-3Z" fill="#d8dce4" stroke="${INK}" stroke-width="2"/><path d="M-14 -16 Q0 -8 14 -16 L10 -8 H-10Z" fill="#c8ccd4" stroke="${INK}" stroke-width="2"/><path d="M-12 40 H12 L8 48 H-8Z" fill="#d8dce4" stroke="${INK}" stroke-width="2"/>
     <path d="M-6 48 H6 V84 H-6Z" fill="#f4ecd8" stroke="${INK}" stroke-width="2"/><path d="M0 84 V90" stroke="${INK}" stroke-width="2"/><path d="M0 92 C6 100 -6 106 2 116" stroke="#aab" stroke-width="2" fill="none" opacity=".7"/>`,
   book: `<path d="M-18 6 H18 V48 H-18Z" fill="#6a1a1a" stroke="${INK}" stroke-width="2"/><path d="M-14 10 H14 V44 H-14Z" fill="#f4ecd8"/><path d="M0 10 V44 M-10 18 h7 M-10 24 h7 M3 18 h8 M3 24 h8" stroke="#8a7a6a" stroke-width="1.4"/>`,
+  // 구룡 회상용
+  club: `<path d="M-5 -6 H5 L9 96 Q0 104 -9 96Z" fill="#6a4a2a" stroke="${INK}" stroke-width="2"/><path d="M-5 4 H5 M-6 14 H6" stroke="#2a1a10" stroke-width="2"/><path d="M-3 20 L-4 90" stroke="#9a7a4a" stroke-width="2" opacity=".6"/>`,
+  match: `<path d="M-1.6 -2 H1.6 V30 H-1.6Z" fill="#e8d8a8" stroke="${INK}" stroke-width="1.2"/><circle cy="32" r="3.4" fill="#c8202a"/><path d="M0 34 C-7 44 -4 54 0 58 C4 54 7 44 0 34Z" fill="#ffcf5a" stroke="#ff7a1a" stroke-width="1.4"/><circle cy="46" r="16" fill="#ffb040" opacity=".3"/>`,
+  dryer: `<path d="M-6 -4 H6 V34 H-6Z" fill="#e05a8a" stroke="${INK}" stroke-width="2"/><path d="M-14 34 H30 Q40 34 40 48 Q40 62 30 62 H-14 Q-24 62 -24 48 Q-24 34 -14 34Z" fill="#e05a8a" stroke="${INK}" stroke-width="2"/><path d="M40 42 H50 V54 H40" fill="#3a3a3a" stroke="${INK}" stroke-width="2"/><path d="M0 -4 C-20 -30 10 -40 -10 -70" stroke="#1a1a1a" stroke-width="2.4" fill="none"/>`,
   goblet: `<path d="M-14 6 H14 Q14 30 0 32 Q-14 30 -14 6Z" fill="#e0b030" stroke="${INK}" stroke-width="2"/><path d="M0 32 V46 M-9 48 H9" stroke="#e0b030" stroke-width="4" stroke-linecap="round"/>`,
 };
 
