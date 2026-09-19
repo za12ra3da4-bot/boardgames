@@ -91,7 +91,14 @@ FRONT.kowloon = () => `
       <div class="kf-band"><span>3~12명</span><span>20분</span><span>14세 이상</span></div>
     </div>`;
 
+// 붉은 휘장 왕궁 · 계급 카드 피라미드
+FRONT.dalmuti = () => `
+    <div class="kf dmf">
+      <img class="kf-art" src="/dalmuti/assets/box.png" alt="">
+    </div>`;
+
 const SPINE = {
+  dalmuti: '왕궁의 달무티',
   kowloon: '구룡 살인사건',
   gem: '찬란한 보석상',
   wolf: '보름밤의 늑대인간',
@@ -123,6 +130,7 @@ const filmBtn = document.getElementById('filmBtn');
 const filmDialog = document.getElementById('filmDialog');
 const FILMS = [
   { game: '황야의 뱅', list: [['무법자 승리', 'bang', 'outlaw'], ['보안관 승리', 'bang', 'sheriff'], ['배신자 승리', 'bang', 'renegade']] },
+  { game: '왕궁의 달무티', list: [['대관식', 'dalmuti', 'crown'], ['혁명 후 대관식', 'dalmuti', 'rose']] },
   { game: '구룡 살인사건', list: [['사건 해결', 'kowloon', 'solved'], ['미제 사건', 'kowloon', 'escaped'], ['목격자 제거', 'kowloon', 'witness']] },
   { game: '보름밤의 늑대인간', list: [['늑대인간 승리', 'wolf', 'wolf'], ['마을 승리', 'wolf', 'village'], ['무두장이 승리', 'wolf', 'tanner'], ['모두 패배', 'wolf', 'none']] },
 ];
@@ -155,6 +163,10 @@ document.getElementById('filmList').addEventListener('click', async (e) => {
     } else if (id === 'wolf') {
       const m = await import('/wolf/js/cutscene.js');
       await m.playCutscene(host, kind, { sub: '미리 보기', sound });
+    } else if (id === 'dalmuti') {
+      if (!window.DALMUTI) await new Promise((res) => { const s = document.createElement('script'); s.src = '/dalmuti/shared/dalmuti.js'; s.onload = res; s.onerror = res; document.head.appendChild(s); });
+      const m = await import('/dalmuti/js/ending.js');
+      await m.playEnding(host, { champion: '미리 보기', peon: '농노', rose: kind === 'rose', sound: X });
     } else if (id === 'kowloon') {
       // 카드 데이터가 필요하다
       if (!window.KOWLOON) await new Promise((res) => { const s = document.createElement('script'); s.src = '/kowloon/shared/kowloon.js'; s.onload = res; s.onerror = res; document.head.appendChild(s); });

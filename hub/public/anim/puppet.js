@@ -41,6 +41,12 @@ export const LOOKS = {
   detective: { skin: '#e2a883', skinD: '#a86a4c', hair: '#1c120e', coat: '#8a6a44', coatD: '#5a4028', coat2: '#6a2a1a', shirt: '#e8e2d4', tie: '#7a1a1e', pants: '#3a3632', pantsD: '#26221e', shoe: '#1e1410', hat: 'fedora', hatC: '#3e342c', hairStyle: 'short', brow: '#1c120e' },
   woman: { skin: '#f0bfa0', skinD: '#b87c5c', hair: '#140c0c', coat: '#3a1a22', coatD: '#22080e', coat2: '#8a1a28', shirt: '#2a0e14', tie: null, pants: '#1a0a0e', pantsD: '#0e0406', shoe: '#0e0606', hat: 'none', hairStyle: 'bob', brow: '#140c0c', lips: '#a8202c' },
   murderer: { skin: '#caa088', skinD: '#8a5a44', hair: '#0e0a0a', coat: '#26262c', coatD: '#141418', coat2: '#4a0a10', shirt: '#101014', tie: '#6a0a10', pants: '#1a1a1e', pantsD: '#0e0e10', shoe: '#0a0808', hat: 'none', hairStyle: 'slick', brow: '#0e0a0a' },
+  noble: { skin: '#f0c4a4', skinD: '#b8866a', hair: '#6a3a1a', coat: '#6a1a8a', coatD: '#3a0a50', coat2: '#e8c050', shirt: '#f4ecd8', tie: '#e8c050', pants: '#2a1a3a', pantsD: '#140a1e', shoe: '#2a1a10', hat: 'none', hairStyle: 'short', brow: '#4a2a10' },
+  king: { skin: '#f0c4a4', skinD: '#b8866a', hair: '#6a3a1a', coat: '#b81a24', coatD: '#6a0a10', coat2: '#f4f0e6', shirt: '#f4ecd8', tie: '#e8c050', pants: '#3a0a10', pantsD: '#1e0408', shoe: '#2a1a10', hat: 'crown', hatC: '#e0b030', hairStyle: 'short', brow: '#4a2a10' },
+  peasant: { skin: '#c89068', skinD: '#8a5a3a', hair: '#3a2410', coat: '#8a7a5a', coatD: '#5a4a30', coat2: '#6a5a3a', shirt: '#c8b890', tie: null, pants: '#5a4a30', pantsD: '#3a2e1a', shoe: '#2a1a10', hat: 'straw', hatC: '#d8b860', hairStyle: 'short', brow: '#3a2410' },
+  jester: { skin: '#f0c8a8', skinD: '#b8826a', hair: '#3a2410', coat: '#d8303a', coatD: '#8a0a14', coat2: '#e8c030', shirt: '#2a8a4a', tie: null, pants: '#e8c030', pantsD: '#a88010', shoe: '#2a8a4a', hat: 'jester', hatC: '#d8303a', hairStyle: 'short', brow: '#3a2410' },
+  courtier: { skin: '#e8b894', skinD: '#a8765a', hair: '#e8e4dc', coat: '#1a3a6a', coatD: '#0e1e3a', coat2: '#e8c050', shirt: '#f4ecd8', tie: '#f4ecd8', pants: '#1a1a2a', pantsD: '#0e0e16', shoe: '#1a1a1a', hat: 'none', hairStyle: 'short', brow: '#d8d4cc' },
+  lady: { skin: '#f4c8a8', skinD: '#c08868', hair: '#8a4a1a', coat: '#2a7a5a', coatD: '#0e3a28', coat2: '#e8c050', shirt: '#f4e8d0', tie: null, pants: '#2a7a5a', pantsD: '#0e3a28', shoe: '#1a1a1a', hat: 'none', hairStyle: 'bob', brow: '#6a3a18', lips: '#b83a4a' },
   cop: { skin: '#d8a078', skinD: '#9a6444', hair: '#1a120e', coat: '#2a3452', coatD: '#1a2036', coat2: '#1a2036', shirt: '#c8d0e0', tie: '#1a1a24', pants: '#1e2438', pantsD: '#121626', shoe: '#0a0a0e', hat: 'police', hatC: '#1a2036', hairStyle: 'short', brow: '#1a120e' },
 };
 
@@ -123,6 +129,16 @@ function headSvg(L, id) {
       + ink('M-26 -68C-30 -90 -18 -110 6 -112C18 -104 28 -110 34 -104C42 -94 40 -80 38 -68C16 -64 -8 -64 -26 -68Z', L.hatC)
       + ink('M-26 -76C-6 -72 16 -72 38 -76L38 -68C16 -64 -8 -64 -26 -68Z', '#1a1210', 2)
       + line('M4 -110C8 -100 10 -92 8 -84', 2, '#000', 0.4) + fill('M-46 -70C-20 -64 30 -64 60 -72C40 -60 0 -58 -46 -70Z', '#000', ' opacity=".25"');
+  }
+  if (L.hat === 'crown') {
+    hat = `<g class="pp-crown">${ink('M-22 -76 L-26 -110 L-10 -94 L2 -120 L14 -94 L30 -110 L28 -76 Q2 -84 -22 -76Z', '#e0b030')}<circle cx="2" cy="-86" r="4.4" fill="#c8202a" stroke="${INK}" stroke-width="1.4"/><circle cx="-26" cy="-110" r="3.4" fill="#fff4c0" stroke="${INK}" stroke-width="1.2"/><circle cx="2" cy="-120" r="3.4" fill="#fff4c0" stroke="${INK}" stroke-width="1.2"/><circle cx="30" cy="-110" r="3.4" fill="#fff4c0" stroke="${INK}" stroke-width="1.2"/></g>`;
+  }
+  if (L.hat === 'straw') {
+    hat = ink('M-50 -70C-20 -62 34 -62 64 -72C56 -60 36 -56 12 -56C-14 -56 -38 -58 -50 -70Z', L.hatC) + ink('M-24 -68C-28 -92 -12 -104 8 -104C28 -104 40 -92 38 -68C16 -64 -6 -64 -24 -68Z', L.hatC) + line('M-40 -66 l-4 6 M50 -66 l4 6 M-10 -100 l2 8 M20 -100 l-2 8', 1.4, '#a08030');
+  }
+  if (L.hat === 'jester') {
+    hat = ink('M-26 -70C-40 -90 -58 -104 -74 -96C-58 -92 -44 -84 -32 -64Z', '#d8303a') + ink('M34 -70C48 -92 66 -104 82 -96C66 -92 52 -84 40 -64Z', '#e8c030') + ink('M-8 -76C-4 -104 4 -124 8 -132C12 -124 18 -104 20 -76Z', '#2a8a4a')
+      + ink('M-28 -70C-6 -80 20 -80 40 -70L40 -62C20 -70 -6 -70 -28 -62Z', '#f4f0e6', 2) + `<circle cx="-74" cy="-96" r="6" fill="#e8c030" stroke="${INK}" stroke-width="1.6"/><circle cx="82" cy="-96" r="6" fill="#d8303a" stroke="${INK}" stroke-width="1.6"/><circle cx="8" cy="-134" r="6" fill="#e8c030" stroke="${INK}" stroke-width="1.6"/>`;
   }
   if (L.hat === 'police') {
     hat = ink('M-30 -74C-30 -96 -8 -104 14 -102C34 -100 44 -92 44 -80L42 -72C20 -68 -10 -68 -30 -74Z', L.hatC) + ink('M20 -74C36 -74 50 -70 56 -64C44 -62 30 -64 20 -66Z', '#0a0a10') + `<circle cx="12" cy="-86" r="5" fill="#d8b040" stroke="${INK}" stroke-width="1.4"/>`;
@@ -220,10 +236,17 @@ export class Puppet {
     const vx = this.lastHip == null ? 0 : (hx - this.lastHip) / Math.max(dt, 0.001);
     this.lastHip = hx;
     const drive = -vx * 0.045 * (this.world.flip ? -1 : 1) + (this.ang.chest || 0) * 0.5;
+    // 프레임이 늦게 와도 튀지 않게 잘게 나눠 적분하고 각도를 묶어 둔다
+    const steps = Math.min(8, Math.ceil(dt / (1 / 60)));
+    const h = Math.min(dt, 0.25) / steps;
     for (const [k, s] of Object.entries(this.spring)) {
-      const target = k === 'hair' ? drive * 0.6 : drive + Math.sin(this.t * 1.7 + (k === 'tailB' ? 1 : 0)) * 1.4;
-      s.v += ((target - s.a) * 60 - s.v * 9) * dt;
-      s.a += s.v * dt;
+      const target = Math.max(-35, Math.min(35, k === 'hair' ? drive * 0.6 : drive + Math.sin(this.t * 1.7 + (k === 'tailB' ? 1 : 0)) * 1.4));
+      for (let i = 0; i < steps; i++) {
+        s.v += ((target - s.a) * 60 - s.v * 9) * h;
+        s.a += s.v * h;
+      }
+      s.a = Math.max(-40, Math.min(40, s.a));
+      if (!Number.isFinite(s.a)) { s.a = 0; s.v = 0; }
     }
     this.apply();
   }
@@ -232,7 +255,9 @@ export class Puppet {
   apply() {
     const W = {};
     const breathe = Math.sin(this.t * 2.2) * 1.2;
-    const extra = { tailF: this.spring.tailF.a, tailB: this.spring.tailB.a, chest: breathe * 0.3 };
+    // 앉거나 무릎 꿇으면 코트 자락이 허벅지를 따라 눕는다
+    const follow = (th) => Math.min(0, (th || 0) + 25) * 0.9;
+    const extra = { tailF: this.spring.tailF.a + follow(this.ang.thighF), tailB: this.spring.tailB.a + follow(this.ang.thighB), chest: breathe * 0.3 };
     const order = ['hips', 'chest', 'neck', 'head', 'thighB', 'shinB', 'footB', 'thighF', 'shinF', 'footF', 'upperB', 'foreB', 'handB', 'upperF', 'foreF', 'handF', 'tailB', 'tailF'];
     for (const name of order) {
       const d = this.defs[name];
@@ -263,8 +288,31 @@ export class Puppet {
     if (this.shadow) this.shadow.setAttribute('rx', 70 - Math.abs(this.off.hipY || 0) * 0.3);
   }
 
+  /** 앞손에 소품을 쥐여 준다 (손 좌표: 손목이 원점, +y 가 팔 방향). 이름 또는 SVG 문자열, null 이면 뺀다 */
+  hold(prop, hand = 'handF') {
+    const g = this.g[hand];
+    if (!g) return;
+    g.querySelector('.pp-prop')?.remove();
+    if (!prop) return;
+    const art = PROPS[prop] || prop;
+    const p = el('g', { class: 'pp-prop' }, g);
+    p.innerHTML = art;
+    g.insertBefore(p, g.firstChild); // 손가락이 소품을 덮도록 맨 아래에
+  }
+
   remove() { this.svg.remove(); }
 }
+
+/** 쥘 수 있는 소품 (손 좌표) */
+export const PROPS = {
+  scepter: `<path d="M-3 -18 L-3 118 L3 118 L3 -18Z" fill="#c8942a" stroke="${INK}" stroke-width="2"/><path d="M-6 30h12M-6 60h12M-6 90h12" stroke="#fff0a0" stroke-width="2"/>
+    <circle cy="-22" r="7" fill="#e0b030" stroke="${INK}" stroke-width="2"/><path d="M-9 118 Q0 108 9 118 L6 128 H-6Z" fill="#e0b030" stroke="${INK}" stroke-width="2"/>
+    <circle cy="140" r="14" fill="#c8202a" stroke="${INK}" stroke-width="2.4"/><circle cx="-4" cy="135" r="4" fill="#fff" opacity=".7"/>
+    <path d="M0 154 V170 M-7 162 H7" stroke="#e0b030" stroke-width="4" stroke-linecap="round"/>`,
+  broom: `<path d="M-2 -40 L-2 70 L2 70 L2 -40Z" fill="#8a5a2a" stroke="${INK}" stroke-width="2"/><path d="M-12 70 L12 70 L20 118 L-20 118Z" fill="#d8b860" stroke="${INK}" stroke-width="2"/><path d="M-8 80 L-12 116 M0 80 V116 M8 80 L12 116" stroke="#a08030" stroke-width="1.6"/>`,
+  hoe: `<path d="M-3 -60 L-3 96 L3 96 L3 -60Z" fill="#8a5a2a" stroke="${INK}" stroke-width="2"/><path d="M3 92 L40 104 L40 118 L0 104Z" fill="#8a8e96" stroke="${INK}" stroke-width="2"/>`,
+  goblet: `<path d="M-14 6 H14 Q14 30 0 32 Q-14 30 -14 6Z" fill="#e0b030" stroke="${INK}" stroke-width="2"/><path d="M0 32 V46 M-9 48 H9" stroke="#e0b030" stroke-width="4" stroke-linecap="round"/>`,
+};
 
 /* ═════════ 동작 ═════════ */
 export const POSE = {
@@ -276,6 +324,11 @@ export const POSE = {
   lookDown: { neck: 12, head: 18 },
   armsUp: { upperF: -170, foreF: -10, upperB: -160, foreB: -10 },
   cuffed: { upperF: 30, foreF: 20, upperB: 36, foreB: 26, chest: 16, neck: 14, head: 16 },
+  bow: { chest: 38, neck: 14, head: 10, upperF: 20, foreF: -30, upperB: -10, foreB: -40, thighF: -6, thighB: 8 },
+  kneel: { hipY: 70, chest: 24, neck: 8, head: 10, thighF: -86, shinF: 90, footF: 0, thighB: 10, shinB: 150, footB: -60, upperF: -60, foreF: -40, upperB: -40, foreB: -30 },
+  sit: { hipY: 62, chest: -4, thighF: -84, shinF: 84, footF: 0, thighB: -80, shinB: 80, footB: 0, upperF: -20, foreF: -60, upperB: -10, foreB: -60 },
+  scepter: { upperF: -150, foreF: -20, handF: -10 },
+  cheer: { upperF: -160, foreF: -20, upperB: -150, foreB: -20, head: -8 },
 };
 
 /** 걷기 · 뛰기 한 주기 (ph 0~1). 발이 땅을 딛고 몸이 오르내린다 */

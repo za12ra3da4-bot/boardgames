@@ -77,6 +77,16 @@ const GAMES = [
     players: '3~12명',
     time: '20~30분',
   },
+  {
+    id: 'dalmuti',
+    base: '/dalmuti',
+    dir: 'dalmuti',
+    title: '왕궁의 달무티',
+    sub: '계급 카드게임 (달무티)',
+    desc: '대달무티부터 농노까지. 먼저 카드를 다 털어 신분을 올려라. 농노는 세금을 바치고, 광대 두 장이면 혁명!',
+    players: '4~8명',
+    time: '20~40분',
+  },
 ];
 
 const app = express();

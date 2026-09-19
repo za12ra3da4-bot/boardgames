@@ -137,7 +137,7 @@ export function cast(layerEl) {
 }
 
 /* ═════════ 합성 음악: 누아르 재즈 (워킹 베이스 · 브러시 드럼 · 패드 · 색소폰) ═════════ */
-export function score({ bpm = 92, length = 20, muted = false, cues = [] } = {}) {
+export function score({ bpm = 92, length = 20, muted = false, cues = [], style = 'noir' } = {}) {
   if (muted) return { stop() {}, hit() {} };
   const AC = window.AudioContext || window.webkitAudioContext;
   if (!AC) return { stop() {}, hit() {} };
@@ -262,6 +262,23 @@ export function score({ bpm = 92, length = 20, muted = false, cues = [] } = {}) 
       o.stop(t + 1.5);
     }
   }
+  if (style === 'royal') {
+    // 왕궁 행진곡: C 장조, 팀파니 · 현 패드 · 금관 선율
+    const prog = [[48, [60, 64, 67, 72]], [53, [60, 65, 69, 72]], [55, [59, 62, 67, 71]], [48, [60, 64, 67, 72]]];
+    const bars = Math.ceil(length / (beat * 4));
+    for (let b = 0; b < bars; b++) {
+      const [root, chord] = prog[b % 4];
+      const tb = t0 + b * beat * 4;
+      pad(tb, chord, beat * 4, 0.03);
+      [0, 2].forEach((k) => bass(tb + k * beat, root - 12, beat * 1.6));
+      kick(tb, 0.45);
+      kick(tb + beat * 2, 0.35);
+      for (let k = 0; k < 4; k++) brush(tb + k * beat, 0.05, 0.08, 7000);
+    }
+    const tune = [[67, 1], [72, 1], [76, 1.5], [74, 0.5], [72, 1], [76, 1], [79, 2], [77, 1], [76, 1], [74, 1], [72, 1], [71, 1], [72, 3]];
+    let tt = t0 + beat * 4;
+    for (const [m, d] of tune) { if (tt - t0 < length - 2) { brass(tt, [m, m - 12], 0.06); } tt += d * beat; }
+  } else {
   // D 단조 워킹 베이스 (한 마디 4박) · 코드 진행 Dm9 → Gm7 → Bb7 → A7
   const prog = [[38, [50, 53, 57, 60, 64]], [43, [50, 53, 55, 58, 62]], [46, [50, 53, 56, 58, 62]], [45, [49, 52, 55, 57, 61]]];
   const walks = [[0, 3, 5, 7], [0, 2, 3, 5], [0, 4, 7, 9], [0, -1, -3, -4]];
@@ -280,6 +297,7 @@ export function score({ bpm = 92, length = 20, muted = false, cues = [] } = {}) 
   const line = [[62, 1], [65, 0.5], [67, 0.5], [69, 1.5], [67, 0.5], [65, 1], [64, 1], [62, 2], [60, 0.5], [62, 0.5], [65, 1], [64, 2]];
   let tt = t0 + beat * 4;
   for (const [m, d] of line) { if (tt - t0 < length - 2) sax(tt, m, d * beat * 0.95); tt += d * beat; }
+  }
   // 정해진 순간의 금관 한 방 (정답 공개 등)
   for (const c of cues) brass(t0 + c.at, c.notes || [50, 57, 62, 65], c.vol || 0.1);
   const master = out.gain;
