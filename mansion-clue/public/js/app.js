@@ -159,9 +159,9 @@ const cardInner = (id, mini = false) => cardSvg(id, { mini });
 const bigCard = (id) => `<div class="card t-${typeOf(id)}">${cardInner(id)}</div>`;
 const miniCard = (id) => `<div class="card mcard t-${typeOf(id)}">${cardInner(id, true)}</div>`;
 function pickCard(id, { fixed = false, plain = false } = {}) {
-  const known = !plain && NB.data ? NB.data.has[id] : null;
-  const tag = known === S.pid ? '<em class="tag">내 카드</em>' : known ? '<em class="tag seen">확인됨</em>' : '';
-  return `<button type="button" class="card pcard t-${typeOf(id)} ${fixed ? 'fixed sel' : ''} ${known ? 'dim' : ''}" data-card="${id}">${cardInner(id, !fixed && typeOf(id) === 'room')}${tag}</button>`;
+  const mine = !plain && S.game && S.game.me && S.game.me.hand.includes(id);
+  const tag = mine ? '<em class="tag">내 카드</em>' : '';
+  return `<button type="button" class="card pcard t-${typeOf(id)} ${fixed ? 'fixed sel' : ''}" data-card="${id}">${cardInner(id, !fixed && typeOf(id) === 'room')}${tag}</button>`;
 }
 const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
 const die = (v) => `<div class="die">${Array.from({ length: 9 }, (_, i) => `<i class="${PIPS[v].includes(i) ? 'pip' : ''}"></i>`).join('')}</div>`;
@@ -176,47 +176,25 @@ function fmt(text) {
 
 // ───────────────────────── 탐정 수첩
 
-const NB = { gid: null, data: null };
+const NB = { gid: null, data: null, pen: 'o' };
 function nbLoad(gid) {
   NB.gid = gid;
-  try { NB.data = JSON.parse(LS.get('clue.nb.' + gid)); } catch (_) { NB.data = null; }
-  if (!NB.data || !NB.data.has) NB.data = { manual: {}, has: {}, not: {} };
+  let d = null;
+  try { d = JSON.parse(LS.get('clue.nb2.' + gid)); } catch (_) { d = null; }
+  NB.data = d && d.cells ? d : { cells: {}, struck: {}, star: {} };
 }
 function nbSave() {
-  LS.set('clue.nb.' + NB.gid, JSON.stringify(NB.data));
+  LS.set('clue.nb2.' + NB.gid, JSON.stringify(NB.data));
 }
-function nbIngest(g) {
-  const d = NB.data;
-  let changed = false;
-  const setHas = (card, pid) => { if (d.has[card] !== pid) { d.has[card] = pid; changed = true; } };
-  if (g.me) {
-    for (const c of g.me.hand) setHas(c, S.pid);
-    for (const i of g.me.intel) setHas(i.card, i.from);
-  }
-  for (const r of g.revealed) for (const c of r.cards) setHas(c, r.pid);
-  if (g.over) for (const h of g.over.hands) for (const c of h.cards) setHas(c, h.pid);
-  const sg = g.suggestion;
-  if (sg) {
-    for (const ch of sg.checks) {
-      if (ch.has) continue;
-      for (const c of [sg.suspect, sg.weapon, sg.room]) {
-        const arr = d.not[c] || (d.not[c] = []);
-        if (!arr.includes(ch.pid)) { arr.push(ch.pid); changed = true; }
-      }
-    }
-  }
-  if (changed) nbSave();
-}
-function nbCell(card, pid) {
-  const m = NB.data.manual[card + '|' + pid];
-  if (m !== undefined) return { v: m, manual: true };
-  const d = NB.data;
-  if (d.has[card]) return { v: d.has[card] === pid ? 'o' : 'x', manual: false };
-  if ((d.not[card] || []).includes(pid)) return { v: 'x', manual: false };
-  return { v: '', manual: false };
-}
-const MARK = { o: ic('check'), x: ic('x'), '?': '<b>?</b>', '': '' };
-const MARK_CLS = { o: 'o', x: 'x', '?': 'q', '': 'e' };
+// 수첩은 직접 추리하는 곳: 게임이 대신 적어 넣지 않는다
+function nbIngest() {}
+const nbCell = (card, pid) => NB.data.cells[card + '|' + pid] || '';
+const PEN = {
+  o: { label: '있음', mark: '<svg viewBox="0 0 24 24"><path d="M4 13 L10 19 L20 5" /></svg>' },
+  x: { label: '없음', mark: '<svg viewBox="0 0 24 24"><path d="M5 5 L19 19 M19 5 L5 19" /></svg>' },
+  q: { label: '의심', mark: '<svg viewBox="0 0 24 24"><path d="M8 8 C8 3 16 3 16 8 C16 11 12 11 12 15 M12 19 V20" /></svg>' },
+  e: { label: '지우개', mark: '' },
+};
 
 // ───────────────────────── 채팅
 
@@ -563,7 +541,9 @@ function renderGame() {
   renderSugg(g);
   renderHand(g);
   renderLog(g);
-  if (S.tab === 'notes') renderNotes(g);
+  // 수첩은 내가 적는 것만 바뀌므로, 탐정 명단이 바뀔 때만 다시 그린다
+  const nbKey = g.id + ':' + g.players.map((p) => p.pid).join(',');
+  if (S.tab === 'notes' && S.nbKey !== nbKey) { S.nbKey = nbKey; renderNotes(g); }
 
   const meP = player(S.pid);
   const play = g.phase === 'play';
@@ -760,29 +740,71 @@ function renderNotes(g) {
   const el = $('#tab-notes');
   const scroll = el.scrollTop;
   const players = g.players;
-  const head = `<tr><th></th>${players.map((p) => `<th title="${esc(p.name)}"><img src="${charImg(p.char)}" alt="" style="--c:${colorOf(p.char)}"></th>`).join('')}<th title="봉투">${ic('envelope')}</th></tr>`;
-  const groups = [['용의자', C.SUSPECTS], ['흉기', C.WEAPONS], ['장소', C.ROOMS]];
-  const body = groups.map(([label, list]) => `<tr class="grp"><td colspan="${players.length + 2}">${label}</td></tr>` + list.map((item) => {
-    const cells = players.map((p) => nbCell(item.id, p.pid));
-    const cleared = cells.some((c) => c.v === 'o');
-    const solved = !cleared && cells.every((c) => c.v === 'x');
-    const tds = cells.map((c, i) => `<td class="nb-c ${c.manual ? 'man' : 'auto'} v-${MARK_CLS[c.v]}" data-nb="${item.id}|${players[i].pid}">${MARK[c.v]}</td>`).join('');
-    return `<tr class="${cleared ? 'cleared' : ''} ${solved ? 'solved' : ''}"><td><div class="nb-name t-${typeOf(item.id)}"><img src="${thumbOf(item.id)}" alt=""><span>${esc(item.name)}</span></div></td>${tds}<td class="nb-env">${cleared ? ic('x') : solved ? ic('check') : ''}</td></tr>`;
+  const d = NB.data;
+  const pens = Object.entries(PEN).map(([k, v]) => `<button type="button" class="nb-pen p-${k} ${NB.pen === k ? 'on' : ''}" data-pen="${k}"><i>${v.mark}</i>${v.label}</button>`).join('');
+  const head = `<tr><th class="nb-corner"></th>${players.map((p, i) => `<th class="nb-who" data-col="${i}"><img src="${charImg(p.char)}" alt="" style="--c:${colorOf(p.char)}"><span>${esc(p.pid === S.pid ? '나' : p.name)}</span></th>`).join('')}<th class="nb-who env" title="봉투 (정답이라고 생각하면 별표)">${ic('envelope')}<span>봉투</span></th></tr>`;
+  const groups = [['용의자', 'suspect', C.SUSPECTS], ['흉기', 'weapon', C.WEAPONS], ['장소', 'room', C.ROOMS]];
+  const body = groups.map(([label, type, list]) => `<tr class="grp g-${type}"><td colspan="${players.length + 2}">${label}</td></tr>` + list.map((item) => {
+    const tds = players.map((p, i) => {
+      const v = nbCell(item.id, p.pid);
+      return `<td class="nb-c v-${v || 'e'}" data-nb="${item.id}|${p.pid}" data-col="${i}">${v ? PEN[v].mark : ''}</td>`;
+    }).join('');
+    const star = d.star[item.id];
+    return `<tr class="nb-row ${d.struck[item.id] ? 'struck' : ''} ${star ? 'starred' : ''}"><td class="nb-name t-${typeOf(item.id)}" data-strike="${item.id}"><img src="${thumbOf(item.id)}" alt=""><span>${esc(item.name)}</span></td>${tds}<td class="nb-env" data-star="${item.id}">${star ? '★' : '☆'}</td></tr>`;
   }).join('')).join('');
-  el.innerHTML = `<p class="nb-help">칸을 눌러 표시 · ${ic('check')} 가지고 있음 · ${ic('x')} 없음 · <b>?</b> 의심. 흐린 표시는 자동 기록이고, 모든 탐정이 ${ic('x')}인 카드는 봉투 속 정답 후보입니다.</p><table class="nb">${head}${body}</table>`;
+  el.innerHTML = `<div class="nb-paper"><div class="nb-bar"><span class="nb-bar-t">펜</span>${pens}<button type="button" class="nb-clear" data-nbclear>전부 지우기</button></div>
+    <p class="nb-help">펜을 고르고 칸을 누르세요. 같은 표시를 다시 누르면 지워집니다 · 카드 이름을 누르면 줄을 긋고, 봉투 칸 ☆ 은 정답 후보 별표.</p>
+    <table class="nb">${head}${body}</table></div>`;
   el.scrollTop = scroll;
 }
 
 $('#tab-notes').addEventListener('click', (e) => {
+  if (!S.game) return;
+  const d = NB.data;
+  const pen = e.target.closest('[data-pen]');
+  if (pen) { NB.pen = pen.dataset.pen; SFX.click(); renderNotes(S.game); return; }
+  if (e.target.closest('[data-nbclear]')) {
+    if (!confirm('수첩의 표시를 모두 지울까요?')) return;
+    NB.data = { cells: {}, struck: {}, star: {} };
+    nbSave();
+    renderNotes(S.game);
+    return;
+  }
+  const st = e.target.closest('[data-strike]');
+  if (st) { d.struck[st.dataset.strike] = !d.struck[st.dataset.strike]; nbSave(); SFX.click(); renderNotes(S.game); return; }
+  const sr = e.target.closest('[data-star]');
+  if (sr) { d.star[sr.dataset.star] = !d.star[sr.dataset.star]; nbSave(); SFX.click(); renderNotes(S.game); return; }
   const td = e.target.closest('[data-nb]');
-  if (!td || !S.game) return;
-  const [card, pid] = td.dataset.nb.split('|');
-  const order = ['', 'o', 'x', '?'];
-  const cur = nbCell(card, pid).v;
-  NB.data.manual[td.dataset.nb] = order[(order.indexOf(cur) + 1) % order.length];
+  if (!td) return;
+  const key = td.dataset.nb;
+  const cur = d.cells[key] || '';
+  // 고른 펜으로 칠하기 · 같은 표시면 지우기
+  const next = NB.pen === 'e' || cur === NB.pen ? '' : NB.pen;
+  if (next) d.cells[key] = next; else delete d.cells[key];
   nbSave();
   SFX.click();
-  renderNotes(S.game);
+  td.className = `nb-c v-${next || 'e'}`;
+  td.innerHTML = next ? PEN[next].mark : '';
+});
+// 오른쪽 클릭 = 바로 지우기
+$('#tab-notes').addEventListener('contextmenu', (e) => {
+  const td = e.target.closest('[data-nb]');
+  if (!td || !S.game) return;
+  e.preventDefault();
+  delete NB.data.cells[td.dataset.nb];
+  nbSave();
+  td.className = 'nb-c v-e';
+  td.innerHTML = '';
+});
+// 가로 · 세로 줄 밝히기
+$('#tab-notes').addEventListener('mouseover', (e) => {
+  const td = e.target.closest('[data-col]');
+  for (const x of $$('#tab-notes .hl')) x.classList.remove('hl');
+  if (!td) return;
+  const col = td.dataset.col;
+  for (const x of $$(`#tab-notes [data-col="${col}"]`)) x.classList.add('hl');
+  const row = td.closest('tr');
+  if (row && row.classList.contains('nb-row')) row.classList.add('hl');
 });
 
 function setTab(name) {
