@@ -256,3 +256,10 @@ button { font-family: inherit; }
 .result .roles span { display: flex; align-items: center; gap: 6px; background: #1a141e; border: 1px solid #3a2a3e; border-radius: 20px; padding: 3px 10px 3px 3px; font-size: 13px; }
 
 #film { position: fixed; inset: 0; z-index: 9500; background: #000; }
+
+/* 법의학자 감식: 빠진 타일 표시 · 총알 개수 */
+.tile.need, .loc-pick.need { outline: 3px solid var(--neon); outline-offset: 2px; animation: need .5s ease-in-out 3; }
+@keyframes need { 50% { outline-color: transparent; } }
+.loc-hint { margin: 10px 0 0; font-size: 13px; color: #d8c8a8; }
+.fs-count { font: 15px var(--display); color: var(--gold); white-space: nowrap; }
+.fs-count b { font-size: 20px; }

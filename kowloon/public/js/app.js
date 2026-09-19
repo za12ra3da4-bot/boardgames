@@ -221,9 +221,11 @@ function renderScene() {
     const E = S.fsEdit;
     const tiles = g.tiles.map((t, i) => (i === 1 ? { id: E.loc, pick: null } : t));
     body = `<div class="tiles">${tiles.map((t, i) => tileHtml(t, i, { picks: E.picks, canPick: !!t.id, text: '아래에서 장소 타일을<br>하나 고르세요' })).join('')}</div>
-      <div class="loc-pick">${K.LOCATIONS.map((id) => `<div class="tile location ${E.loc === id ? 'on' : ''}" data-loc="${id}"><h5>${esc(TILE[id].name)}</h5>${TILE[id].opts.map((o) => `<div class="opt">${esc(o.name)}</div>`).join('')}</div>`).join('')}</div>
-      <div class="fs-bar"><p>진실: <b>${esc(nameOf(g.know.murderer))}</b> · ${esc(CARD[g.know.murder.means].name)} + ${esc(CARD[g.know.murder.clue].name)}<br>장소 타일을 하나 고르고, 여섯 타일 모두에 총알(칸 하나)을 놓으세요. 말은 할 수 없어요!</p>
-      <button class="btn btn-teal" id="fsSubmit" ${E.loc && E.picks.every((p) => p != null) ? '' : 'disabled'}>감식 결과 발표</button></div>`;
+      <p class="loc-hint">장소 타일 넷 중 하나를 골라 그 안의 칸을 누르세요 (고른 타일이 위 두 번째 자리에 들어가요)</p>
+      <div class="loc-pick">${K.LOCATIONS.map((id) => `<div class="tile location ${E.loc === id ? 'on' : ''}" data-loc="${id}"><h5>${esc(TILE[id].name)}</h5>${TILE[id].opts.map((o, k) => `<div class="opt can ${E.loc === id && E.picks[1] === k ? 'pick' : ''}" data-loc-opt="${id}" data-k="${k}"><span class="n">${k + 1}</span>${esc(o.name)}${E.loc === id && E.picks[1] === k ? BULLET : ''}</div>`).join('')}</div>`).join('')}</div>
+      <div class="fs-bar"><p>진실: <b>${esc(nameOf(g.know.murderer))}</b> · ${esc(CARD[g.know.murder.means].name)} + ${esc(CARD[g.know.murder.clue].name)}<br>여섯 타일마다 진실을 가리키는 칸 하나에 총알을 놓으세요. 말은 할 수 없어요!</p>
+      <span class="fs-count">총알 <b>${E.picks.filter((x, i) => x != null && (i !== 1 || E.loc)).length}</b> / 6</span>
+      <button class="btn btn-teal" id="fsSubmit">감식 결과 발표</button></div>`;
   } else if (g.phase === 'forensic') {
     body = `<div class="tiles">${g.tiles.map((t, i) => tileHtml(i === 1 ? { id: null } : { ...t, pick: null }, i, { text: '감식 중…' })).join('')}</div>`;
   } else {
@@ -240,9 +242,26 @@ function renderScene() {
 $('#scene').addEventListener('click', (e) => {
   const g = S.g;
   if (!g) return;
-  const loc = e.target.closest('[data-loc]');
+  const loc = !e.target.closest('[data-loc-opt]') && e.target.closest('[data-loc]');
   if (loc && S.fsEdit) { SFX.card(); S.fsEdit.loc = loc.dataset.loc; S.fsEdit.picks[1] = null; renderScene(); return; }
-  if (e.target.closest('#fsSubmit')) { SFX.stamp(); act({ type: 'forensic', location: S.fsEdit.loc, picks: S.fsEdit.picks }).then((r) => { if (r.ok) S.fsEdit = null; }); return; }
+  const lo = e.target.closest('[data-loc-opt]');
+  if (lo && S.fsEdit) { SFX.bullet(); S.fsEdit.loc = lo.dataset.locOpt; S.fsEdit.picks[1] = Number(lo.dataset.k); renderScene(); return; }
+  if (e.target.closest('#fsSubmit')) {
+    const E = S.fsEdit;
+    const missing = [];
+    if (!E.loc || E.picks[1] == null) missing.push('장소');
+    g.tiles.forEach((tl, i) => { if (i !== 1 && E.picks[i] == null) missing.push(TILE[tl.id].name); });
+    if (missing.length) {
+      toast(`아직 총알이 없는 타일: <b>${missing.map(esc).join(', ')}</b>`, 'err');
+      SFX.alarm();
+      $$('#scene .tiles .tile').forEach((el, i) => el.classList.toggle('need', i === 1 ? !E.loc || E.picks[1] == null : E.picks[i] == null));
+      if (!E.loc) $('#scene .loc-pick').classList.add('need');
+      return;
+    }
+    SFX.stamp();
+    act({ type: 'forensic', location: E.loc, picks: E.picks }).then((r) => { if (r.ok) S.fsEdit = null; });
+    return;
+  }
   const opt = e.target.closest('.opt.can');
   if (opt && g.phase === 'forensic' && S.fsEdit) { SFX.bullet(); S.fsEdit.picks[Number(opt.dataset.ti)] = Number(opt.dataset.k); renderScene(); return; }
   if (opt && g.phase === 'swap') { SFX.bullet(); act({ type: 'swapPick', pick: Number(opt.dataset.k) }); return; }
