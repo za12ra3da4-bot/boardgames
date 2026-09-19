@@ -204,8 +204,8 @@ function ensurePaper() {
 }
 
 /** rich: 크게 볼 때만 손그림 흔들림 필터를 켠다 (기본: 너비 200 이상) */
-export function cardSvg(r, { w = 120, cls = '', uid = '', rich = w >= 200, edition = EDITION } = {}) {
-  ensurePaper();
+export function cardSvg(r, { w = 120, cls = '', uid = '', rich = w >= 200, edition = EDITION, raster = false, attrs = '' } = {}) {
+  if (!raster) ensurePaper();
   const D = window.DALMUTI;
   const jo = edition === 'joseon';
   const R = D.ranksOf(edition)[r];
@@ -216,7 +216,7 @@ export function cardSvg(r, { w = 120, cls = '', uid = '', rich = w >= 200, editi
   const pips = r === 13 ? '아무 숫자' : r === 14 ? '판 엎기' : `${r}장`;
   const art = P.art.replace(/url\(#(cloth|skin|gold|steel)\)/g, (_, k) => `url(#${id}${k})`);
   const defs = P.defs.replace('id="cloth"', `id="${id}cloth"`);
-  return `<svg class="dcard ${cls}" viewBox="0 0 240 360" width="${w}" xmlns="http://www.w3.org/2000/svg" data-r="${r}">
+  return `<svg class="dcard ${cls}" viewBox="0 0 240 360" width="${w}" ${raster ? 'height="360"' : ''} xmlns="http://www.w3.org/2000/svg" data-r="${r}" ${attrs}>
 <defs>${defs}
   <linearGradient id="${id}skin" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fbe0c8"/><stop offset=".5" stop-color="#e8b894"/><stop offset="1" stop-color="#b87a58"/></linearGradient>
   <linearGradient id="${id}gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff0a0"/><stop offset=".5" stop-color="#e0b030"/><stop offset="1" stop-color="#8a5a10"/></linearGradient>
@@ -225,18 +225,19 @@ export function cardSvg(r, { w = 120, cls = '', uid = '', rich = w >= 200, editi
   <radialGradient id="${id}vig" cx=".5" cy=".42" r=".75"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".55"/></radialGradient>
   ${rich ? `<filter id="${id}wob"><feTurbulence type="fractalNoise" baseFrequency=".03" numOctaves="2" seed="${r * 3}"/><feDisplacementMap in="SourceGraphic" scale="2.2"/></filter>` : ''}
   <clipPath id="${id}win"><rect x="14" y="14" width="212" height="270" rx="10"/></clipPath>
+  ${raster ? `<filter id="${id}tx" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="${r}"/><feColorMatrix values="0 0 0 0 1  0 0 0 0 .95  0 0 0 0 .85  0 0 0 .1 0"/></filter>` : ''}
 </defs>
 <rect x="1" y="1" width="238" height="358" rx="16" fill="#1a0e08"/>
 <rect x="4" y="4" width="232" height="352" rx="14" fill="url(#${id}fr)"/>
-<rect x="4" y="4" width="232" height="352" rx="14" fill="url(#dcPaper)"/>
+${raster ? `<rect x="4" y="4" width="232" height="352" rx="14" filter="url(#${id}tx)"/>` : '<rect x="4" y="4" width="232" height="352" rx="14" fill="url(#dcPaper)"/>'}
 <rect x="9" y="9" width="222" height="342" rx="11" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="1.4"/>
 <g clip-path="url(#${id}win)"><g transform="translate(0 -6)">${(jo ? BG_J : BG)[P.bg]}</g><g${rich ? ` filter="url(#${id}wob)"` : ''}>${art}</g><rect x="14" y="14" width="212" height="270" fill="url(#${id}vig)"/></g>
 <rect x="14" y="14" width="212" height="270" rx="10" fill="none" stroke="${T.c}" stroke-width="3"/>
-<g transform="translate(40 44)"><circle r="27" fill="${T.band}" stroke="url(#${id}fr)" stroke-width="5"/><text y="${r === 13 ? 10 : 11}" text-anchor="middle" font-family="'Cinzel','Nanum Myeongjo',serif" font-weight="900" font-size="${num.length > 1 ? 28 : 32}" fill="${T.num}">${num}</text></g>
+<g transform="translate(40 44)"><circle r="27" fill="${T.band}" stroke="url(#${id}fr)" stroke-width="5"/>${raster ? '' : `<text y="${r === 13 ? 10 : 11}" text-anchor="middle" font-family="'Cinzel','Nanum Myeongjo',serif" font-weight="900" font-size="${num.length > 1 ? 28 : 32}" fill="${T.num}">${num}</text>`}</g>
 <path d="M14 290 H226 V334 Q226 346 214 346 H26 Q14 346 14 334Z" fill="${T.band}"/>
 <path d="M14 290 H226" stroke="url(#${id}fr)" stroke-width="3"/>
-<text x="120" y="318" text-anchor="middle" font-family="'Nanum Myeongjo',serif" font-weight="800" font-size="${R.name.length > 4 ? 22 : 26}" fill="#fbf2dc" letter-spacing="1">${R.name}</text>
-<text x="120" y="337" text-anchor="middle" font-family="'Cinzel',serif" font-weight="700" font-size="9.5" fill="${T.a}" letter-spacing="2">${R.en} · ${pips}</text>
+${raster ? '' : `<text x="120" y="318" text-anchor="middle" font-family="'Nanum Myeongjo',serif" font-weight="800" font-size="${R.name.length > 4 ? 22 : 26}" fill="#fbf2dc" letter-spacing="1">${R.name}</text>
+<text x="120" y="337" text-anchor="middle" font-family="'Cinzel',serif" font-weight="700" font-size="9.5" fill="${T.a}" letter-spacing="2">${R.en} · ${pips}</text>`}
 </svg>`;
 }
 
@@ -252,4 +253,69 @@ export function backSvg({ w = 120, cls = '', edition = EDITION } = {}) {
 <g transform="translate(120 180)"><circle r="54" fill="#3a0610" stroke="#e0b030" stroke-width="5"/>
 <path d="M-32 12 L-36 -22 L-18 -6 L-8 -30 L0 -10 L8 -30 L18 -6 L36 -22 L32 12Z" fill="#e0b030" stroke="#1a0e08" stroke-width="2.4"/>
 <text y="38" text-anchor="middle" font-family="'Nanum Myeongjo',serif" font-weight="800" font-size="16" fill="#f8e8b0">달무티</text></g></svg>`;
+}
+
+/* ═════════ 카드 그림 미리 굽기 (렉 없애기) ═════════
+   SVG 카드를 매번 DOM 에 만들면 손패 · 판 · 날아가는 카드마다 무거운 그림을 다시 그린다.
+   판마다 한 번씩 캔버스에 구워 PNG 로 두고, 화면에는 <img> 만 놓는다. 글자는 문서 글꼴로 캔버스에 직접 쓴다. */
+const RS = 2.4; // 굽는 배율 (240×360 → 576×864: 확대 카드도 선명)
+const baked = new Map(); // `${edition}:${r}` → blob URL
+const baking = new Map();
+function bakeOne(edition, r) {
+  const key = `${edition}:${r}`;
+  if (baked.has(key) || baking.has(key)) return baking.get(key) || Promise.resolve();
+  const D = window.DALMUTI;
+  const R = D.ranksOf(edition)[r];
+  if (!R) return Promise.resolve();
+  const T = TIER[R.tier];
+  const svgText = cardSvg(r, { w: 240, edition, rich: true, raster: true });
+  const job = new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const cv = document.createElement('canvas');
+        cv.width = 240 * RS;
+        cv.height = 360 * RS;
+        const x = cv.getContext('2d');
+        x.drawImage(img, 0, 0, cv.width, cv.height);
+        x.scale(RS, RS);
+        x.textAlign = 'center';
+        x.textBaseline = 'alphabetic';
+        const num = r === 13 ? '★' : r === 14 ? '牌' : String(r);
+        const pips = r === 13 ? '아무 숫자' : r === 14 ? '판 엎기' : `${r}장`;
+        x.fillStyle = T.num;
+        x.font = `900 ${num.length > 1 ? 28 : 32}px Cinzel, 'Nanum Myeongjo', serif`;
+        x.fillText(num, 40, 44 + (r === 13 ? 10 : 11));
+        x.fillStyle = '#fbf2dc';
+        x.font = `800 ${R.name.length > 4 ? 22 : 26}px 'Nanum Myeongjo', serif`;
+        if ('letterSpacing' in x) x.letterSpacing = '1px';
+        x.fillText(R.name, 120, 318);
+        x.fillStyle = T.a;
+        x.font = "700 9.5px Cinzel, 'Nanum Myeongjo', serif";
+        if ('letterSpacing' in x) x.letterSpacing = '2px';
+        x.fillText(`${R.en} · ${pips}`, 120, 337);
+        cv.toBlob((b) => { if (b) baked.set(key, URL.createObjectURL(b)); baking.delete(key); resolve(); }, 'image/png');
+      } catch (e) { baking.delete(key); resolve(); }
+    };
+    img.onerror = () => { baking.delete(key); resolve(); };
+    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgText)}`;
+  });
+  baking.set(key, job);
+  return job;
+}
+/** 판 하나의 카드 14장을 미리 굽는다. 다 구우면 'dcards-ready' 를 알린다 */
+export async function prewarm(edition = EDITION) {
+  try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch (e) { /* 무시 */ }
+  const D = window.DALMUTI;
+  const n = D.ranksOf(edition).length - 1;
+  const jobs = [];
+  for (let r = 1; r <= n; r++) jobs.push(bakeOne(edition, r));
+  await Promise.all(jobs);
+  window.dispatchEvent(new CustomEvent('dcards-ready', { detail: edition }));
+}
+/** 화면용 카드: 구운 그림이 있으면 가벼운 <img>, 아직이면 SVG */
+export function cardHtml(r, { w = 120, cls = '', attrs = '', edition = EDITION } = {}) {
+  const url = baked.get(`${edition}:${r}`);
+  if (url) return `<img class="dcard ${cls}" src="${url}" width="${w}" alt="" draggable="false" data-r="${r}" ${attrs}>`;
+  return cardSvg(r, { w, cls, edition, attrs });
 }

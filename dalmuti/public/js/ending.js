@@ -3,6 +3,7 @@
 import { POSE, gait, mixPose, ease } from '/anim/puppet.js';
 import { stage, camPath, say, cast, score, CINE_CSS } from '/anim/cine.js';
 import { svg, playFilm } from '/anim/director.js';
+import { o, l, c, face, SKIN } from './paint.js';
 
 // 확장판: 'joseon' 이면 근정전 · 곤룡포 · 익선관으로 바뀐다
 let ED = 'classic';
@@ -209,70 +210,88 @@ function crownShot(D, t0, noble, music) {
   });
 }
 /* ═════════ 정면을 보고 왕좌에 앉은 왕 (퍼펫은 옆모습 전용이라 따로 그린다) ═════════
-   어른 왕의 비율: 작은 머리 · 넓은 어깨 · 수염 · 아몬드 눈 · 무거운 담비 망토 · 직무 목걸이 */
+   얼굴은 카드 그림(paint.js)과 같은 화풍 · 긴 옷자락이 무릎을 덮고 두 팔은 팔걸이에 얹는다 */
 function frontKing(host, { x = 800, y = 650, scale = 1.05, look = 'west' } = {}) {
   const INK = '#1a0e08';
   const jo = look === 'joseon';
-  // 옷 색: 서양 왕 = 진홍 벨벳, 조선 임금 = 붉은 곤룡포
-  const robeA = '#c8202e';
-  const robeB = '#5a0610';
-  const dots = (cx, cy, rx, n) => Array.from({ length: n }, (_, i) => `<path d="M${cx - rx + (i + 0.5) * (2 * rx / n)} ${cy - 3} l2.4 6 l2.4 -6" fill="${INK}"/>`).join('');
-  const hair = jo ? '#1a1210' : '#5a3418';
-  const head = `
-        <path d="M-16 -200 H16 L18 -168 H-18Z" fill="#b8784e" stroke="${INK}" stroke-width="4"/>
-        ${jo ? '' : `<path d="M-35 -250 C-46 -272 -32 -300 0 -300 C32 -300 46 -272 35 -250 C37 -230 42 -212 36 -200 C30 -216 28 -238 26 -258 C14 -268 -14 -268 -26 -258 C-28 -238 -30 -216 -36 -200 C-42 -212 -37 -230 -35 -250Z" fill="${hair}" stroke="${INK}" stroke-width="4"/>`}
-        <path d="M-37 -248 C-44 -250 -46 -232 -36 -228Z M37 -248 C44 -250 46 -232 36 -228Z" fill="#d8946a" stroke="${INK}" stroke-width="3"/>
-        <path d="M-32 -252 C-34 -278 -18 -292 0 -292 C18 -292 34 -278 32 -252 C32 -224 26 -202 14 -192 C8 -188 -8 -188 -14 -192 C-26 -202 -32 -224 -32 -252Z" fill="url(#fkS)" stroke="${INK}" stroke-width="4.4"/>
-        <path d="M-30 -250 C-30 -226 -24 -206 -12 -194 C-20 -214 -22 -234 -20 -256Z" fill="#b8784e" opacity=".45"/>
-        <path d="M22 -236 C26 -228 26 -220 22 -214" stroke="#b8784e" stroke-width="3" fill="none" opacity=".6"/>
-        <g class="fk-eyes">
-          <path d="M-22 -247 C-18 -252 -8 -252 -4 -247 C-8 -243 -18 -243 -22 -247Z M4 -247 C8 -252 18 -252 22 -247 C18 -243 8 -243 4 -247Z" fill="#f2eadc"/>
-          <circle class="fk-pupil" cx="-13" cy="-247" r="3.4" fill="#3a2414"/><circle class="fk-pupil" cx="13" cy="-247" r="3.4" fill="#3a2414"/>
-          <path d="M-23 -247 C-18 -253 -8 -253 -3 -248 M3 -248 C8 -253 18 -253 23 -247" stroke="${INK}" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+  const skin = SKIN.a;
+  const hs = 0.86; // 카드 얼굴(머리 중심 120,112) → 왕 머리 크기
+  const HX = -120 * hs;
+  const HY = -266 - 112 * hs;
+  const P = { skin: skin[0], shade: skin[1], mood: 'calm', age: jo ? 0.2 : 0.5, brow: jo ? '#1a1210' : '#3a200e', eye: '#2a1a10' };
+  const hair = jo ? '#1a1210' : '#4a2a12';
+  // ── 머리 (카드 좌표 240×300 기준)
+  const headArt = jo
+    ? face(P)
+      + o('M104 144 Q120 140 136 144 Q130 150 120 149 Q110 150 104 144Z', '#1a1210', 1.4) + o('M113 158 Q120 178 127 158 Q120 162 113 158Z', '#1a1210', 1.4)
+      + o('M84 94 C80 58 98 44 120 44 C142 44 160 58 156 94 Q120 86 84 94Z', '#141418')
+      + o('M98 58 C88 30 108 24 114 50Z', '#141418', 2) + o('M142 58 C152 30 132 24 126 50Z', '#141418', 2)
+      + l('M84 90 Q120 82 156 90', 3, '#d8a830') + l('M96 62 Q120 56 144 62', 1.4, '#d8a830', 0.7)
+    : o('M80 150 C70 120 72 80 90 62 L92 120Z M160 150 C170 120 168 80 150 62 L148 120Z', hair)
+      + face(P)
+      + o('M86 108 C84 76 100 60 120 60 C140 60 156 76 154 108 C148 88 136 80 120 80 C104 80 92 88 86 108Z', hair)
+      + o('M92 136 C94 172 108 196 120 200 C132 196 146 172 148 136 C140 150 130 156 120 156 C110 156 100 150 92 136Z', hair)
+      + o('M104 146 Q120 141 136 146 Q128 152 120 150 Q112 152 104 146Z', hair, 1.4) + l('M106 170 q6 14 14 24 M134 170 q-6 14 -14 24', 1.2, '#2a1808', 0.6)
+      + o('M82 76 L76 38 L96 56 L108 26 L120 50 L132 26 L144 56 L164 38 L158 76 Q120 64 82 76Z', 'url(#gold)')
+      + [96, 120, 144].map((cx, i) => c(cx, 66, 5, ['#c8202a', '#2a6ac8', '#1a9a4a'][i], 1.4)).join('')
+      + [[76, 38], [108, 26], [132, 26], [164, 38]].map(([cx, cy]) => c(cx, cy, 4.4, '#fff4c0', 1.4)).join('')
+      + `<ellipse cx="120" cy="78" rx="40" ry="7" fill="#f8f4ea" stroke="${INK}" stroke-width="2"/>` + [96, 110, 124, 138].map((dx) => `<path d="M${dx} 75 l2.4 6 l2.4 -6" fill="${INK}"/>`).join('');
+  const headSvg = headArt.replace(/url\(#skin\)/g, 'url(#fkSkin)').replace(/url\(#gold\)/g, 'url(#fkG)');
+  // 눈 깜빡임 · 입 (카드 얼굴 위에 덮는다)
+  const lids = `<g class="fk-lids" opacity="0">${[105, 136].map((ex) => `<path d="M${ex - 12} 110 C${ex - 6} 102 ${ex + 6} 102 ${ex + 12} 110 C${ex + 6} 114 ${ex - 6} 114 ${ex - 12} 110Z" fill="${skin[0]}"/><path d="M${ex - 12} 110 C${ex - 6} 114 ${ex + 6} 114 ${ex + 12} 110" stroke="${INK}" stroke-width="2.4" fill="none"/>`).join('')}</g>`;
+  const mouth = `<ellipse class="fk-mouth" cx="120" cy="150" rx="9" ry="0" fill="#3a0a0a"/>`;
+
+  // ── 몸
+  const robe = jo ? ['#d0283a', '#6a0610'] : ['#b81c2a', '#4a0610'];
+  const cuff = jo ? '#1a2a6a' : '#f8f4ea';
+  const handAt = (hx, hy, rot) => `<g transform="translate(${hx} ${hy}) scale(1.25) rotate(${rot})">${o('M-12 -8 C-16 4 -12 16 -2 18 L10 16 C16 8 14 -4 10 -10 Z', skin[0], 2)}${l('M-8 2 h14 M-8 8 h13', 1.2, skin[1])}${o('M8 -8 C16 -12 20 -6 16 0 L10 -2Z', skin[0], 1.6)}</g>`;
+  const dragon = (cx, cy, rr) => `<circle cx="${cx}" cy="${cy}" r="${rr}" fill="url(#fkG)" stroke="${INK}" stroke-width="2.4"/><path d="M${cx - rr * 0.55} ${cy + rr * 0.1} C${cx - rr * 0.4} ${cy - rr * 0.6} ${cx + rr * 0.2} ${cy - rr * 0.6} ${cx + rr * 0.25} ${cy - rr * 0.1} C${cx + rr * 0.3} ${cy + rr * 0.3} ${cx + rr * 0.6} ${cy + rr * 0.3} ${cx + rr * 0.55} ${cy - rr * 0.2} M${cx - rr * 0.4} ${cy + rr * 0.45} q${rr * 0.4} ${-rr * 0.2} ${rr * 0.8} 0" stroke="#8a1a10" stroke-width="${rr * 0.12}" fill="none" stroke-linecap="round"/><circle cx="${cx - rr * 0.3}" cy="${cy - rr * 0.25}" r="${rr * 0.08}" fill="#8a1a10"/>`;
+  const torso = `
+      <!-- 무릎을 덮은 긴 옷자락 -->
+      <path d="M-78 -46 C-90 0 -92 60 -84 124 Q-42 134 0 130 Q42 134 84 124 C92 60 90 0 78 -46Z" fill="url(#fkR)" stroke="${INK}" stroke-width="5"/>
+      <path d="M-40 -30 C-46 20 -44 80 -48 128 M40 -30 C46 20 44 80 48 128 M0 -20 V130 M-74 0 C-82 40 -84 80 -80 122 M74 0 C82 40 84 80 80 122" stroke="#000" stroke-width="3" fill="none" opacity=".22"/>
+      <ellipse cx="-42" cy="4" rx="30" ry="14" fill="#fff" opacity=".1"/><ellipse cx="42" cy="4" rx="30" ry="14" fill="#fff" opacity=".1"/>
+      <path d="M-58 122 Q-38 144 -14 128 Z M14 128 Q38 144 58 122 Z" fill="${jo ? '#141418' : '#3a2410'}" stroke="${INK}" stroke-width="4"/>
+      ${jo ? '' : '<path d="M-84 124 Q-42 134 0 130 Q42 134 84 124" stroke="#e0b030" stroke-width="6" fill="none"/>'}
+      <!-- 윗몸: 둥근 어깨 → 허리 -->
+      <path d="M-76 -178 C-90 -150 -84 -90 -78 -44 H78 C84 -90 90 -150 76 -178 C48 -194 -48 -194 -76 -178Z" fill="url(#fkR)" stroke="${INK}" stroke-width="5"/>
+      <path d="M-60 -160 C-66 -120 -62 -80 -60 -50 M60 -160 C66 -120 62 -80 60 -50" stroke="#000" stroke-width="3" fill="none" opacity=".2"/>
+      ${jo
+        ? `<path d="M-40 -186 Q0 -150 40 -186" fill="none" stroke="${INK}" stroke-width="4"/><path d="M-22 -184 L0 -150 L22 -184" fill="none" stroke="#f8f4ea" stroke-width="7"/>
+           ${dragon(0, -112, 30)}${dragon(-58, -158, 17)}${dragon(58, -158, 17)}
+           <path d="M-90 -58 C-40 -40 40 -40 90 -58 L90 -44 C40 -26 -40 -26 -90 -44Z" fill="#1a1a2a" stroke="${INK}" stroke-width="3"/>${[-64, -32, 0, 32, 64].map((bx) => `<rect x="${bx - 8}" y="${-48 + Math.abs(bx) * 0.12}" width="16" height="14" rx="2" fill="#e8f0d8" stroke="${INK}" stroke-width="1.6"/>`).join('')}`
+        : `<path d="M0 -150 V-46" stroke="url(#fkG)" stroke-width="6"/>${[-126, -104, -82].map((by) => `<circle cx="0" cy="${by}" r="3.4" fill="url(#fkG)" stroke="${INK}" stroke-width="1.2"/>`).join('')}
+           <path d="M-86 -60 H86 V-44 H-86Z" fill="url(#fkG)" stroke="${INK}" stroke-width="3"/><rect x="-13" y="-65" width="26" height="26" rx="4" fill="#c8202a" stroke="${INK}" stroke-width="3"/>
+           <path d="M-96 -164 C-84 -202 84 -202 96 -164 C88 -140 54 -134 0 -140 C-54 -134 -88 -140 -96 -164Z" fill="#f8f4ea" stroke="${INK}" stroke-width="4"/>
+           ${[-80, -54, -28, 0, 28, 54, 80].map((dx, i) => `<path d="M${dx - 2} ${-160 + (i % 2) * 8 - Math.abs(dx) * 0.08} l2.4 7 l2.4 -7" fill="${INK}"/>`).join('')}
+           <path d="M-58 -144 Q0 -84 58 -144" stroke="url(#fkG)" stroke-width="7" fill="none" stroke-dasharray="10 4"/><circle cx="0" cy="-108" r="14" fill="url(#fkG)" stroke="${INK}" stroke-width="3"/><circle cx="0" cy="-108" r="5.4" fill="#c8202a"/>`}
+      <!-- 쉬는 팔: 팔걸이에 얹은 아래팔 -->
+      <path d="M70 -172 C98 -160 114 -120 118 -84 L120 -70 L94 -66 C92 -96 84 -128 62 -150Z" fill="url(#fkR)" stroke="${INK}" stroke-width="5"/>
+      <path d="M92 -76 L122 -80 L124 -62 L94 -58Z" fill="${cuff}" stroke="${INK}" stroke-width="3"/>
+      ${handAt(114, -54, -80)}
+      <path d="M-16 -206 H16 L18 -180 H-18Z" fill="${skin[1]}" stroke="${INK}" stroke-width="4"/>
+      <g class="fk-head"><g transform="translate(${HX} ${HY}) scale(${hs})">${headSvg}${lids}${mouth}</g></g>
+      <!-- 홀을 드는 팔 (어깨 기준 회전) -->
+      <g class="fk-arm">
+        <path d="M-70 -172 C-98 -160 -114 -120 -118 -84 L-120 -70 L-94 -66 C-92 -96 -84 -128 -62 -150Z" fill="url(#fkR)" stroke="${INK}" stroke-width="5"/>
+        <path d="M-92 -76 L-122 -80 L-124 -62 L-94 -58Z" fill="${cuff}" stroke="${INK}" stroke-width="3"/>
+        <g class="fk-scep">
+          <path d="M-112 -170 H-104 V40 H-112Z" fill="url(#fkG)" stroke="${INK}" stroke-width="3"/>
+          <path d="M-104 -40 h8 M-120 -40 h8 M-104 -110 h6 M-118 -110 h6" stroke="url(#fkG)" stroke-width="4"/>
+          <path d="M-120 -170 Q-108 -186 -96 -170 L-100 -160 H-116Z" fill="url(#fkG)" stroke="${INK}" stroke-width="3"/>
+          ${jo
+            ? `<path d="M-108 -214 C-124 -204 -124 -186 -108 -176 C-92 -186 -92 -204 -108 -214Z" fill="#e8f0d8" stroke="${INK}" stroke-width="3"/><path d="M-108 -206 V-184" stroke="#6a8a6a" stroke-width="2"/>`
+            : `<circle cx="-108" cy="-196" r="18" fill="#b81a24" stroke="${INK}" stroke-width="4"/><path d="M-126 -196 H-90 M-108 -214 V-178" stroke="url(#fkG)" stroke-width="3"/><circle cx="-114" cy="-202" r="5" fill="#fff" opacity=".6"/><path d="M-108 -214 V-234 M-118 -224 H-98" stroke="url(#fkG)" stroke-width="6" stroke-linecap="round"/>`}
         </g>
-        <g class="fk-lids" opacity="0"><path d="M-22 -248 C-18 -252 -8 -252 -4 -248 L-4 -246 C-8 -244 -18 -244 -22 -246Z M4 -248 C8 -252 18 -252 22 -248 L22 -246 C18 -244 8 -244 4 -246Z" fill="#d8946a"/><path d="M-22 -246 C-16 -243 -10 -243 -4 -246 M4 -246 C10 -243 16 -243 22 -246" stroke="${INK}" stroke-width="2.4" fill="none"/></g>
-        <path d="M-25 -255 Q-15 -262 -3 -256 M3 -256 Q15 -262 25 -255" stroke="${jo ? '#1a1210' : '#3a200e'}" stroke-width="4.6" fill="none" stroke-linecap="round"/>
-        <path d="M-4 -250 C-5 -238 -8 -230 -7 -224 C-3 -221 3 -221 7 -224" stroke="#8a4a30" stroke-width="2.6" fill="none" stroke-linecap="round"/>
-        <path d="M-2 -250 C-3 -238 -6 -230 -5 -226 L1 -228Z" fill="#b8784e" opacity=".5"/>
-        ${jo
-          ? `<path d="M-14 -214 Q-6 -219 0 -216 Q6 -219 14 -214 Q8 -212 0 -213 Q-8 -212 -14 -214Z" fill="#1a1210"/><path d="M-6 -200 C-6 -186 -2 -176 0 -172 C2 -176 6 -186 6 -200 Q0 -202 -6 -200Z" fill="#1a1210"/>`
-          : `<path d="M-30 -236 C-31 -212 -18 -186 0 -180 C18 -186 31 -212 30 -236 C26 -218 16 -210 0 -210 C-16 -210 -26 -218 -30 -236Z" fill="${hair}" stroke="${INK}" stroke-width="3"/>
-             <path d="M-16 -214 Q-8 -222 0 -217 Q8 -222 16 -214 Q10 -209 0 -212 Q-10 -209 -16 -214Z" fill="${hair}" stroke="${INK}" stroke-width="2.4"/>
-             <path d="M-16 -196 q6 8 4 16 M16 -196 q-6 8 -4 16 M0 -200 v14" stroke="#3a200e" stroke-width="1.6" fill="none" opacity=".7"/>`}
-        <path class="fk-mouth" d="M-7 -207 Q0 -205 7 -207" stroke="${INK}" stroke-width="2.6" fill="#5a1a14" stroke-linecap="round"/>
-        ${jo
-          ? `<!-- 익선관 -->
-             <path d="M-34 -262 C-36 -292 -20 -304 0 -304 C20 -304 36 -292 34 -262 Q0 -270 -34 -262Z" fill="#141418" stroke="${INK}" stroke-width="4"/>
-             <path d="M-26 -290 C-40 -330 -10 -336 -8 -300Z M26 -290 C40 -330 10 -336 8 -300Z" fill="#141418" stroke="${INK}" stroke-width="3.4"/>
-             <path d="M-34 -266 Q0 -276 34 -266" stroke="#d8a830" stroke-width="3" fill="none"/>`
-          : `<!-- 왕관: 담비 띠 · 아치 · 보석 -->
-             <path d="M-36 -266 L-42 -318 L-22 -294 L-10 -334 L0 -302 L10 -334 L22 -294 L42 -318 L36 -266 Q0 -276 -36 -266Z" fill="url(#fkG)" stroke="${INK}" stroke-width="4"/>
-             <path d="M-22 -294 Q0 -318 22 -294" stroke="#8a5a10" stroke-width="2.4" fill="none"/>
-             <circle cx="0" cy="-290" r="6.4" fill="#c8202a" stroke="${INK}" stroke-width="2.2"/><circle cx="-22" cy="-282" r="4" fill="#2a60c8" stroke="${INK}" stroke-width="1.8"/><circle cx="22" cy="-282" r="4" fill="#2a8a4a" stroke="${INK}" stroke-width="1.8"/>
-             ${[-42, -10, 10, 42].map((cx, i) => `<circle cx="${cx}" cy="${[-318, -334, -334, -318][i]}" r="4.4" fill="#fff4c0" stroke="${INK}" stroke-width="1.8"/>`).join('')}
-             <path d="M0 -334 V-346 M-6 -340 H6" stroke="url(#fkG)" stroke-width="4" stroke-linecap="round"/>
-             <ellipse cx="0" cy="-264" rx="40" ry="8" fill="#f8f4ea" stroke="${INK}" stroke-width="3"/>${dots(0, -264, 36, 6)}`}`;
-  const robe = jo
-    ? `<path d="M-84 -172 Q-92 -80 -82 6 H82 Q92 -80 84 -172 Q0 -150 -84 -172Z" fill="url(#fkR)" stroke="${INK}" stroke-width="5"/>
-       <path d="M-24 -170 L0 -120 L24 -170" fill="none" stroke="#f8f4ea" stroke-width="8"/>
-       <circle cx="0" cy="-88" r="30" fill="url(#fkG)" stroke="${INK}" stroke-width="3.4"/><path d="M-16 -86 C-12 -104 6 -104 8 -92 C10 -80 22 -80 20 -96 M-10 -72 q10 -6 20 0" stroke="#8a1a10" stroke-width="3" fill="none"/>
-       <circle cx="-62" cy="-150" r="16" fill="url(#fkG)" stroke="${INK}" stroke-width="2.4"/><circle cx="62" cy="-150" r="16" fill="url(#fkG)" stroke="${INK}" stroke-width="2.4"/>
-       <path d="M-82 -32 H82 V-18 H-82Z" fill="#2a2a3a" stroke="${INK}" stroke-width="3"/>${[-60, -30, 0, 30, 60].map((bx) => `<rect x="${bx - 8}" y="-33" width="16" height="16" rx="2" fill="#e8e0c8" stroke="${INK}" stroke-width="1.6"/>`).join('')}`
-    : `<path d="M-84 -172 Q-92 -80 -82 6 H82 Q92 -80 84 -172 Q0 -150 -84 -172Z" fill="url(#fkR)" stroke="${INK}" stroke-width="5"/>
-       <path d="M-50 -140 C-56 -90 -54 -40 -58 0 M50 -140 C56 -90 54 -40 58 0 M-20 -120 C-24 -70 -22 -30 -26 0 M20 -120 C24 -70 22 -30 26 0" stroke="#3a0408" stroke-width="3" fill="none" opacity=".35"/>
-       <path d="M0 -130 V4" stroke="url(#fkG)" stroke-width="6"/>
-       <path d="M-82 -40 H82 V-24 H-82Z" fill="url(#fkG)" stroke="${INK}" stroke-width="3"/><rect x="-13" y="-45" width="26" height="26" rx="4" fill="#c8202a" stroke="${INK}" stroke-width="3"/>
-       <!-- 담비 망토 깃 -->
-       <path d="M-100 -150 C-86 -190 86 -190 100 -150 C92 -126 56 -122 0 -128 C-56 -122 -92 -126 -100 -150Z" fill="#f8f4ea" stroke="${INK}" stroke-width="4"/>
-       ${[-78, -52, -26, 0, 26, 52, 78].map((dx, i) => `<path d="M${dx - 2} ${-148 + (i % 2) * 8 - Math.abs(dx) * 0.1} l2.4 7 l2.4 -7" fill="${INK}"/>`).join('')}
-       <!-- 직무 목걸이 -->
-       <path d="M-60 -136 Q0 -70 60 -136" stroke="url(#fkG)" stroke-width="7" fill="none" stroke-dasharray="10 4"/><circle cx="0" cy="-100" r="15" fill="url(#fkG)" stroke="${INK}" stroke-width="3"/><circle cx="0" cy="-100" r="6" fill="#c8202a"/>`;
+        ${handAt(-108, -54, 80)}
+      </g>`;
+
   const html = `<svg viewBox="0 0 1600 900" style="position:absolute;left:0;top:0;width:1600px;height:900px;overflow:visible">
   <defs>
     <linearGradient id="fkG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff0a0"/><stop offset=".5" stop-color="#e0b030"/><stop offset="1" stop-color="#7a4a08"/></linearGradient>
-    <linearGradient id="fkR" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${robeA}"/><stop offset="1" stop-color="${robeB}"/></linearGradient>
-    <linearGradient id="fkC" x1="0" x2="1"><stop offset="0" stop-color="#4a0610"/><stop offset=".5" stop-color="#8a1420"/><stop offset="1" stop-color="#4a0610"/></linearGradient>
-    <linearGradient id="fkS" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4c8a4"/><stop offset=".6" stop-color="#e0a880"/><stop offset="1" stop-color="#b87850"/></linearGradient>
+    <linearGradient id="fkR" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${robe[0]}"/><stop offset="1" stop-color="${robe[1]}"/></linearGradient>
+    <linearGradient id="fkC" x1="0" x2="1"><stop offset="0" stop-color="#3a0410"/><stop offset=".5" stop-color="#7a1220"/><stop offset="1" stop-color="#3a0410"/></linearGradient>
+    <linearGradient id="fkSkin" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fbe0c8"/><stop offset=".5" stop-color="#e8b894"/><stop offset="1" stop-color="#b87a58"/></linearGradient>
     <radialGradient id="fkHalo"><stop offset="0" stop-color="#fff0b0" stop-opacity=".45"/><stop offset="1" stop-color="#fff0b0" stop-opacity="0"/></radialGradient>
   </defs>
   <g transform="translate(${x} ${y}) scale(${scale})" stroke-linejoin="round">
@@ -284,71 +303,36 @@ function frontKing(host, { x = 800, y = 650, scale = 1.05, look = 'west' } = {})
     <path d="M-100 50 V-238 Q-100 -312 0 -330 Q100 -312 100 -238 V50Z" fill="${jo ? '#c8302a' : 'url(#fkC)'}"/>
     ${jo ? '<path d="M-118 -250 Q0 -300 118 -250" stroke="#e0b030" stroke-width="5" fill="none"/>' : ''}
     <circle cx="0" cy="-352" r="17" fill="#c8202a" stroke="${INK}" stroke-width="4"/><circle cx="-5" cy="-357" r="5" fill="#fff" opacity=".7"/>
-    <circle cx="-130" cy="-250" r="12" fill="url(#fkG)" stroke="${INK}" stroke-width="3"/><circle cx="130" cy="-250" r="12" fill="url(#fkG)" stroke="${INK}" stroke-width="3"/>
-    <!-- 망토 뒷자락 -->
-    <path d="M-96 -170 C-150 -110 -160 -10 -150 60 H150 C160 -10 150 -110 96 -170Z" fill="url(#fkC)" stroke="${INK}" stroke-width="5"/>
-    ${jo ? '' : '<path d="M-150 58 C-158 -10 -146 -110 -100 -164" stroke="#f8f4ea" stroke-width="14" fill="none"/><path d="M150 58 C158 -10 146 -110 100 -164" stroke="#f8f4ea" stroke-width="14" fill="none"/>'}
-    <path d="M-176 -78 H-110 V-44 H-176Z M110 -78 H176 V-44 H110Z" fill="url(#fkG)" stroke="${INK}" stroke-width="5"/>
-    <path d="M-172 -44 V120 H-148 V-44Z M148 -44 V120 H172 V-44Z" fill="#b8862a" stroke="${INK}" stroke-width="5"/>
-    <!-- 앉은 다리 -->
-    <path d="M-110 20 H110 V64 H-110Z" fill="url(#fkG)" stroke="${INK}" stroke-width="5"/>
-    <path d="M-72 -8 Q-78 36 -62 52 H-10 Q-2 36 -6 -8Z M6 -8 Q2 36 10 52 H62 Q78 36 72 -8Z" fill="${robeB}" stroke="${INK}" stroke-width="5"/>
-    <path d="M-58 50 L-56 118 H-16 L-12 50Z M12 50 L16 118 H56 L58 50Z" fill="#2a0408" stroke="${INK}" stroke-width="5"/>
-    <path d="M-62 112 H-12 L-10 134 Q-42 142 -78 134Z M12 112 H62 L78 134 Q42 142 10 134Z" fill="${jo ? '#1a1a1a' : '#3a2410'}" stroke="${INK}" stroke-width="5"/>
-    <g class="fk-body">
-      ${robe}
-      <!-- 쉬는 팔 (팔걸이 위) -->
-      <path d="M66 -168 C92 -150 110 -110 118 -70 L90 -58 C82 -98 68 -128 52 -148Z" fill="url(#fkR)" stroke="${INK}" stroke-width="5"/>
-      <path d="M88 -72 L120 -80 L124 -60 L92 -52Z" fill="${jo ? '#f8f4ea' : '#f8f4ea'}" stroke="${INK}" stroke-width="3"/>
-      <path d="M112 -70 C126 -74 136 -68 136 -58 C136 -48 126 -44 114 -48 C108 -52 108 -64 112 -70Z" fill="url(#fkS)" stroke="${INK}" stroke-width="3.4"/>
-      <path d="M118 -58 h14 M118 -52 h12" stroke="#8a4a30" stroke-width="1.6"/>
-      <circle cx="116" cy="-62" r="3.4" fill="url(#fkG)" stroke="${INK}" stroke-width="1.4"/>
-      <g class="fk-head">${head}</g>
-      <!-- 홀을 드는 팔 (어깨 기준 회전) -->
-      <g class="fk-arm">
-        <path d="M-66 -170 C-92 -144 -104 -100 -108 -58 L-78 -52 C-76 -94 -68 -128 -52 -150Z" fill="url(#fkR)" stroke="${INK}" stroke-width="5"/>
-        <path d="M-110 -62 L-76 -58 L-78 -42 L-112 -46Z" fill="#f8f4ea" stroke="${INK}" stroke-width="3"/>
-        <g class="fk-scep">
-          <path d="M-98 -160 H-90 V50 H-98Z" fill="url(#fkG)" stroke="${INK}" stroke-width="3"/>
-          <path d="M-90 -40 h8 M-106 -40 h8 M-90 -100 h6 M-104 -100 h6" stroke="url(#fkG)" stroke-width="4"/>
-          <path d="M-106 -160 Q-94 -176 -82 -160 L-86 -150 H-102Z" fill="url(#fkG)" stroke="${INK}" stroke-width="3"/>
-          <circle cx="-94" cy="-186" r="18" fill="#b81a24" stroke="${INK}" stroke-width="4"/><path d="M-112 -186 H-76 M-94 -204 V-168" stroke="url(#fkG)" stroke-width="3"/><circle cx="-100" cy="-192" r="5" fill="#fff" opacity=".6"/>
-          <path d="M-94 -204 V-224 M-104 -214 H-84" stroke="url(#fkG)" stroke-width="6" stroke-linecap="round"/>
-        </g>
-        <path d="M-108 -46 C-110 -32 -104 -22 -92 -22 C-80 -22 -76 -30 -78 -42 C-84 -48 -100 -50 -108 -46Z" fill="url(#fkS)" stroke="${INK}" stroke-width="3.4"/>
-        <path d="M-104 -36 h20 M-104 -30 h18" stroke="#8a4a30" stroke-width="1.6"/>
-      </g>
-    </g>
+    ${jo ? '' : `<!-- 담비 망토: 어깨에서 왕좌 위로 펼쳐진다 -->
+    <path d="M-86 -178 C-150 -130 -168 -20 -156 70 Q0 96 156 70 C168 -20 150 -130 86 -178Z" fill="url(#fkC)" stroke="${INK}" stroke-width="5"/>
+    <path d="M-156 70 C-168 -20 -150 -130 -90 -174 M156 70 C168 -20 150 -130 90 -174" stroke="#f8f4ea" stroke-width="16" fill="none"/>
+    ${[-150, -140, 140, 150].map((dx, i) => `<path d="M${dx} ${-40 + i * 30} l2.4 7 l2.4 -7" fill="${INK}"/>`).join('')}`}
+    <path d="M-176 -80 H-110 V-46 H-176Z M110 -80 H176 V-46 H110Z" fill="${jo ? '#8a1010' : 'url(#fkG)'}" stroke="${INK}" stroke-width="5"/>
+    <path d="M-172 -46 V120 H-148 V-46Z M148 -46 V120 H172 V-46Z" fill="${jo ? '#6a0a0a' : '#b8862a'}" stroke="${INK}" stroke-width="5"/>
+    <path d="M-112 30 H112 V66 H-112Z" fill="${jo ? '#8a1010' : 'url(#fkG)'}" stroke="${INK}" stroke-width="5"/>
+    <g class="fk-body">${torso}</g>
   </g></svg>`;
   host.insertAdjacentHTML('beforeend', html);
   const root = host.lastElementChild;
-  const body = root.querySelector('.fk-body');
+  const bodyEl = root.querySelector('.fk-body');
   const headEl = root.querySelector('.fk-head');
   const arm = root.querySelector('.fk-arm');
   const scep = root.querySelector('.fk-scep');
-  const lids = root.querySelector('.fk-lids');
-  const eyes = root.querySelector('.fk-eyes');
-  const mouth = root.querySelector('.fk-mouth');
-  const pupils = root.querySelectorAll('.fk-pupil');
+  const lidEl = root.querySelector('.fk-lids');
+  const mouthEl = root.querySelector('.fk-mouth');
   let blinkAt = 1.5;
   return {
     update(s, { up = 0, talking = false } = {}) {
-      const br = Math.sin(s * 2.2) * 1.4;
-      body.setAttribute('transform', `translate(0 ${br.toFixed(2)})`);
-      headEl.setAttribute('transform', `rotate(${(Math.sin(s * 0.8) * 2.4).toFixed(2)} 0 -186)`);
-      // 팔: 무릎 위(-16°)에서 머리 위로, 홀은 늘 곧게 선다
-      const a = -16 + up * 160;
-      arm.setAttribute('transform', `rotate(${a.toFixed(2)} -66 -166)`);
-      scep.setAttribute('transform', `rotate(${(-a * 0.85).toFixed(2)} -94 -36)`);
+      bodyEl.setAttribute('transform', `translate(0 ${(Math.sin(s * 2.2) * 1.2).toFixed(2)})`);
+      headEl.setAttribute('transform', `rotate(${(Math.sin(s * 0.8) * 2).toFixed(2)} 0 -196)`);
+      // 팔: 팔걸이(0°)에서 머리 위로 (홀은 늘 곧게)
+      const a = up * 150;
+      arm.setAttribute('transform', `rotate(${a.toFixed(2)} -72 -168)`);
+      scep.setAttribute('transform', `rotate(${(-a * 0.9).toFixed(2)} -108 -54)`);
       const blink = s > blinkAt && s < blinkAt + 0.13;
       if (s > blinkAt + 0.13) blinkAt = s + 2.4 + Math.random() * 2.5;
-      lids.setAttribute('opacity', blink ? 1 : 0);
-      eyes.setAttribute('opacity', blink ? 0 : 1);
-      const gx = Math.sin(s * 0.6) * 1.6;
-      pupils[0].setAttribute('cx', (-13 + gx).toFixed(2));
-      pupils[1].setAttribute('cx', (13 + gx).toFixed(2));
-      const open = talking && Math.sin(s * 20) > 0.1;
-      mouth.setAttribute('d', open ? 'M-8 -208 Q0 -206 8 -208 Q6 -198 0 -197 Q-6 -198 -8 -208Z' : 'M-7 -207 Q0 -205 7 -207');
+      lidEl.setAttribute('opacity', blink ? 1 : 0);
+      mouthEl.setAttribute('ry', talking && Math.sin(s * 20) > 0.1 ? 6 : 0);
     },
   };
 }
@@ -407,5 +391,5 @@ export function playEnding(host, { champion, peon, rose, sound, me, edition }) {
 }
 
 // 영상 확인용: 컷 하나만 틀어 본다
-export const _shots = { throneShot };
+export const _shots = { throneShot, frontKing };
 export { playFilm };

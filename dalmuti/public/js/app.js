@@ -2,7 +2,7 @@ import { bindName } from '/common/me.js';
 import { mountEmotes } from '/common/emote.js';
 import { roomKeeper } from '/common/keep.js';
 import { memberFace } from '/common/avatar.js';
-import { cardSvg, backSvg, setEdition } from './cards.js';
+import { cardSvg, cardHtml, prewarm, backSvg, setEdition } from './cards.js';
 import { playEnding } from './ending.js';
 // 왕궁의 달무티 - 브라우저 쪽 화면과 조작
 const D = window.DALMUTI;
@@ -31,6 +31,7 @@ function applyEdition(ed) {
   if (document.body.dataset.edition === ed) return;
   document.body.dataset.edition = ed;
   setEdition(ed);
+  prewarm(ed);
   const jo = ed === 'joseon';
   document.title = jo ? '달무티 조선 궁궐판 · 계급 카드게임' : '왕궁의 달무티 · 계급 카드게임';
   const H = {
@@ -48,6 +49,11 @@ function applyEdition(ed) {
   const tg = $('.hero .tagline'); if (tg && H.tag) { tg.dataset.orig = tg.dataset.orig || tg.innerHTML; tg.innerHTML = H.tag; } else if (tg && tg.dataset.orig) tg.innerHTML = tg.dataset.orig;
 }
 applyEdition(URL_ED);
+window.addEventListener('dcards-ready', () => {
+  S.handKey = S.tableKey = null;
+  if (S.g && screenName() === 'game') { renderTable(); renderHand(); renderDialogs(); }
+  if (S.room && screenName() === 'lobby') renderLobby();
+});
 const rname = (r) => D.ranksOf(S.g && S.g.edition)[r].name;
 
 const S = { me: null, room: null, g: null, gameId: null, seenSeq: 0, tab: 'log', unread: 0, chatLog: [], receivedAt: 0, sel: new Set(), taxSel: new Set(), filmShown: null };
@@ -174,7 +180,7 @@ function renderLobby() {
   applyEdition(ed);
   const E = D.EDITIONS[ed];
   $('#cfg').innerHTML = `<div class="cfg-box"><h4>이 왕궁 ${ed !== 'classic' ? '<small>확장판</small>' : ''}</h4><div class="eds"><div class="ed ed-${E.id} on">
-      <span class="ed-cards">${[1, 13, 12].map((r, i) => cardSvg(r, { w: 54, edition: E.id, cls: `k${i}` })).join('')}${E.mapae ? cardSvg(14, { w: 54, edition: E.id, cls: 'k3' }) : ''}</span>
+      <span class="ed-cards">${[1, 13, 12].map((r, i) => cardHtml(r, { w: 54, edition: E.id, cls: `k${i}` })).join('')}${E.mapae ? cardHtml(14, { w: 54, edition: E.id, cls: 'k3' }) : ''}</span>
       <b>${E.name}</b><small>${E.sub}</small></div></div>
     ${ed === 'joseon' ? '<p class="ed-rule"><b>마패</b> 2장이 더 들어갑니다. 내 차례에 마패 한 장만 내면 <b>암행어사 출두!</b> 깔린 카드를 모두 치우고 내가 새로 냅니다.</p>' : ''}</div>
     <div class="cfg-box"><h4>몇 판 할까요?</h4><div class="seg">${[1, 3, 5, 7].map((n) => `<button data-rounds="${n}" class="${cfg.rounds === n ? 'on' : ''}" ${host ? '' : 'disabled'}>${n}판</button>`).join('')}</div><p>판마다 신분 점수(대달무티가 가장 높음)를 더해 우승자를 가립니다.</p></div>`;
@@ -227,7 +233,7 @@ function renderTable() {
     const cards = t.cards;
     const w = 118;
     const spread = Math.min(46, 360 / Math.max(1, cards.length));
-    html = `<div class="pile">${cards.map((c, i) => cardSvg(c.r, { w, uid: `t${i}` }).replace('<svg ', `<svg style="transform: translateX(${(i - (cards.length - 1) / 2) * spread}px) rotate(${(i - (cards.length - 1) / 2) * 4}deg)" `)).join('')}</div>
+    html = `<div class="pile">${cards.map((c, i) => cardHtml(c.r, { w, attrs: `style="transform: translateX(${(i - (cards.length - 1) / 2) * spread}px) rotate(${(i - (cards.length - 1) / 2) * 4}deg)"` })).join('')}</div>
       <div class="trick-label">${esc(nameOf(t.by))} · ${rname(t.rank)} ×${t.count}</div>`;
   } else {
     const leadP = g.turn && pl(g.turn);
@@ -264,7 +270,7 @@ function renderHand() {
       const jesters = hand.filter((x) => x.r === 13).length;
       const same = hand.filter((x) => x.r === c.r).length;
       const playable = !t || c.r === D.MAPAE || (c.r === 13 ? jesters >= t.count || hand.some((x) => x.r < t.rank && hand.filter((y) => y.r === x.r).length + jesters >= t.count) : c.r < t.rank && same + jesters >= t.count);
-      return cardSvg(c.r, { w: 96, cls: `${S.sel.has(c.id) ? 'sel' : ''} ${gap ? 'gap' : ''} ${mine && t && !playable ? 'dim' : ''}` }).replace('<svg ', `<svg data-id="${c.id}" `);
+      return cardHtml(c.r, { w: 96, cls: `${S.sel.has(c.id) ? 'sel' : ''} ${gap ? 'gap' : ''} ${mine && t && !playable ? 'dim' : ''}`, attrs: `data-id="${c.id}"` });
     }).join('')}</div>`;
 }
 $('#handArea').addEventListener('click', (e) => {
@@ -304,7 +310,7 @@ $('#handArea').addEventListener('contextmenu', (e) => {
   if (!c) return;
   e.preventDefault();
   const card = S.g.me.hand.find((x) => x.id === c.dataset.id);
-  if (card) { $('#zoom').innerHTML = cardSvg(card.r, { w: 320 }); $('#zoom').hidden = false; }
+  if (card) { $('#zoom').innerHTML = cardHtml(card.r, { w: 320 }); $('#zoom').hidden = false; }
 });
 $('#zoom').addEventListener('click', () => { $('#zoom').hidden = true; });
 
@@ -316,7 +322,7 @@ function renderDialogs() {
     const { n, got } = g.tax;
     for (const id of [...S.taxSel]) if (!g.me.hand.some((c) => c.id === id)) S.taxSel.delete(id);
     box.innerHTML = `<h3>세금을 받았습니다</h3><p>농노가 바친 카드: ${got.map((id) => { const c = g.me.hand.find((x) => x.id === id); return c ? `<b>${rname(c.r)}</b>` : ''; }).join(', ')}. 이제 돌려줄 카드 <b>${n}장</b>을 고르세요 (보통 가장 쓸모없는 카드).</p>
-      <div class="pick-row">${g.me.hand.map((c) => cardSvg(c.r, { w: 92, cls: S.taxSel.has(c.id) ? 'sel' : '' }).replace('<svg ', `<svg data-tax="${c.id}" `)).join('')}</div>
+      <div class="pick-row">${g.me.hand.map((c) => cardHtml(c.r, { w: 92, cls: S.taxSel.has(c.id) ? 'sel' : '', attrs: `data-tax="${c.id}"` })).join('')}</div>
       <div class="modal-btns"><button class="btn btn-gold btn-lg" id="taxGo" ${S.taxSel.size === n ? '' : 'disabled'}>${n}장 돌려주기</button></div>`;
     $('#modal').hidden = false;
     $('#modal').dataset.kind = 'tax';
@@ -355,7 +361,7 @@ function flyCards(fromPid, ranks) {
   const b = to.getBoundingClientRect();
   ranks.forEach((r, i) => {
     const el = document.createElement('div');
-    el.innerHTML = cardSvg(r, { w: 96 });
+    el.innerHTML = cardHtml(r, { w: 96 });
     const svg = el.firstChild;
     $('#fly').appendChild(svg);
     svg.animate([
