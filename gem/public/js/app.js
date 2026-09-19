@@ -1,5 +1,6 @@
 import { bindName } from '/common/me.js';
 import { mountEmotes } from '/common/emote.js';
+import { memberFace } from '/common/avatar.js';
 // 찬란한 보석상 - 브라우저 쪽 화면과 조작
 const G = window.GEM;
 const SFX = window.SFX;
@@ -19,7 +20,11 @@ function token() {
   return t;
 }
 const AV = ['#8a1a2a', '#1a4a8a', '#1a6a3a', '#8a6a1a'];
-const avatar = (name, i) => `<span class="avatar" style="background:${AV[i % 4]}">${esc(String(name || '?').slice(0, 1))}</span>`;
+/** 그 사람이 꾸민 캐릭터 얼굴 (이름으로 방 멤버를 찾는다) */
+const avatar = (name) => {
+  const m = S.room && S.room.members.find((x) => x.name === name);
+  return `<span class="avatar av-in">${memberFace(m || { pid: name })}</span>`;
+};
 const chipImg = (c, w) => `<img src="assets/chip/${c}.svg" alt="" style="width:${w}px">`;
 
 const S = { me: null, room: null, g: null, gameId: null, seenSeq: 0, sel: {}, tab: 'log', unread: 0, chatLog: [], links: [], overShown: false, receivedAt: 0 };
@@ -60,7 +65,7 @@ const codeInput = $('#codeInput');
 nameInput.value = remembered('gem.name');
 // 로그인했으면 프로필 닉네임으로 채운다 (이름 안 쳐도 됨) · 이모트 버튼
 bindName(nameInput);
-mountEmotes({ socket, myPid: () => S.me, active: () => !!S.room, anchor: (pid) => (pid === S.me ? document.getElementById('me') : null) });
+mountEmotes({ socket, myPid: () => S.me, active: () => !!S.room, members: () => (S.room ? S.room.members : []), anchor: (pid) => (pid === S.me ? document.getElementById('me') : null) });
 const inv = /[?&#]room=([A-Za-z]{4})/.exec(location.href);
 if (inv) codeInput.value = inv[1].toUpperCase();
 const needName = () => { const n = nameInput.value.trim(); if (!n) { toast('닉네임을 입력하세요', 'err'); return null; } remember('gem.name', n); return n; };

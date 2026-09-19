@@ -3,6 +3,9 @@
 
 .av { display: block; overflow: visible; }
 .av.av-crop { overflow: hidden; }
+.av-face { display: inline-block; flex: none; border-radius: 50%; overflow: hidden; border: 2px solid #2a1d14; background: #efe0bd; box-shadow: 0 2px 5px rgba(0, 0, 0, .35); vertical-align: middle; }
+.av-face > .av, .av-in > .av { width: 100%; height: 100%; }
+.av-in { overflow: hidden; padding: 0 !important; background: #efe0bd !important; }
 .av .av-all, .av .av-upper, .av .av-hm, .av .av-armL, .av .av-armR, .av .av-legL, .av .av-legR,
 .av .av-shadow, .av [class^="av-fx"], .av .av-tears { transform-box: view-box; }
 .av .av-all { transform-origin: 100px 245px; }
@@ -176,6 +179,17 @@
 .emo-btn:hover { transform: translateY(-2px); background: #fff3d0; }
 .emo-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #2a1d14; }
 .emo-panel.cool .emo-btn { opacity: .45; pointer-events: none; }
+.emo-grid-wrap { display: contents; }
+.emo-people { grid-column: 1 / -1; border-top: 2px dashed #c8b48a; padding-top: 8px; display: grid; gap: 5px; max-height: 190px; overflow-y: auto; }
+.emo-person { display: flex; align-items: center; gap: 8px; padding: 3px 4px; border-radius: 10px; font: 14px 'Noto Sans KR', sans-serif; color: #2a1d14; }
+.emo-person b { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.emo-person button { font: 12px 'Jua', sans-serif; padding: 4px 10px; border-radius: 8px; border: 2px solid #2a1d14; background: #fffaf0; cursor: pointer; color: #8e2a22; }
+.emo-person.blocked { background: rgba(200, 69, 58, .12); }
+.emo-person.blocked b { text-decoration: line-through; opacity: .6; }
+.emo-person.blocked button { background: #c8453a; color: #fff; }
+.emo-none { font-size: 12px; color: #7a6450; padding: 4px; }
+.slot-faces { display: flex; align-items: flex-end; justify-content: center; gap: 2px; }
+.slot-face { margin: 4px auto 2px; }
 
 /* ───────── 로그인 표시 (이름 칸 옆) */
 .acc-chip {
@@ -186,3 +200,6 @@
 .acc-chip b { font-weight: 900; }
 .acc-chip small { opacity: .6; }
 input.acc-bound { opacity: .85; cursor: not-allowed; }
+
+.emo-fab { touch-action: none; cursor: grab; }
+.emo-fab.dragging { cursor: grabbing; transform: scale(1.12) rotate(-6deg); box-shadow: 0 10px 0 #2a1d14, 0 18px 28px rgba(0, 0, 0, .45); transition: none; }

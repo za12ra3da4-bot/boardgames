@@ -4,6 +4,7 @@ import { cardHtml, zoomCardHtml, chCardHtml, boardHtml, esc, ic } from './cards.
 import { playEnding } from './ending.js';
 import { bindName } from '/common/me.js';
 import { mountEmotes } from '/common/emote.js';
+import { faceChip } from '/common/avatar.js';
 
 const B = window.BANG;
 const SFX = window.SFX;
@@ -153,7 +154,7 @@ const codeInput = $('#codeInput');
 nameInput.value = remembered('bang.name');
 // 로그인했으면 프로필 닉네임으로 채운다 (이름 안 쳐도 됨) · 이모트 버튼
 bindName(nameInput);
-mountEmotes({ socket, myPid: () => S.me, active: () => !!S.room, anchor: (pid) => (pid === S.me ? document.getElementById('meInfo') : null) });
+mountEmotes({ socket, myPid: () => S.me, active: () => !!S.room, members: () => (S.room ? S.room.members : []), anchor: (pid) => (pid === S.me ? document.getElementById('meInfo') : null) });
 
 function inviteCode() {
   const m = /[?&#]room=([A-Za-z0-9]{4})/.exec(location.href);
@@ -286,6 +287,7 @@ function renderLobby() {
     slots.push(`<div class="slot">
       ${kick}
       <div class="slot-wanted">WANTED</div>
+      ${faceChip(m, 64, 'slot-face')}
       <div class="slot-name">${esc(m.name)}</div>
       <div class="slot-tags">${tags.join('')}</div>
     </div>`);

@@ -300,3 +300,19 @@ ${back}${shadow}<g filter="url(#${uid})"><g class="av-all">${legs(av, cloth)}<g 
 }
 
 export const EMOTES = P.EMOTES;
+
+/* ───── 방 사람 얼굴 (로그인한 사람은 꾸민 캐릭터, 손님 · AI 는 아이디마다 정해진 캐릭터) */
+const faceCache = new Map();
+export function memberAvatar(m) {
+  return (m && m.avatar) || P.fromSeed((m && m.pid) || 'guest');
+}
+export function memberFace(m) {
+  const av = memberAvatar(m);
+  const key = JSON.stringify(av);
+  if (!faceCache.has(key)) faceCache.set(key, avatarSvg(av, { crop: 'head', bg: true }));
+  return faceCache.get(key);
+}
+/** 둥근 얼굴 칩 */
+export function faceChip(m, size = 56, cls = '') {
+  return `<span class="av-face ${cls}" style="width:${size}px;height:${size}px">${memberFace(m)}</span>`;
+}

@@ -2,6 +2,7 @@
 import { playCutscene } from './cutscene.js';
 import { bindName } from '/common/me.js';
 import { mountEmotes } from '/common/emote.js';
+import { memberFace } from '/common/avatar.js';
 
 const W = window.WOLF;
 const SFX = window.SFX;
@@ -26,7 +27,11 @@ function token() {
 }
 
 const AV_COLORS = ['#b8322a', '#2a6ab8', '#3a8a4a', '#c8902a', '#7a3aa8', '#2a9a9a', '#c85a8a', '#6a6a2a', '#8a4a2a', '#4a5ab8'];
-const avatar = (name, i, size = 54) => `<span class="avatar" style="background:${AV_COLORS[i % AV_COLORS.length]};width:${size}px;height:${size}px;font-size:${Math.round(size * 0.45)}px">${esc(String(name || '?').slice(0, 1))}</span>`;
+/** 그 사람이 꾸민 캐릭터 얼굴 (이름으로 방 멤버를 찾는다) */
+const avatar = (name, i, size = 54) => {
+  const m = S.room && S.room.members.find((x) => x.name === name);
+  return `<span class="avatar av-in" style="width:${size}px;height:${size}px">${memberFace(m || { pid: name })}</span>`;
+};
 const TEAM_NAME = { village: '마을 편', wolf: '늑대 편', tanner: '혼자만의 편' };
 
 function roleCard(role, { w = 120, cls = '', attrs = '' } = {}) {
@@ -119,7 +124,7 @@ const codeInput = $('#codeInput');
 nameInput.value = remembered('wolf.name');
 // 로그인했으면 프로필 닉네임으로 채운다 (이름 안 쳐도 됨) · 이모트 버튼
 bindName(nameInput);
-mountEmotes({ socket, myPid: () => S.me, active: () => !!S.room });
+mountEmotes({ socket, myPid: () => S.me, active: () => !!S.room, members: () => (S.room ? S.room.members : []) });
 const inv = /[?&#]room=([A-Za-z]{4})/.exec(location.href);
 if (inv) codeInput.value = inv[1].toUpperCase();
 

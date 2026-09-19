@@ -1,5 +1,6 @@
 import { bindName } from '/common/me.js';
 import { mountEmotes } from '/common/emote.js';
+import { faceChip } from '/common/avatar.js';
 // 바람섬 개척기 - 브라우저 쪽 전체 화면과 조작
 const I = window.ISLE;
 const SFX = window.SFX;
@@ -153,7 +154,7 @@ const codeInput = $('#codeInput');
 nameInput.value = remembered('isle.name');
 // 로그인했으면 프로필 닉네임으로 채운다 (이름 안 쳐도 됨) · 이모트 버튼
 bindName(nameInput);
-mountEmotes({ socket, myPid: () => S.me, active: () => !!S.room });
+mountEmotes({ socket, myPid: () => S.me, active: () => !!S.room, members: () => (S.room ? S.room.members : []) });
 const inv = /[?&#]room=([A-Za-z]{4})/.exec(location.href);
 if (inv) codeInput.value = inv[1].toUpperCase();
 
@@ -278,7 +279,7 @@ function renderLobby() {
     if (!m.online && !m.isBot) tags.push('<span class="tag red">접속 끊김</span>');
     slots.push(`<div class="slot">
       ${host && m.pid !== S.me ? `<button class="icon-btn kick" data-kick="${m.pid}" title="내보내기">${ic('x')}</button>` : ''}
-      ${pawn(I.COLORS[i].id, 44)}
+      <div class="slot-faces">${faceChip(m, 60)}${pawn(I.COLORS[i].id, 28)}</div>
       <div class="slot-name">${esc(m.name)}</div>
       <div class="slot-tags">${tags.join('')}</div>
     </div>`);
@@ -501,7 +502,7 @@ function renderPlayers() {
     if (g.awards.army && g.awards.army.pid === p.pid) badges.push(`<span class="award">${ic('knight')}최강 기사단 +2</span>`);
     const thinking = needs.some((n) => n.pid === p.pid) && p.pid !== S.me;
     return `<div class="pcard ${p.pid === cur ? 'cur' : ''}" data-pid="${p.pid}" style="--c:${c.fill}">
-      <div class="pc-top">${pawn(p.color)}<b>${esc(p.name)}${p.pid === S.me ? ' (나)' : ''}</b>${p.isBot ? ic('bot') : ''}
+      <div class="pc-top">${faceChip((S.room && S.room.members.find((x) => x.pid === p.pid)) || p, 30)}${pawn(p.color)}<b>${esc(p.name)}${p.pid === S.me ? ' (나)' : ''}</b>${p.isBot ? ic('bot') : ''}
         <span class="pc-vp">${ic('star')}${p.vp}</span></div>
       <div class="pc-stats">
         <span class="stat ${p.cards > 7 ? 'warn' : ''}" title="자원 카드">${ic('cards')}${p.cards}</span>

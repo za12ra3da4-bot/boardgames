@@ -2,6 +2,7 @@ import { Board } from './board3d.js';
 import { rulesPanelHtml, rulesModalHtml, currentStep } from './rules.js';
 import { bindName } from '/common/me.js';
 import { mountEmotes } from '/common/emote.js';
+import { faceChip } from '/common/avatar.js';
 
 const C = window.CLUE;
 const $ = (s, r = document) => r.querySelector(s);
@@ -340,7 +341,7 @@ const codeInput = $('#codeInput');
 nameInput.value = LS.get('clue.name') || '';
 // 로그인했으면 프로필 닉네임으로 채운다 (이름 안 쳐도 됨) · 이모트 버튼
 bindName(nameInput);
-mountEmotes({ socket, myPid: () => S.pid, active: () => !!S.room });
+mountEmotes({ socket, myPid: () => S.pid, active: () => !!S.room, members: () => (S.room ? S.room.members : []) });
 const urlRoom = new URLSearchParams(location.search).get('room');
 if (urlRoom) codeInput.value = urlRoom.toUpperCase().slice(0, 4);
 codeInput.addEventListener('input', () => { codeInput.value = codeInput.value.toUpperCase().replace(/[^A-Z]/g, ''); });
@@ -389,7 +390,7 @@ function renderLobby() {
     const mine = m && m.pid === S.pid;
     let foot;
     if (m) {
-      foot = `<span class="occupant">${m.isBot ? ic('bot') : ''}${esc(m.name)}${m.pid === r.hostPid ? ic('crown') : ''}${m.online ? '' : '<span class="off">연결 끊김</span>'}</span>
+      foot = `<span class="occupant">${faceChip(m, 28)} ${m.isBot ? ic('bot') : ''}${esc(m.name)}${m.pid === r.hostPid ? ic('crown') : ''}${m.online ? '' : '<span class="off">연결 끊김</span>'}</span>
         ${isHost && !mine ? `<button class="icon-btn sm" data-kick="${m.pid}" title="${m.isBot ? 'AI 제거' : '내보내기'}">${ic('x')}</button>` : ''}`;
     } else {
       foot = '<span class="empty">비어 있음 · 눌러서 선택</span>';
