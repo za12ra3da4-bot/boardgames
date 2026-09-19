@@ -11,11 +11,15 @@ const TABS = [
   { key: 'hairColor', name: '머리 색', crop: 'head', noHat: true },
   { key: 'skin', name: '피부', crop: 'head' },
   { key: 'eyes', name: '눈', crop: 'head', expr: 'neutral' },
-  { key: 'mouth', name: '입', crop: 'head', expr: 'neutral' },
+  { key: 'eyeColor', name: '눈 색', crop: 'head', expr: 'neutral' },
+  { key: 'mouth', name: '입 · 코', crop: 'head', expr: 'neutral' },
   { key: 'outfit', name: '옷', crop: 'full' },
   { key: 'cloth', name: '옷 색', crop: 'full' },
+  { key: 'pattern', name: '옷 무늬', crop: 'full' },
   { key: 'hat', name: '모자', crop: 'head' },
-  { key: 'acc', name: '장신구', crop: 'head' },
+  { key: 'hatColor', name: '모자 색', crop: 'head', needs: 'hat' },
+  { key: 'acc', name: '장신구', crop: 'bust' },
+  { key: 'accColor', name: '장신구 색', crop: 'bust', needs: 'acc' },
   { key: 'bg', name: '배경', crop: 'bg' },
 ];
 
@@ -51,14 +55,20 @@ function paintTabs() {
 function paintShelf() {
   const t = TABS.find((x) => x.key === tab);
   const list = PARTS[t.key];
+  // 모자 · 장신구 색은 먼저 모자 · 장신구를 골라야 보인다
+  if (t.needs && st.av[t.needs] === 'none') {
+    $('#shelf').innerHTML = `<div class="shelf-empty">먼저 ${t.needs === 'hat' ? '모자' : '장신구'}를 골라 주세요. 고른 물건의 색을 여기서 바꿀 수 있어요.</div>`;
+    return;
+  }
   $('#shelf').innerHTML = list.map((o) => {
     const av = { ...st.av, [t.key]: o.id, ...(t.noHat ? { hat: 'none' } : {}) };
     let pic;
     // 50개씩 그리니 작은 그림은 손떨림 효과 없이 가볍게
+    const swatch = o.fill ? `<i class="swatch" style="background:${o.fill}"></i>` : (t.key.endsWith('Color') ? '<i class="swatch auto"></i>' : '');
     if (t.crop === 'bg') pic = avatarSvg(av, { crop: 'head', bg: true, flat: true });
     else if (t.crop === 'full') pic = avatarSvg(av, { flat: true });
-    else pic = avatarSvg(av, { crop: 'head', expr: t.expr, flat: true });
-    return `<button type="button" class="item ${t.crop === 'full' ? 'full' : ''} ${st.av[t.key] === o.id ? 'on' : ''}" data-part="${t.key}" data-id="${o.id}">${pic}<span>${esc(o.name)}</span></button>`;
+    else pic = avatarSvg(av, { crop: t.crop, expr: t.expr, flat: true });
+    return `<button type="button" class="item ${t.crop === 'full' ? 'full' : ''} ${st.av[t.key] === o.id ? 'on' : ''}" data-part="${t.key}" data-id="${o.id}">${pic}<span>${swatch}${esc(o.name)}</span></button>`;
   }).join('');
 }
 function paintTitles() {
