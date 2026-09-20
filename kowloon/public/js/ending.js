@@ -181,21 +181,22 @@ const GRIP = {
 const objAt = (key, x, y, sc = 1, rot = 0) => `<g transform="translate(${x} ${y}) rotate(${rot}) scale(${sc}) translate(-50 -50)">${OBJ[key] || ''}</g>`;
 // 수단마다 동작 (kind) 과 세부
 const MOVE = {
-  knife: { kind: 'thrust' }, scissors: { kind: 'thrust', n: 2 }, syringe: { kind: 'jab' }, shard: { kind: 'grab' }, sword: { kind: 'slash', wide: 1 },
-  axe: { kind: 'woodchop' }, chainsaw: { kind: 'saw' }, harpoon: { kind: 'throwSpear' }, bow: { kind: 'arrow' },
-  hammer: { kind: 'smash', n: 2 }, crowbar: { kind: 'smash' }, trophy: { kind: 'smash' }, candle: { kind: 'smash', out: 1 }, dumbbell: { kind: 'smash', two: 1 },
-  brick: { kind: 'smash', debris: '#a8502a' }, pot: { kind: 'hurl' }, ice: { kind: 'smash', debris: '#dff4ff' }, bottle: { kind: 'smash', debris: '#6ab07a' },
-  bat: { kind: 'swing' }, golf: { kind: 'swing', up: 1 }, pan: { kind: 'swing', clang: 1 },
+  knife: { kind: 'thrust', set: 'kitchen' }, scissors: { kind: 'thrust', n: 2, set: 'barber', sit: 1, stand: 852 }, syringe: { kind: 'jab' }, shard: { kind: 'grab' }, sword: { kind: 'slash', wide: 1, set: 'roofTop' },
+  axe: { kind: 'woodchop', set: 'kitchen' }, chainsaw: { kind: 'saw', set: 'site' }, harpoon: { kind: 'throwSpear', set: 'pier' }, bow: { kind: 'arrow' },
+  hammer: { kind: 'smash', n: 2, set: 'site' }, crowbar: { kind: 'smash', set: 'site' }, candle: { kind: 'smash', out: 1 },
+  brick: { kind: 'drop', set: 'drop', debris: '#a8502a' }, pot: { kind: 'drop', set: 'drop', debris: '#5a3a1a', leaf: 1 },
+  ice: { kind: 'drop', set: 'drop', debris: '#dff4ff' }, dumbbell: { kind: 'drop', set: 'drop', debris: '#8a8e98' }, trophy: { kind: 'drop', set: 'drop', debris: '#e8c040' }, bottle: { kind: 'smash', debris: '#6ab07a' },
+  bat: { kind: 'swing' }, golf: { kind: 'swing', up: 1, set: 'roofTop' }, pan: { kind: 'swing', clang: 1, set: 'kitchen' },
   pistol: { kind: 'shoot' }, shotgun: { kind: 'shoot', big: 1 },
   poison: { kind: 'table', how: 'pour' }, pills: { kind: 'table', how: 'drop' }, mushroom: { kind: 'table', how: 'soup' },
   wine: { kind: 'offer' }, choco: { kind: 'offer', eat: 1 }, acid: { kind: 'splash' },
   snake: { kind: 'snake' }, bee: { kind: 'bees' },
-  car: { kind: 'vehicle' }, bike: { kind: 'vehicle', small: 1 }, stairs: { kind: 'stairs' }, bathtub: { kind: 'tub' },
-  pillow: { kind: 'smother' }, bag: { kind: 'smother' },
+  car: { kind: 'vehicle' }, bike: { kind: 'vehicle', small: 1 }, stairs: { kind: 'stairs' }, bathtub: { kind: 'tub', set: 'bath' },
+  pillow: { kind: 'smother', set: 'bed', bed: 1 }, bag: { kind: 'smother' },
   rope: { kind: 'cord', color: '#c8a060', w: 8 }, cable: { kind: 'cord', color: '#1a1a1a', w: 6 }, wire: { kind: 'cord', color: '#c8ccd4', w: 3 },
-  fishline: { kind: 'cord', color: '#e8f0f8', w: 2 }, chain: { kind: 'cord', color: '#8a929e', w: 9, dash: '7 3' }, necktie: { kind: 'cord', color: '#b8303a', w: 12 },
+  fishline: { kind: 'cord', color: '#e8f0f8', w: 2, set: 'pier' }, chain: { kind: 'cord', color: '#8a929e', w: 9, dash: '7 3', set: 'pier' }, necktie: { kind: 'cord', color: '#b8303a', w: 12 },
   scarf: { kind: 'cord', color: '#6a2a8a', w: 14 },
-  match: { kind: 'fire' }, gas: { kind: 'fire', pour: 1 }, firecracker: { kind: 'boom' }, dryer: { kind: 'shock' },
+  match: { kind: 'fire' }, gas: { kind: 'fire', pour: 1 }, firecracker: { kind: 'boom' }, dryer: { kind: 'shock', set: 'bath', tub: 1 },
 };
 // 건네는 작은 소품 (손 좌표: 팔이 앞으로 뻗으면 +x 가 위쪽)
 const WINE_GLASS = '<g transform="translate(0 18)"><path d="M-3 -10 V10" stroke="#e8eef4" stroke-width="3.4" stroke-linecap="round"/><path d="M-3 0 H24" stroke="#e8eef4" stroke-width="3"/>'
@@ -224,6 +225,85 @@ function barInterior() {
 const tableSvg = '<g><ellipse cx="900" cy="706" rx="190" ry="26" fill="#5a3a1a" stroke="#1a0e08" stroke-width="5"/><path d="M892 720 V840 M840 840 H960" stroke="#3a2410" stroke-width="12"/>'
   + '<path d="M1040 780 H1130 V850 M1040 780 V850 M1120 700 V780" stroke="#3a2410" stroke-width="9" fill="none"/>'
   + '<path d="M680 780 H770 V850 M680 780 V850 M690 700 V780" stroke="#3a2410" stroke-width="9" fill="none"/></g>';
+/* ═════════ 사건이 벌어지는 자리 (수단에 어울리는 곳) ═════════ */
+// 포장마차 · 주방: 불 위의 웍 · 걸린 오리 · 도마
+const kitchenSet = () => `<rect width="1600" height="900" fill="#2a1a12"/><rect y="560" width="1600" height="340" fill="#3a2418"/>
+  <rect x="40" y="120" width="1520" height="440" fill="#4a3018"/>${Array.from({ length: 9 }, (_, i) => `<path d="M${120 + i * 170} 120 v70" stroke="#2a1a10" stroke-width="5"/><path d="M${100 + i * 170} 190 q20 -34 40 0 q-4 60 -20 66 q-16 -6 -20 -66Z" fill="#a8502a" stroke="#1a0e08" stroke-width="3"/>`).join('')}
+  <rect x="0" y="600" width="1600" height="40" fill="#8a8e98"/><rect x="0" y="640" width="1600" height="30" fill="#5a5e68"/>
+  <g><ellipse cx="420" cy="600" rx="120" ry="34" fill="#2a2a30" stroke="#0a0806" stroke-width="6"/><ellipse cx="420" cy="590" rx="98" ry="26" fill="#1a1a20"/>
+    ${Array.from({ length: 7 }, (_, i) => `<path d="M${360 + i * 20} 596 q6 -40 -4 -64 q16 22 10 64" fill="#ff8a2a" opacity=".8"/>`).join('')}<ellipse cx="420" cy="620" rx="150" ry="60" fill="#ff7a2a" opacity=".22"/></g>
+  <rect x="1180" y="560" width="300" height="24" fill="#8a6a3a" stroke="#3a2410" stroke-width="4"/>
+  <text x="1300" y="330" text-anchor="middle" font-family="'Song Myung',serif" font-size="90" fill="#ffd23a" opacity=".55">食堂</text>`;
+// 욕실: 타일 · 욕조 · 거울 · 김
+const bathSet = () => `<rect width="1600" height="900" fill="#1a2430"/>${Array.from({ length: 160 }, (_, i) => `<rect x="${(i % 16) * 100}" y="${Math.floor(i / 16) * 62}" width="96" height="58" fill="${(i + Math.floor(i / 16)) % 2 ? '#26323e' : '#222c38'}"/>`).join('')}
+  <rect x="120" y="140" width="300" height="220" rx="10" fill="#38485a" stroke="#0e1620" stroke-width="8"/><rect x="140" y="160" width="260" height="180" rx="6" fill="#4a5e70" opacity=".8"/>
+  <path d="M1420 620 h60 v-90 q0 -30 -40 -30" stroke="#b8c4cc" stroke-width="12" fill="none"/>
+  <rect x="180" y="470" width="220" height="16" rx="8" fill="#6a7a88"/><path d="M230 486 q-10 90 6 120 M300 486 q8 90 -4 120" stroke="#cfd8e0" stroke-width="22" fill="none" opacity=".85"/>
+  <rect y="840" width="1600" height="60" fill="#2a3642"/>`;
+// 이발소: 회전 간판 · 거울 · 이발 의자
+const barberSet = () => `<rect width="1600" height="900" fill="#2a2018"/><rect y="600" width="1600" height="300" fill="#3a2a1a"/>${Array.from({ length: 20 }, (_, i) => `<rect x="${i * 80}" y="600" width="40" height="300" fill="#44301e"/>`).join('')}
+  <rect x="120" y="120" width="420" height="380" rx="8" fill="#0e1418" stroke="#8a6a3a" stroke-width="10"/><rect x="140" y="140" width="380" height="340" fill="#1a2630" opacity=".8"/>
+  <rect x="1180" y="180" width="70" height="260" rx="35" fill="#f4f0e6" stroke="#1a0e08" stroke-width="5"/>
+  ${Array.from({ length: 6 }, (_, i) => `<path d="M1180 ${200 + i * 44} q35 26 70 0 v22 q-35 26 -70 0Z" fill="${i % 2 ? '#c8202a' : '#2a4a9a'}"/>`).join('')}
+  <rect x="620" y="300" width="360" height="30" fill="#5a4030"/>${Array.from({ length: 5 }, (_, i) => `<rect x="${650 + i * 66}" y="250" width="26" height="50" rx="6" fill="${['#8ab0d8', '#c8a040', '#c85a5a', '#8ac89a', '#c8c8d8'][i]}" stroke="#1a0e08" stroke-width="3"/>`).join('')}`;
+// 부두: 물결 · 배 · 그물 · 크레인
+const pierSet = () => `<rect width="1600" height="900" fill="#0a1424"/>${Array.from({ length: 40 }, (_, i) => `<circle cx="${(i * 79) % 1600}" cy="${(i * 53) % 260}" r="1.6" fill="#fff" opacity=".5"/>`).join('')}
+  <rect y="430" width="1600" height="200" fill="#12283c"/>${Array.from({ length: 22 }, (_, i) => `<path d="M${(i * 83) % 1600} ${450 + (i % 5) * 34} h60" stroke="#2a5a7a" stroke-width="3" opacity=".7"/>`).join('')}
+  <path d="M0 620 H1600 V900 H0Z" fill="#3a2a1a"/>${Array.from({ length: 18 }, (_, i) => `<path d="M${i * 90} 620 V900" stroke="#241a10" stroke-width="4"/>`).join('')}
+  <g><path d="M1180 560 H1560 L1520 620 H1220Z" fill="#2a3a4a" stroke="#0a1018" stroke-width="5"/><path d="M1300 560 V430 H1320 V560" fill="#4a5a6a"/><path d="M1310 440 H1460 L1440 470 H1310" fill="#6a7a8a"/></g>
+  <g>${[200, 320].map((x) => `<path d="M${x} 620 V560 q0 -20 20 -20 q20 0 20 20 V620" fill="none" stroke="#5a4a3a" stroke-width="14"/>`).join('')}</g>
+  <text x="820" y="300" text-anchor="middle" font-family="'Song Myung',serif" font-size="80" fill="#3af0e0" opacity=".4">碼頭</text>`;
+// 위에서 떨어뜨리기: 좁은 골목을 올려다본 구도 (옥상 난간이 위에 보인다)
+const dropSet = () => `<rect width="1600" height="900" fill="#070a14"/>
+  ${Array.from({ length: 30 }, (_, i) => `<circle cx="${(i * 111) % 1600}" cy="${(i * 37) % 230}" r="1.5" fill="#cfe0ff" opacity=".45"/>`).join('')}
+  <ellipse cx="300" cy="300" rx="420" ry="120" fill="#ff5a8a" opacity=".10"/><ellipse cx="1300" cy="300" rx="420" ry="120" fill="#3af0e0" opacity=".08"/>
+  <path d="M0 268 H560 V900 H0Z" fill="#1a2030"/><path d="M1040 300 H1600 V900 H1040Z" fill="#141a28"/>
+  ${Array.from({ length: 15 }, (_, i) => `<rect x="${60 + (i % 3) * 170}" y="${340 + Math.floor(i / 3) * 120}" width="104" height="82" fill="${(i * 7) % 5 < 2 ? '#ffd890' : '#0b0f18'}" stroke="#090c12" stroke-width="4"/>`).join('')}
+  ${Array.from({ length: 12 }, (_, i) => `<rect x="${1110 + (i % 3) * 160}" y="${380 + Math.floor(i / 3) * 124}" width="100" height="80" fill="${(i * 5) % 5 < 2 ? '#ffd890' : '#0b0f18'}" stroke="#090c12" stroke-width="4"/>`).join('')}
+  <rect x="-20" y="236" width="600" height="34" rx="6" fill="#2e3748" stroke="#0a0c12" stroke-width="5"/><rect x="-20" y="262" width="600" height="12" fill="#161c28"/>
+  <rect x="1020" y="270" width="600" height="32" rx="6" fill="#232b3a" stroke="#0a0c12" stroke-width="5"/>
+  <path d="M560 268 H600 V900 H560Z M1000 300 H1040 V900 H1000Z" fill="#0d1120"/>
+  ${Array.from({ length: 4 }, (_, i) => `<path d="M600 ${420 + i * 130} H1000" stroke="#2a3040" stroke-width="3" opacity=".5"/>`).join('')}
+  <text x="300" y="640" text-anchor="middle" font-family="'Song Myung',serif" font-size="70" fill="#ff3a5a" opacity=".5">當</text>
+  <text x="1320" y="560" text-anchor="middle" font-family="'Song Myung',serif" font-size="70" fill="#3af0e0" opacity=".45">藥</text>
+  <rect y="818" width="1600" height="82" fill="#232c3a"/><rect y="818" width="1600" height="6" fill="#3a465a"/>
+  ${Array.from({ length: 7 }, (_, i) => `<ellipse cx="${120 + i * 240}" cy="${846 + (i % 3) * 16}" rx="${70 + (i % 4) * 26}" ry="${9 + (i % 3) * 4}" fill="#4a6a8a" opacity=".3"/>`).join('')}
+  ${Array.from({ length: 9 }, (_, i) => `<rect x="${60 + i * 170}" y="826" width="90" height="${5 + (i % 3) * 4}" fill="#6a8aa8" opacity=".18"/>`).join('')}`;
+// 옥상: 물탱크 · 빨랫줄 · 난간 너머 네온 도시
+const roofSet = () => `<rect width="1600" height="900" fill="#070b16"/>
+  ${Array.from({ length: 34 }, (_, i) => `<circle cx="${(i * 97) % 1600}" cy="${(i * 61) % 300}" r="1.6" fill="#cfe0ff" opacity=".4"/>`).join('')}
+  ${Array.from({ length: 20 }, (_, i) => { const x = i * 84; const h = 90 + ((i * 47) % 190); return `<rect x="${x}" y="${560 - h}" width="74" height="${h}" fill="#101624"/>${Array.from({ length: 5 }, (_, k) => `<rect x="${x + 12 + (k % 2) * 34}" y="${572 - h + Math.floor(k / 2) * 40}" width="16" height="18" fill="${(i + k) % 3 ? '#0a0e18' : '#ffd890'}"/>`).join('')}`; }).join('')}
+  <text x="240" y="470" font-family="'Song Myung',serif" font-size="66" fill="#ff3a5a" opacity=".45">旅館</text>
+  <text x="1180" y="430" font-family="'Song Myung',serif" font-size="60" fill="#3af0e0" opacity=".4">麻雀</text>
+  <rect y="560" width="1600" height="40" rx="8" fill="#2e3748" stroke="#0a0c12" stroke-width="5"/>
+  <rect y="596" width="1600" height="304" fill="#2a2e38"/>
+  ${Array.from({ length: 14 }, (_, i) => `<path d="M${i * 120} 596 V900" stroke="#20242e" stroke-width="3"/>`).join('')}
+  ${Array.from({ length: 5 }, (_, i) => `<path d="M0 ${660 + i * 60} H1600" stroke="#20242e" stroke-width="3"/>`).join('')}
+  <g transform="translate(120 330)"><rect width="230" height="230" rx="8" fill="#3a4050" stroke="#0a0c12" stroke-width="6"/><path d="M0 70 H230 M0 150 H230" stroke="#0a0c12" stroke-width="4"/><path d="M40 230 V300 M190 230 V300" stroke="#0a0c12" stroke-width="12"/><path d="M115 0 V-40 h60" stroke="#6a7484" stroke-width="10" fill="none"/></g>
+  <path d="M420 300 H1180" stroke="#3a3020" stroke-width="4"/>
+  ${[0, 1, 2, 3].map((i) => `<rect x="${470 + i * 170}" y="302" width="86" height="${110 + (i % 2) * 40}" rx="6" fill="${['#c8c0b0', '#8aa8c8', '#c88a8a', '#b0c8a8'][i]}" opacity=".85" stroke="#0a0c12" stroke-width="3"/>`).join('')}
+  <ellipse cx="800" cy="880" rx="700" ry="40" fill="#0a0c12" opacity=".3"/>`;
+// 여관방: 낡은 벽지 · 창밖 네온 · 선풍기 · 침대
+const bedSet = () => `<rect width="1600" height="900" fill="#241c1a"/>
+  ${Array.from({ length: 18 }, (_, i) => `<path d="M${i * 92} 0 V640" stroke="#2c2220" stroke-width="30"/>`).join('')}
+  <rect y="640" width="1600" height="260" fill="#342620"/>${Array.from({ length: 16 }, (_, i) => `<path d="M${i * 104} 640 V900" stroke="#2a1e1a" stroke-width="4"/>`).join('')}
+  <g><rect x="120" y="130" width="330" height="290" fill="#0e1420" stroke="#5a4636" stroke-width="10"/><path d="M285 130 V420 M120 275 H450" stroke="#5a4636" stroke-width="7"/>
+    <text x="285" y="250" text-anchor="middle" font-family="'Song Myung',serif" font-size="74" fill="#ff3a5a" opacity=".65">旅</text>
+    <text x="285" y="370" text-anchor="middle" font-family="'Song Myung',serif" font-size="74" fill="#3af0e0" opacity=".5">館</text></g>
+  <g transform="translate(1330 300)"><circle r="76" fill="none" stroke="#8a8e98" stroke-width="7"/>${[0, 1, 2].map((i) => `<path transform="rotate(${i * 120})" d="M0 0 Q40 -18 62 -46 Q30 -64 0 -10Z" fill="#9aa2ae"/>`).join('')}<circle r="14" fill="#5a6270"/><path d="M0 76 V180" stroke="#8a8e98" stroke-width="10"/><path d="M-40 180 H40" stroke="#5a6270" stroke-width="12"/></g>
+  <g transform="translate(300 640)"><rect x="-70" y="-120" width="140" height="120" rx="8" fill="#4a3a2a" stroke="#1a100a" stroke-width="5"/><path d="M-34 -120 V-6" stroke="#1a100a" stroke-width="4"/>
+    <path d="M-10 -190 h60 l14 70 h-88Z" fill="#e8c878" opacity=".9" stroke="#1a100a" stroke-width="4"/><ellipse cx="20" cy="-120" rx="120" ry="60" fill="#ffd890" opacity=".14"/></g>`;
+// 공사장: 비계 · 철근 · 시멘트 포대 · 알전구
+const siteSet = () => `<rect width="1600" height="900" fill="#0d1018"/>
+  ${Array.from({ length: 5 }, (_, i) => `<path d="M${120 + i * 330} 0 V760" stroke="#6a5a3a" stroke-width="16"/>`).join('')}
+  ${Array.from({ length: 4 }, (_, i) => `<path d="M60 ${120 + i * 180} H1560" stroke="#6a5a3a" stroke-width="12"/>`).join('')}
+  ${Array.from({ length: 10 }, (_, i) => `<path d="M${120 + i * 160} ${120 + (i % 3) * 180} l160 180" stroke="#5a4a30" stroke-width="7"/>`).join('')}
+  <rect y="760" width="1600" height="140" fill="#3a3a3e"/><rect y="760" width="1600" height="8" fill="#55555c"/>
+  ${Array.from({ length: 40 }, (_, i) => `<circle cx="${(i * 137) % 1600}" cy="${790 + (i * 53) % 100}" r="${2 + (i % 3)}" fill="#55555c" opacity=".7"/>`).join('')}
+  <g transform="translate(1180 700)">${[0, 1, 2].map((i) => `<rect x="${-90 + (i % 2) * 20}" y="${-60 * i}" width="180" height="56" rx="10" fill="#c8c0a8" stroke="#141008" stroke-width="5"/>`).join('')}</g>
+  <g>${[0, 1, 2, 3, 4].map((i) => `<path d="M${200 + i * 26} 760 V560 q0 -26 26 -26" fill="none" stroke="#8a6a3a" stroke-width="7"/>`).join('')}</g>
+  <path d="M780 0 V180" stroke="#0a0806" stroke-width="4"/><circle cx="780" cy="196" r="20" fill="#fff4c0"/><ellipse cx="780" cy="330" rx="520" ry="400" fill="#fff4c0" opacity=".12"/>
+  <path d="M1360 300 h180 v120 h-180Z" fill="#d8b028" stroke="#141008" stroke-width="6"/><text x="1450" y="382" text-anchor="middle" font-family="'Noto Sans KR',sans-serif" font-weight="900" font-size="58" fill="#141008">危</text>`;
 const VICTIM_K = { skin: '#e2b08a', skinD: '#a8765a', hair: '#3a2a20', coat: '#4a5a6a', coatD: '#2a3440', coat2: '#8a8a8a', shirt: '#e8e4dc', tie: '#2a3a5a', pants: '#2a2e36', pantsD: '#16181e', shoe: '#1a1410', hat: 'none', hairStyle: 'short', brow: '#3a2a20' };
 function flashbackShot(D, t0, murder, { watcher = '', outcome = 'solved' } = {}) {
   D.at(t0, () => {
@@ -235,10 +315,17 @@ function flashbackShot(D, t0, murder, { watcher = '', outcome = 'solved' } = {})
     const M = MOVE[mk] || { kind: 'smash' };
     const kind = M.kind;
     const indoor = kind === 'table' || kind === 'offer';
-    S.layer(0.3, BG(svg(alley({ seed: 17, fog: 0.35 }))));
+    const place = M.set || (indoor ? 'bar' : 'alley');
+    const SETS = { kitchen: kitchenSet, bath: bathSet, barber: barberSet, pier: pierSet, drop: dropSet, roofTop: roofSet, bed: bedSet, site: siteSet };
+    const outdoor = place === 'alley' || place === 'drop' || place === 'pier' || place === 'roofTop';
+    const onBed = place === 'bed'; // 비 · 번개는 바깥에서만
+    S.layer(0.3, BG(svg(SETS[place] ? SETS[place]() : alley({ seed: 17, fog: 0.35 }))));
     // 무대 소품: 탁자와 잔 · 계단 · 욕조
     let set = '<ellipse cx="1000" cy="846" rx="230" ry="18" fill="#9ab8e8" opacity=".14"/>';
     if (indoor) set += barInterior() + tableSvg;
+    if (place === 'bath') set += '';
+    if (onBed) set += '<g><rect x="430" y="690" width="1060" height="90" rx="12" fill="#cfc4b4" stroke="#1a100a" stroke-width="7"/><rect x="430" y="470" width="40" height="300" rx="10" fill="#4a3428" stroke="#140c08" stroke-width="6"/><rect x="1450" y="560" width="40" height="220" rx="10" fill="#4a3428" stroke="#140c08" stroke-width="6"/><path d="M470 470 H430 M470 520 H430" stroke="#140c08" stroke-width="5"/><rect x="500" y="640" width="230" height="86" rx="26" fill="#eae2d4" stroke="#1a100a" stroke-width="6"/></g>';
+    if (M.sit) set += '<g transform="translate(1010 852)"><path d="M0 0 V26 M-56 26 H56 M-56 26 l-10 22 M56 26 l10 22" stroke="#9aa2ae" stroke-width="14" stroke-linecap="round"/><path d="M-86 0 V-40 Q-86 -58 -64 -58 H64 Q86 -58 86 -40 V0Z" fill="#7a1e28" stroke="#140a06" stroke-width="6"/><path d="M-74 -58 V-210 Q-74 -244 -30 -244 H30 Q74 -244 74 -210 V-58Z" fill="#8a2230" stroke="#140a06" stroke-width="6"/><path d="M-74 -150 H74" stroke="#5a1018" stroke-width="5"/><rect x="-104" y="-150" width="26" height="70" rx="8" fill="#5a1018" stroke="#140a06" stroke-width="5"/><rect x="78" y="-150" width="26" height="70" rx="8" fill="#5a1018" stroke="#140a06" stroke-width="5"/></g>'
     if (kind === 'stairs') set += '<path d="M1060 846 H1600 V900 H1060Z" fill="#0e1018"/>' + Array.from({ length: 6 }, (_, i) => `<path d="M${1060 + i * 70} ${846 + i * 40} h70 v40" fill="none" stroke="#6a7488" stroke-width="5"/>`).join('') + '<path d="M1060 846 L1480 1086" stroke="#3a4050" stroke-width="3"/>';
     if (kind === 'tub') set += objAt('bathtub', 1060, 800, 2.3);
     // 맞은편 아파트: 불 켜진 창 하나에서 누군가 내려다본다
@@ -265,6 +352,18 @@ function flashbackShot(D, t0, murder, { watcher = '', outcome = 'solved' } = {})
     const vehicle = kind === 'vehicle';
     const mur = vehicle ? null : C.add({ look: 'murderer', x: fromRight ? 1750 : 80, y: 818, scale: 1.18, rim: '#c8d8ff', flip: fromRight, rimSide: fromRight ? -1 : 1 });
     const vic = C.add({ look: VICTIM_K, x: indoor ? 1080 : 1000, y: indoor ? 840 : 832, scale: 1.24, rim: indoor ? '#ffd890' : '#c8d8ff', flip: faceOff, rimSide: faceOff ? -1 : 1 });
+    if (onBed) L.el.insertAdjacentHTML('beforeend', `<svg viewBox="0 0 1600 900" style="position:absolute;left:0;top:0;width:1600px;height:900px;pointer-events:none;overflow:visible">
+      <path d="M470 742 H1430 Q1470 742 1470 782 V852 H470Z" fill="#6a4a58" stroke="#1a0e10" stroke-width="7"/>
+      <path d="M470 742 H1430" stroke="#8a6a78" stroke-width="10"/>
+      ${Array.from({ length: 8 }, (_, i) => `<path d="M${520 + i * 120} 752 q16 40 0 92" stroke="#57404c" stroke-width="6" fill="none"/>`).join('')}
+      <rect x="470" y="852" width="980" height="22" rx="8" fill="#3a2a22" stroke="#140c08" stroke-width="5"/>
+      <rect x="500" y="874" width="26" height="26" fill="#2a1e18"/><rect x="1380" y="874" width="26" height="26" fill="#2a1e18"/></svg>`);
+    // 욕조 앞판은 배우보다 앞에 (물 속에 있는 것처럼)
+    if (place === 'bath') L.el.insertAdjacentHTML('beforeend', `<svg viewBox="0 0 1600 900" style="position:absolute;left:0;top:0;width:1600px;height:900px;pointer-events:none;overflow:visible">
+      <path d="M520 636 H1400 V800 Q1400 850 1340 850 H580 Q520 850 520 800Z" fill="#e8eef4" stroke="#0e1620" stroke-width="8"/>
+      <path d="M520 636 H1400 V672 H520Z" fill="#9fd0ee"/>
+      ${Array.from({ length: 11 }, (_, i) => `<path d="M${548 + i * 76} 654 q19 -13 38 0 q19 13 38 0" stroke="#dff0ff" stroke-width="4" fill="none" opacity=".75"/>`).join('')}
+      <rect x="560" y="700" width="800" height="10" fill="#cfd8e0" opacity=".6"/></svg>`);
     const grip = (key) => { const g = GRIP[key] || [0, 50, 50, 0.8]; return `<g transform="scale(${g[3]}) rotate(${g[0]}) translate(${-g[1]} ${-g[2]})">${OBJ[key] || ''}</g>`; };
     if (mur && !['stairs', 'tub', 'smother'].includes(kind) && !(kind === 'cord')) mur.hold(grip(mk));
     if (mur && kind === 'cord') mur.hold(grip(mk));
@@ -294,31 +393,41 @@ function flashbackShot(D, t0, murder, { watcher = '', outcome = 'solved' } = {})
     const cord = q('.fx-cord'), cover = q('.fx-cover'), swoosh = q('.fx-swoosh'), muzzle = q('.fx-muzzle'), parts = q('.fx-parts'), stars = q('.fx-stars');
     const fire = q('.fx-fire'), zap = q('.fx-zap'), proj = q('.fx-proj'), veh = q('.fx-veh'), txt = q('.fx-text'), clueEl = q('.fx-clue'), spot = q('.fx-spot');
     const cup = L.el.querySelector('.kw-cup');
-    const rn = indoor ? () => {} : rain(shot, { groundY: 0.8 });
-    const standX = { table: 880, offer: 800, woodchop: 820, hurl: 560, grab: 905, shoot: M.big ? 560 : 520, arrow: 380, throwSpear: 420, fire: 620, boom: 600, shock: 700, splash: 890, snake: 640, bees: 700, stairs: 870, tub: 900, saw: 840, swing: 850, chop: 860 }[kind] || 870;
+    const rn = outdoor ? rain(shot, { groundY: place === 'pier' ? 0.86 : 0.8 }) : () => {};
+    const standX0 = { table: 880, offer: 780, woodchop: 770, hurl: 520, grab: 880, shoot: M.big ? 560 : 520, arrow: 380, throwSpear: 420, fire: 620, boom: 600, shock: 700, splash: 860, snake: 640, bees: 700, stairs: 840, tub: 880, saw: 800, swing: 790, chop: 800, thrust: 806, jab: 820, slash: 800, smash: 800, cord: 850, smother: 850 }[kind] || 810;
+    const standX = M.stand || standX0;
     const HIT = { table: 4.4, offer: 4.4, cord: 2.9, snake: 3.4, bees: 3.2, vehicle: 2.6, arrow: 3.1, throwSpear: 3.0 }[kind] || 3.1;
-    const END = 4.4; // 이 뒤로는 범인이 달아나고 단서가 떨어진다
-    const clueX = kind === 'vehicle' ? 900 : indoor ? 760 : 860;
+    const END = kind === 'drop' ? 4.6 : 4.4; // 이 뒤로는 범인이 달아나고 단서가 떨어진다
+    const clueX = place === 'bath' ? 340 : kind === 'drop' ? 560 : kind === 'vehicle' ? 900 : indoor ? 760 : 860;
     const cam = camPath(S.cam, [
-      [0, { x: indoor ? 900 : 660, y: 470, z: 1.12 }],
-      [2.3, { x: (standX + 1000) / 2, y: 450, z: 1.4 }],
-      [HIT, { x: (standX + 1000) / 2 + 20, y: 440, z: 1.6 }],
-      [END + 0.4, { x: 940, y: 520, z: 1.3 }],
-      [END + 1.2, { x: clueX, y: 760, z: 2.3 }],
-      [END + 2.2, { x: clueX, y: 770, z: 2.5 }],
+      [0, { x: kind === 'drop' ? 760 : indoor ? 900 : 660, y: kind === 'drop' ? 430 : 520, z: kind === 'drop' ? 0.86 : 1.08 }],
+      ...(kind === 'drop'
+        ? [[1.7, { x: 700, y: 440, z: 0.86 }], [2.4, { x: 680, y: 490, z: 0.92 }], [3.05, { x: 640, y: 620, z: 1.25 }], [3.8, { x: 660, y: 700, z: 1.3 }]]
+        : [[2.3, { x: (standX + 1000) / 2, y: 520, z: 1.3 }], [HIT, { x: (standX + 1000) / 2 + 20, y: 540, z: 1.42 }]]),
+      [END + 0.4, { x: 940, y: 600, z: 1.12 }],
+      [END + 1.2, { x: clueX, y: 780, z: 2.0 }],
+      [END + 2.2, { x: clueX, y: 790, z: 2.2 }],
       ...(watcher ? [[END + 2.8, { x: 600, y: 420, z: 1.05 }], [END + 3.8, { x: WX + 4, y: WY + 6, z: 3.4 }], [END + 5.2, { x: WX + 4, y: WY + 8, z: 3.6 }]] : []),
     ]);
     const once = {};
     const at = (k, fn) => { if (!once[k]) { once[k] = 1; fn(); } };
     const flashL = () => {
+      if (!outdoor) { L.el.animate([{ filter: 'brightness(1.8)' }, { filter: 'none' }], { duration: 200 }); return; }
       const l = document.createElement('div');
       l.className = 'kw-lightning';
       shot.appendChild(l);
-      l.animate([{ opacity: 0 }, { opacity: 0.9, offset: 0.1 }, { opacity: 0.1, offset: 0.25 }, { opacity: 0.7, offset: 0.35 }, { opacity: 0 }], { duration: 700 });
-      L.el.classList.add('kw-silh');
-      setTimeout(() => L.el.classList.remove('kw-silh'), 360);
+      l.animate([{ opacity: 0 }, { opacity: 0.42, offset: 0.1 }, { opacity: 0.06, offset: 0.25 }, { opacity: 0.3, offset: 0.35 }, { opacity: 0 }], { duration: 420 });
+      l.addEventListener('finish', () => l.remove());
+      // 번개가 치는 0.35초만 실루엣 (끝나면 저절로 풀린다)
+      L.el.animate([{ filter: 'brightness(.12)' }, { filter: 'brightness(.12)', offset: 0.6 }, { filter: 'none' }], { duration: 300 });
     };
-    const impact = (power = 10, light = true) => { if (light) flashL(); D.shake(power, 320); D.flash('#ffffff', 140); D.sound.thunder && D.sound.thunder(); };
+    const softFlash = (peak) => {
+      const f = document.createElement('div');
+      f.style.cssText = 'position:absolute;inset:0;background:#fff;pointer-events:none;opacity:0';
+      shot.appendChild(f);
+      f.animate([{ opacity: 0 }, { opacity: peak, offset: 0.25 }, { opacity: 0 }], { duration: 200, fill: 'forwards' }).onfinish = () => f.remove();
+    };
+    const impact = (power = 10, light = true) => { if (light) flashL(); D.shake(power, 320); softFlash(outdoor ? 0.5 : 0.3); D.sound.thunder && D.sound.thunder(); };
     const burst = (x, y, color, n = 12, spread = 140, size = 5, up = 80) => {
       for (let i = 0; i < n; i++) {
         const d = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
@@ -367,15 +476,25 @@ function flashbackShot(D, t0, murder, { watcher = '', outcome = 'solved' } = {})
       switch (kind) {
         case 'thrust': case 'jab': {
           const n = M.n || 1;
-          const pull = { upperF: -60, foreF: -100, chest: -4 };
-          const hit = { upperF: kind === 'jab' ? -110 : -84, foreF: kind === 'jab' ? -10 : -4, chest: 14 };
+          const pull = { upperF: -50, foreF: -110, chest: -8, hipX: -8 };
+          const hit = { upperF: kind === 'jab' ? -112 : -88, foreF: kind === 'jab' ? -6 : 0, handF: 6, chest: 16, hipX: 12 };
           if (s > 2.2) mp = { ...STAND, ...raise({ upperF: -40, foreF: -30 }, pull, 2.2, 2.7) };
           for (let i = 0; i < n; i++) {
             const h = HIT + i * 0.45;
             if (s > h - 0.12 && s < h + 0.3) mp = { ...STAND, ...mixPose(pull, hit, seg(s, h - 0.12, h)) };
             if (s > h) at(`hit${i}`, () => impact(i ? 7 : 10, i === 0));
           }
-          if (s > HIT) { vp = { ...STAND, chest: -20, head: -26, upperF: -110, upperB: -90 }; fall(HIT + 0.3 + (n - 1) * 0.45, HIT + 1 + (n - 1) * 0.45); }
+          if (M.sit) {
+            // 이발 의자에 기대 눈을 감고 있던 손님 (뒤에서 목으로)
+            vx = 1000; vy = 846;
+            vp = { ...STAND, ...POSE.sit, chest: -6, neck: 4, head: 2, upperF: -6, foreF: -76, upperB: -4, foreB: -72 };
+            if (s > HIT) {
+              const k2 = seg(s, HIT, HIT + 0.9);
+              vp = mixPose({ ...STAND, ...POSE.sit, chest: -18, neck: -10, head: -14, upperF: -80, foreF: -110, upperB: -70, foreB: -100 },
+                { ...STAND, ...POSE.sit, chest: 26, neck: 18, head: 30, upperF: 16, foreF: -14, upperB: 12, foreB: -12 }, k2);
+              vrot = -k2 * 4;
+            }
+          } else if (s > HIT) { vp = { ...STAND, chest: -20, head: -26, upperF: -110, upperB: -90 }; fall(HIT + 0.3 + (n - 1) * 0.45, HIT + 1 + (n - 1) * 0.45); }
           break;
         }
         case 'slash': {
@@ -498,6 +617,61 @@ function flashbackShot(D, t0, murder, { watcher = '', outcome = 'solved' } = {})
             if (s > HIT + 0.55) vx = 1000 + ease.out(seg(s, HIT + 0.55, HIT + 1.2)) * 110;
             if (s > HIT + 0.55) vp = { ...vp, chest: 14 + Math.sin(s * 9) * 6, head: 12 };
             fall(HIT + 1.3, HIT + 1.8);
+          }
+          break;
+        }
+        case 'drop': {
+          // 옥상에서 떨어뜨린다: 난간 너머로 몸을 내밀어 손을 놓는다 → 그림자가 커지고 → 정수리
+          const DX = 620;          // 떨어지는 선 (왼쪽 옥상 난간 바로 아래)
+          const REL = 1.7;         // 손을 놓는 순간
+          const LAND = 3.05;       // 정수리에 닿는 순간
+          const Y0 = 270;
+          if (mur) mur.set({ y: 246, scale: 0.5 });
+          mx = 430; mflip = false;
+          // 난간에 매달리듯 몸을 내밀고 두 팔로 들었다가 놓는다
+          mp = s < REL
+            ? { ...STAND, chest: 46, neck: -22, head: -18, upperF: -150, foreF: -34, upperB: -146, foreB: -34, hipY: 16 }
+            : { ...STAND, chest: 40, neck: -20, head: -16, upperF: -110, foreF: -10, upperB: -104, foreB: -10, hipY: 10 };
+          // 피해자: 우산도 없이 목을 움츠리고 걸어와 하필 그 자리에서 멈춰 담배에 불을 붙인다
+          if (s < 1.9) { vp = { ...STAND, ...gait((s * 0.85) % 1), chest: 8, head: -4 }; vx = 1180 - (s / 1.9) * 560; }
+          else { vp = { ...STAND, upperF: -64, foreF: -118, head: -6 + Math.sin(s * 2) * 2, chest: 6 }; vx = DX; }
+          if (s >= REL && s < LAND) {
+            at('rel', () => { if (mur) mur.hold(null); });
+            const k = seg(s, REL, LAND);
+            const y = Y0 + (head().y - 16 - Y0) * k * k;
+            proj.setAttribute('opacity', 1);
+            if (!proj.firstChild) proj.innerHTML = objAt(mk, 0, 0, 1.7);
+            proj.setAttribute('transform', `translate(${DX + 6} ${y}) rotate(${k * 200})`);
+            // 발밑에 커지는 그림자 (올려다보지 않는 피해자)
+            spot.setAttribute('cx', DX + 6); spot.setAttribute('cy', 842);
+            spot.setAttribute('rx', 26 + k * 46); spot.setAttribute('ry', 9 + k * 15);
+            spot.setAttribute('fill', '#000');
+            spot.setAttribute('opacity', 0.12 + k * 0.4);
+          }
+          if (s >= LAND) {
+            at('hit', () => {
+              spot.setAttribute('opacity', 0);
+              // 정수리를 때린 물건이 튕겨 바닥에 떨어져 뒹군다
+              const hp0 = head();
+              proj.setAttribute('transform', '');
+              proj.animate([
+                { opacity: 1, transform: `translate(${hp0.x + 6}px, ${hp0.y - 16}px) rotate(0deg)` },
+                { opacity: 1, transform: `translate(${hp0.x + 90}px, ${hp0.y + 40}px) rotate(120deg)`, offset: 0.35 },
+                { opacity: 1, transform: `translate(${hp0.x + 150}px, 838px) rotate(250deg)`, offset: 0.7 },
+                { opacity: 1, transform: `translate(${hp0.x + 176}px, 846px) rotate(268deg)` },
+              ], { duration: 700, fill: 'forwards', easing: 'cubic-bezier(.4,0,.7,1)' });
+              const hp = head();
+              impact(13, false);
+              burst(hp.x, hp.y - 10, M.debris || '#a8502a', 22, 190, 9, 170);
+              if (M.leaf) burst(hp.x, hp.y - 10, '#3a8a3a', 8, 150, 11, 130);
+              stars.animate([{ opacity: 1, transform: `translate(${hp.x}px, ${hp.y - 20}px) rotate(0deg)` }, { opacity: 0, transform: `translate(${hp.x}px, ${hp.y - 54}px) rotate(300deg)` }], { duration: 1100, fill: 'forwards' });
+              say2(hp.x + 120, hp.y - 40, '퍽!');
+            });
+            // 무릎이 꺾이며 그 자리에 무너진다
+            vx = DX;
+            const kk = seg(s, LAND, LAND + 0.55);
+            vp = mixPose({ ...STAND, chest: 18, neck: 14, head: 26, upperF: -120, foreF: -60, upperB: -110, foreB: -60 }, { ...STAND, ...POSE.kneel, chest: 54, neck: 22, head: 34, upperF: -20, foreF: -20 }, kk);
+            fall(LAND + 0.5, LAND + 1.1);
           }
           break;
         }
@@ -682,17 +856,48 @@ function flashbackShot(D, t0, murder, { watcher = '', outcome = 'solved' } = {})
           break;
         }
         case 'tub': {
-          vp = { ...STAND, ...POSE.kneel, chest: 30, head: 20, upperF: -60, foreF: -40 };
-          vx = 960;
-          if (s > 2.2) mp = { ...STAND, ...raise({ upperF: -40, foreF: -30 }, { upperF: -80, foreF: -30, upperB: -70, foreB: -30, chest: 30, hipY: 10 }, 2.4, 2.9) };
+          // 욕조: 뒤에서 머리를 눌러 물 속에 처박는다 (물장구 → 잠잠)
+          mx = 700;
+          mp = s < 2.4
+            ? { ...STAND, ...(s < 1.4 ? gait((s * 0.9) % 1) : {}), chest: 20, upperF: -40, foreF: -40 }
+            : { ...STAND, ...raise({ chest: 20, upperF: -40, foreF: -40 }, { chest: 52, neck: -10, hipY: 18, upperF: -66, foreF: -58, upperB: -60, foreB: -54 }, 2.4, 2.9) };
+          vx = 1010; vy = 772;
+          vp = { ...STAND, ...POSE.sit, chest: -6, head: -4, upperF: -30, foreF: -70, upperB: -26, foreB: -66 };
           if (s > HIT) {
-            at('hit', () => { impact(8); const hp = head(); burst(hp.x, hp.y, '#bfe0ff', 20, 160, 6, 120); });
-            vp = { ...STAND, ...POSE.kneel, chest: 60, neck: 30, head: 40, upperF: -130 + Math.sin(s * 22) * 30, foreF: -40, upperB: -120 };
-            if (s > HIT + 1.1) vp = { ...STAND, ...POSE.kneel, chest: 64, neck: 34, head: 44, upperF: 20, foreF: 0, upperB: 20 };
+            at('hit', () => { impact(8); const hp = head(); burst(hp.x, hp.y + 10, '#bfe0ff', 22, 200, 7, 150); say2(hp.x + 150, hp.y - 60, '첨벙!'); });
+            // 물 밖으로 나온 두 팔만 허우적거린다
+            const w = Math.max(0, 1 - (s - HIT) / 2.2);
+            vp = { ...STAND, ...POSE.sit, chest: 44, neck: 26, head: 30, upperF: -150 + Math.sin(s * 19) * 34 * w, foreF: -60 - Math.sin(s * 23) * 40 * w, upperB: -140 - Math.sin(s * 17) * 30 * w, foreB: -60 + Math.sin(s * 21) * 40 * w };
+            vy = 772 + Math.min(46, (s - HIT) * 40);
+            if (s > HIT + 2.3) vp = { ...STAND, ...POSE.sit, chest: 50, neck: 30, head: 36, upperF: -40, foreF: -20, upperB: -36, foreB: -20 };
+            if (s % 0.5 < 0.04 && s < HIT + 2.2) { const hp2 = head(); burst(hp2.x + 20, hp2.y + 30, '#bfe0ff', 5, 120, 5, 90); }
           }
           break;
         }
         case 'smother': {
+          if (M.bed) {
+            // 잠든 사람 머리맡에 서서 베개를 두 손으로 눌러 버틴다
+            vx = 880; vy = 806;
+            const lie = { ...STAND, chest: -92, neck: 4, head: 6, thighF: 86, shinF: -6, footF: -14, thighB: 90, shinB: -8, footB: -14, upperF: 70, foreF: -30, upperB: 74, foreB: -30, hipY: 0 };
+            vp = { ...lie, rot: -90 };
+            mx = 640; mflip = false;
+            mp = s < 2.3
+              ? { ...STAND, ...(s < 1.5 ? gait((s * 0.9) % 1) : {}), chest: 14, upperF: -30, foreF: -40 }
+              : { ...STAND, ...raise({ chest: 14, upperF: -30, foreF: -40 }, { chest: 44, neck: -12, hipY: 22, upperF: -76, foreF: -46, upperB: -70, foreB: -44 }, 2.3, 2.9) };
+            if (s > HIT) {
+              at('hit', () => { impact(7, false); const hp = head(); say2(hp.x + 170, hp.y - 110, '으읍!'); });
+              const w = Math.max(0, 1 - (s - HIT) / 2.4);
+              // 발버둥: 다리가 이불을 차고 팔이 허공을 긁는다
+              vp = { ...lie, rot: -90, thighF: 86 + Math.sin(s * 15) * 26 * w, shinF: -6 - Math.sin(s * 19) * 30 * w, thighB: 90 - Math.sin(s * 13) * 24 * w,
+                upperF: 70 - Math.sin(s * 17) * 46 * w, foreF: -30 - Math.cos(s * 21) * 40 * w, upperB: 74 + Math.sin(s * 16) * 40 * w };
+              mp = { ...STAND, chest: 50, neck: -14, hipY: 26, upperF: -80 + Math.sin(s * 18) * 3, foreF: -44, upperB: -74, foreB: -42 };
+              const hp2 = head();
+              cover.setAttribute('transform', `translate(${hp2.x + 4} ${hp2.y + 6}) rotate(90)`);
+              cover.setAttribute('opacity', s < END + 0.4 ? 1 : 0);
+              if (s > HIT + 2.6) vp = { ...lie, rot: -90, upperF: 92, foreF: -10, upperB: 96, foreB: -10 };
+            }
+            break;
+          }
           if (s > 2.2) mp = { ...STAND, ...raise({ upperF: -40, foreF: -30 }, { upperF: -120, foreF: -20, upperB: -110, foreB: -20 }, 2.2, 2.8) };
           if (s > HIT) {
             at('hit', () => impact(6));
@@ -752,16 +957,41 @@ function flashbackShot(D, t0, murder, { watcher = '', outcome = 'solved' } = {})
           break;
         }
         case 'shock': {
-          if (s > 2.2) mp = { ...STAND, ...raise({ upperF: -40, foreF: -30 }, { upperF: -110, foreF: -10 }, 2.3, 2.7) };
-          if (s > 2.7) at('toss', () => { mur.hold(null); const a = mur.point('handF', 0, 40); proj.innerHTML = objAt('dryer', 0, 0, 0.7); proj.animate([{ opacity: 1, transform: `translate(${a.x}px, ${a.y}px) rotate(0deg)` }, { opacity: 1, transform: `translate(990px, 836px) rotate(200deg)` }], { duration: 300, fill: 'forwards' }); });
+          // 욕조 안으로 헤어드라이어를 던져 넣는다 → 물이 번쩍이고 몸이 뻣뻣하게 굳는다
+          const inTub = !!M.tub;
+          if (inTub) { vx = 1010; vy = 772; vp = { ...STAND, ...POSE.sit, chest: -6, head: -4, upperF: -30, foreF: -70, upperB: -26, foreB: -66 }; }
+          if (s > 2.2) mp = { ...STAND, ...raise({ upperF: -40, foreF: -30 }, { upperF: -160, foreF: -30, chest: -8 }, 2.2, 2.7) };
+          if (s > 2.7) at('toss', () => {
+            mur.hold(null);
+            const a = mur.point('handF', 0, 40);
+            proj.innerHTML = objAt('dryer', 0, 0, 0.7);
+            proj.animate([
+              { opacity: 1, transform: `translate(${a.x}px, ${a.y}px) rotate(0deg)` },
+              { opacity: 1, transform: `translate(${inTub ? 1020 : 990}px, ${inTub ? 700 : 836}px) rotate(200deg)` },
+            ], { duration: 300, fill: 'forwards' });
+          });
+          if (s > 2.9) mp = { ...STAND, upperF: -30, foreF: -20, chest: 6, hipY: 6 };
           if (s > HIT) {
-            at('hit', () => impact(10));
-            const v = mid();
-            const on = s < HIT + 1 && Math.sin(s * 60) > 0;
+            at('hit', () => {
+              impact(9);
+              const v0 = inTub ? { x: 1010, y: 690 } : mid();
+              burst(v0.x, v0.y, '#dff4ff', 18, 200, 6, 140);
+              say2(v0.x + 150, v0.y - 90, '지지직!');
+            });
+            const on = s < HIT + 1.2 && Math.sin(s * 60) > 0;
+            const v = inTub ? { x: 1010, y: 700 } : mid();
             zap.setAttribute('transform', `translate(${v.x} ${v.y})`);
             zap.setAttribute('opacity', on ? 1 : 0);
-            vp = { ...STAND, upperF: -120 + (on ? 20 : -20), upperB: -110, chest: on ? -12 : -4, head: on ? -18 : -6 };
-            fall(HIT + 1.1, HIT + 1.7);
+            if (inTub) {
+              // 물 위로 나온 팔이 경련하다가 툭 떨어진다
+              const w = Math.max(0, 1 - (s - HIT) / 1.6);
+              vp = { ...STAND, ...POSE.sit, chest: -14 + (on ? -8 : 6), neck: -10, head: -12 + (on ? -8 : 6), upperF: -140 + (on ? 26 : -26) * w, foreF: -40, upperB: -132 + (on ? -26 : 26) * w, foreB: -40 };
+              if (s > HIT + 1.7) { vp = { ...STAND, ...POSE.sit, chest: 44, neck: 26, head: 32, upperF: -30, foreF: -16, upperB: -26, foreB: -16 }; vy = 800; }
+              if (on && s < HIT + 1.2 && Math.random() < 0.4) burst(1010 + (Math.random() - 0.5) * 120, 676, '#dff4ff', 3, 90, 5, 70);
+            } else {
+              vp = { ...STAND, upperF: -120 + (on ? 20 : -20), upperB: -110, chest: on ? -12 : -4, head: on ? -18 : -6 };
+              fall(HIT + 1.1, HIT + 1.7);
+            }
           }
           break;
         }
@@ -770,7 +1000,7 @@ function flashbackShot(D, t0, murder, { watcher = '', outcome = 'solved' } = {})
       // 범행 뒤: 범인이 달아나다 주머니에서 단서가 떨어진다
       if (mur && !indoor && kind !== 'snake' && kind !== 'bees' && s > END + 0.3) {
         mp = { ...STAND, ...gait(((s - END) * 1.3) % 1, true) };
-        mx = standX - (s - END - 0.3) * 520;
+        mx = (kind === 'drop' ? 430 : standX) - (s - END - 0.3) * (kind === 'drop' ? 380 : 520);
         mflip = true;
         if (kind !== 'offer' && kind !== 'splash') mur.hold(null);
       }
@@ -821,12 +1051,18 @@ function flashbackShot(D, t0, murder, { watcher = '', outcome = 'solved' } = {})
       }
       if (mur) mur.set({ ...mp, x: mx, flip: mflip });
       vic.set({ ...vp, flip: vp.flip ?? faceOff, x: vx, y: vy, rot: vrot });
-      // 꽂힌 작살 · 화살은 가슴에 붙어 몸과 함께 넘어간다
-      if (stuck) { const c0 = vic.point('chest', 0, -50); proj.setAttribute('transform', `translate(${c0.x} ${c0.y}) rotate(${vrot})`); proj.style.transform = ''; }
+      // 꽂힌 작살 · 화살은 가슴에 붙어 몸과 함께 넘어간다 (몸이 기울면 같이 기운다)
+      if (stuck) {
+        const rad = vrot * Math.PI / 180;
+        const dy = -150;
+        proj.setAttribute('transform', `translate(${vx - dy * Math.sin(rad)} ${vy + dy * Math.cos(rad)}) rotate(${vrot})`);
+        proj.style.transform = '';
+      }
       C.update(dt);
       S.render(s);
     });
-    setTimeout(() => say(shot, '', `그날 밤, 이 골목에서… ${esc((K.CARD[murder.means] || {}).name || '')}.`, 2.2, '#c8d8ff'), 200);
+    const WHERE = { bed: '여관방 침대에서', site: '공사장 한복판에서', kitchen: '문 닫은 식당에서', bath: '그 집 욕실에서', barber: '불 꺼진 이발소에서', pier: '부두 끝에서', roofTop: '옥상 위에서', drop: '이 골목에서', bar: '이 술집에서' }[place] || '이 골목에서';
+    setTimeout(() => say(shot, '', `그날 밤, ${WHERE}… ${esc((K.CARD[murder.means] || {}).name || '')}.`, 2.2, '#c8d8ff'), 200);
   });
 }
 
