@@ -4,7 +4,7 @@
 //   /bang/   황야의 뱅
 //   /clue/   밤의 저택
 //   /isle/   바람섬 개척기
-//   /wolf/   보름밤 늑대인간
+//   /roach/  바퀴벌레 포커
 //   /gem/    찬란한 보석상
 const path = require('path');
 const http = require('http');
@@ -48,14 +48,14 @@ const GAMES = [
     time: '45~75분',
   },
   {
-    id: 'wolf',
-    base: '/wolf',
-    dir: 'wolf',
-    title: '보름밤의 늑대인간',
-    sub: '정체 숨기기 파티게임',
-    desc: '단 하룻밤, 카드가 뒤바뀌는 마을. 10분 동안 떠들고 추리해서 늑대인간을 찾아 투표하라.',
-    players: '3~10명',
-    time: '10~15분',
+    id: 'roach',
+    base: '/roach',
+    dir: 'roach',
+    title: '바퀴벌레 포커',
+    sub: '속이기 카드게임',
+    desc: '“이건 전갈이야.” 엎어 놓고 밀면 상대는 맞다 · 아니다를 고르거나, 몰래 보고 딴 사람에게 떠넘긴다. 같은 벌레 4장을 모으면 진다!',
+    players: '2~6명',
+    time: '20분',
   },
   {
     id: 'gem',

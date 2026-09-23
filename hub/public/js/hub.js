@@ -65,14 +65,10 @@ FRONT.isle = () => `
       <div class="if-band"><span>3~4명</span><span>45~75분</span><span>10세 이상</span></div>
     </div>`;
 
-// 짙푸른 밤, 보름달, 절벽 위 늑대인간 · 붓글씨 같은 흰 제목
-FRONT.wolf = () => `
-    <div class="wf">
-      <img class="wf-art" src="/wolf/assets/box.png" alt="">
-      <div class="wf-pub">FULL MOON GAMES</div>
-      <div class="wf-title"><span>보름밤의</span> 늑대인간</div>
-      <div class="wf-en">A ONE-NIGHT GAME OF HIDDEN ROLES</div>
-      <div class="wf-badge">3~10명<br>10분</div>
+// 주황 바탕에 카드를 든 바퀴 (직접 그린 상자 그림)
+FRONT.roach = () => `
+    <div class="kf">
+      <img class="kf-art" src="/roach/assets/box.png" alt="">
     </div>`;
 
 // 어둠 속 보석상 그림 + 금빛 제목 (스플렌더 상자 느낌)
@@ -108,7 +104,7 @@ const SPINE = {
   dalmuti: '왕궁의 달무티',
   kowloon: '구룡 살인사건',
   gem: '찬란한 보석상',
-  wolf: '보름밤의 늑대인간',
+  roach: '바퀴벌레 포커',
   bang: '황야의 뱅!',
   clue: '밤의 저택',
   isle: '바람섬 개척기',
@@ -141,7 +137,7 @@ const FILMS = [
   { game: '왕궁의 달무티', list: [['대관식', 'dalmuti', 'crown'], ['혁명 후 대관식', 'dalmuti', 'rose']] },
   { game: '달무티 조선 궁궐판', list: [['즉위식', 'dalmuti', 'joseon']] },
   { game: '구룡 살인사건', list: [['사건 해결', 'kowloon', 'solved'], ['미제 사건', 'kowloon', 'escaped'], ['목격자 제거', 'kowloon', 'witness']] },
-  { game: '보름밤의 늑대인간', list: [['늑대인간 승리', 'wolf', 'wolf'], ['마을 승리', 'wolf', 'village'], ['무두장이 승리', 'wolf', 'tanner'], ['모두 패배', 'wolf', 'none']] },
+  { game: '바퀴벌레 포커', list: [['패자 결정', 'roach', 'lose']] },
 ];
 // 영상에 나올 물건 · 증거를 직접 고른다 (기본은 무작위)
 const PICKS = {
@@ -178,7 +174,7 @@ document.getElementById('filmList').addEventListener('click', async (e) => {
   const host = document.getElementById('filmHost');
   filmDialog.hidden = true;
   // 효과음: 늑대인간 게임의 합성 효과음을 빌려 쓴다
-  if (!window.SFX) await new Promise((res) => { const s = document.createElement('script'); s.src = '/wolf/js/sfx.js'; s.onload = res; s.onerror = res; document.head.appendChild(s); });
+  if (!window.SFX) await new Promise((res) => { const s = document.createElement('script'); s.src = '/roach/js/sfx.js'; s.onload = res; s.onerror = res; document.head.appendChild(s); });
   const X = window.SFX || {};
   X.unlock && X.unlock();
   const call = (n) => X[n] && X[n]();
@@ -194,9 +190,10 @@ document.getElementById('filmList').addEventListener('click', async (e) => {
     if (id === 'bang') {
       const m = await import('/bang/js/ending.js');
       await m.playEnding(host, [kind], { sub: '미리 보기', sound });
-    } else if (id === 'wolf') {
-      const m = await import('/wolf/js/cutscene.js');
-      await m.playCutscene(host, kind, { sub: '미리 보기', sound });
+    } else if (id === 'roach') {
+      const m = await import('/roach/js/ending.js');
+      const KS = ['파리', '전갈', '두꺼비', '거미', '쥐', '박쥐', '노린재'];
+      await m.playEnding(host, { loser: '미리 보기', winners: '나머지 타짜', claim: KS[Math.floor(Math.random() * KS.length)], liar: '맞은편 타짜', sound });
     } else if (id === 'clue') {
       if (!window.CLUE) await new Promise((res) => { const s = document.createElement('script'); s.src = '/clue/shared/data.js'; s.onload = res; s.onerror = res; document.head.appendChild(s); });
       const m = await import('/clue/js/ending.js');

@@ -1,0 +1,8 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;700;900&display=swap">
+<style>body{margin:0;background:#2a2018;display:flex;flex-wrap:wrap;gap:14px;padding:16px;width:1560px}
+.card-svg{width:230px;display:block;filter:drop-shadow(0 8px 16px rgba(0,0,0,.5))}</style></head><body>
+<script src="shared/roach.js"></script><script src="js/cards.js"></script>
+<script>
+document.body.innerHTML = ROACH.KIND_IDS.map((k) => RCARD.cardSvg(k + '0')).join('') + RCARD.backSvg();
+</script></body></html>

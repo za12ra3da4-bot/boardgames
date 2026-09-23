@@ -1,0 +1,46 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@700;900&family=Black+Han+Sans&family=Song+Myung&display=swap">
+<link rel="stylesheet" href="/anim/anim.css">
+<style>html,body{margin:0;background:#000;overflow:hidden}</style></head><body>
+<div id="film" hidden></div>
+<script>
+// QA 전용: 가짜 시계로 정확히 t초 지점을 그린다 (?shot=flash&m=수단&c=단서&t=초)
+(() => {
+  const T = Number(new URLSearchParams(location.search).get('t') || 3) * 1000;
+  let vt = 0;
+  const STEP = 1000 / 30;
+  let cbs = [];
+  window.requestAnimationFrame = (cb) => { cbs.push(cb); return cbs.length; };
+  window.cancelAnimationFrame = () => {};
+  performance.now = () => vt;
+  const timers = [];
+  const rawTimeout = window.setTimeout.bind(window);
+  window.setTimeout = (fn, ms = 0) => { timers.push([vt + ms, fn]); return timers.length; };
+  window.clearTimeout = () => {};
+  const rawAnim = Element.prototype.animate;
+  const anims = [];
+  Element.prototype.animate = function (kf, opt) { const a = rawAnim.call(this, kf, opt); a.pause(); anims.push([a, vt]); return a; };
+  window.__pump = () => {
+    while (vt < T) {
+      vt += STEP;
+      for (let i = 0; i < timers.length; i++) if (timers[i] && timers[i][0] <= vt) { const f = timers[i][1]; timers[i] = null; try { f(); } catch (e) {} }
+      const list = cbs; cbs = [];
+      for (const cb of list) { try { cb(vt); } catch (e) { document.documentElement.setAttribute('data-err', String(e)); } }
+    }
+    // 애니메이션(가루 · 번쩍임 등)도 같은 시각으로 맞춘다
+    for (const [a, st] of anims) {
+      try { if (a.playState === 'idle') continue; const d = a.effect.getComputedTiming().activeDuration || 0; a.currentTime = Math.max(0, Math.min(d, vt - st)); } catch (e) {}
+    }
+    window.setTimeout = rawTimeout;
+    document.title = 'frozen';
+  };
+})();
+</script>
+<script src="shared/roach.js"></script>
+<script src="js/cards.js"></script>
+<script type="module">
+const q = new URLSearchParams(location.search);
+const m = await import('./js/ending.js');
+m.playEnding(document.querySelector('#film'), { loser: '윤호', winners: '왕눈이 · 구렁이', claim: '파리', liar: '왕눈이', sound: () => {} });
+setTimeout(() => window.__pump(), 0);
+</script></body></html>
